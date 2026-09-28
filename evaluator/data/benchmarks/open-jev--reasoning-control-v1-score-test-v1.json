@@ -1,0 +1,9 @@
+{
+  "id": "open-jev--reasoning-control-v1-score-test-v1",
+  "task": "score",
+  "dataset": "datasets/open_jev__reasoning-control-v1",
+  "split": "test",
+  "case_count": 34,
+  "decision_count": 34,
+  "primary_metric": "normalized_expected_score_mae"
+}

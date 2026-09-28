@@ -1,0 +1,9 @@
+{
+  "id": "open-jev--mailroom-control-v1-noul-test-v1",
+  "task": "noul",
+  "dataset": "datasets/open_jev__mailroom-control-v1",
+  "split": "test",
+  "case_count": 85,
+  "decision_count": 85,
+  "primary_metric": "binary_brier"
+}

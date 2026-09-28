@@ -1,0 +1,9 @@
+{
+  "id": "open-jev--painting-geometry-v1-score-test-v1",
+  "task": "score",
+  "dataset": "datasets/open_jev__painting-geometry-v1",
+  "split": "test",
+  "case_count": 25,
+  "decision_count": 25,
+  "primary_metric": "normalized_expected_score_mae"
+}

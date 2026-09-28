@@ -1,0 +1,9 @@
+{
+  "id": "synthetic-relevance--nanobeir--nanodbpedia-score-test-v1",
+  "task": "score",
+  "dataset": "datasets/synthetic_relevance__nanobeir__NanoDBPedia",
+  "split": "test",
+  "case_count": 400,
+  "decision_count": 400,
+  "primary_metric": "normalized_expected_score_mae"
+}

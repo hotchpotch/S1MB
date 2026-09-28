@@ -1,0 +1,9 @@
+{
+  "id": "open-jev--customer-control-v1-noul-test-v1",
+  "task": "noul",
+  "dataset": "datasets/open_jev__customer-control-v1",
+  "split": "test",
+  "case_count": 33,
+  "decision_count": 33,
+  "primary_metric": "binary_brier"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "laya--typed-decisions-noul-test-v1",
+  "task": "noul",
+  "dataset": "datasets/laya__typed_decisions",
+  "split": "test",
+  "case_count": 100,
+  "decision_count": 152,
+  "primary_metric": "binary_brier"
+}

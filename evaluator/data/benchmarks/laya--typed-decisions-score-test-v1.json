@@ -1,0 +1,9 @@
+{
+  "id": "laya--typed-decisions-score-test-v1",
+  "task": "score",
+  "dataset": "datasets/laya__typed_decisions",
+  "split": "test",
+  "case_count": 100,
+  "decision_count": 200,
+  "primary_metric": "normalized_expected_score_mae"
+}

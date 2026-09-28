@@ -1,0 +1,119 @@
+{
+  "case_id": "structured-case",
+  "group_id": "query-group",
+  "input_hash": "fixture",
+  "split": "test",
+  "language": "en",
+  "input": {
+    "state_json": "{\"messages\":[{\"role\":\"user\",\"content\":\"A sample\"}],\"query\":\"Question\"}",
+    "decisions": [
+      {
+        "id": "label",
+        "kind": "judgment",
+        "type": "choice",
+        "system_prompt": "Classify.",
+        "instructions_json": "{\"task\":\"Choose a label\",\"constraints\":[\"Use context\"]}",
+        "criteria": [
+          {
+            "id": "b",
+            "description_json": "{\"label\":\"B\"}",
+            "value": null
+          },
+          {
+            "id": "a",
+            "description_json": "\"A\"",
+            "value": null
+          }
+        ],
+        "documents": [],
+        "scoring": null
+      },
+      {
+        "id": "relevant",
+        "kind": "judgment",
+        "type": "noul",
+        "system_prompt": "",
+        "instructions_json": "\"Is this relevant?\"",
+        "criteria": [
+          {
+            "id": "false",
+            "description_json": "\"No\"",
+            "value": 0
+          },
+          {
+            "id": "true",
+            "description_json": "\"Yes\"",
+            "value": 1
+          }
+        ],
+        "documents": [],
+        "scoring": null
+      },
+      {
+        "id": "quality",
+        "kind": "judgment",
+        "type": "score",
+        "system_prompt": "",
+        "instructions_json": "\"Rate quality.\"",
+        "criteria": [
+          {
+            "id": "high-id",
+            "description_json": "\"Low\"",
+            "value": 0
+          },
+          {
+            "id": "low-id",
+            "description_json": "[\"High\",\"Detailed\"]",
+            "value": 4
+          }
+        ],
+        "documents": [],
+        "scoring": null
+      }
+    ]
+  },
+  "targets": [
+    {
+      "decision_id": "quality",
+      "kind": "judgment_distribution",
+      "annotation_kind": "soft",
+      "ids": [
+        "low-id",
+        "high-id"
+      ],
+      "probabilities": [
+        0.75,
+        0.25
+      ],
+      "metadata_json": "{\"annotation\":\"teacher-only\"}"
+    },
+    {
+      "decision_id": "relevant",
+      "kind": "judgment_distribution",
+      "annotation_kind": "soft",
+      "ids": [
+        "true",
+        "false"
+      ],
+      "probabilities": [
+        0.9,
+        0.1
+      ],
+      "metadata_json": "{}"
+    },
+    {
+      "decision_id": "label",
+      "kind": "judgment_distribution",
+      "annotation_kind": "hard",
+      "ids": [
+        "a",
+        "b"
+      ],
+      "probabilities": [
+        1,
+        0
+      ],
+      "metadata_json": "{}"
+    }
+  ]
+}

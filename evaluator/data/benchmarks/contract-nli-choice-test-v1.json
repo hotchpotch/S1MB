@@ -1,0 +1,9 @@
+{
+  "id": "contract-nli-choice-test-v1",
+  "task": "choice",
+  "dataset": "datasets/contract_nli",
+  "split": "test",
+  "case_count": 100,
+  "decision_count": 1700,
+  "primary_metric": "target_mass_at_prediction"
+}

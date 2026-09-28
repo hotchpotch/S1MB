@@ -1,0 +1,9 @@
+{
+  "id": "open-jev--workflow-controls-v1--customer-service-noul-test-v1",
+  "task": "noul",
+  "dataset": "datasets/open_jev__workflow-controls-v1__customer_service",
+  "split": "test",
+  "case_count": 100,
+  "decision_count": 100,
+  "primary_metric": "binary_brier"
+}

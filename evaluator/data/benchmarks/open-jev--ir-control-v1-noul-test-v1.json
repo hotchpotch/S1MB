@@ -1,0 +1,9 @@
+{
+  "id": "open-jev--ir-control-v1-noul-test-v1",
+  "task": "noul",
+  "dataset": "datasets/open_jev__ir-control-v1",
+  "split": "test",
+  "case_count": 28,
+  "decision_count": 28,
+  "primary_metric": "binary_brier"
+}

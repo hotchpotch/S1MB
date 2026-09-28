@@ -1,0 +1,9 @@
+{
+  "id": "open-jev--painting-geometry-v1-noul-test-v1",
+  "task": "noul",
+  "dataset": "datasets/open_jev__painting-geometry-v1",
+  "split": "test",
+  "case_count": 50,
+  "decision_count": 50,
+  "primary_metric": "binary_brier"
+}

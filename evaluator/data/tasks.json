@@ -1,0 +1,20 @@
+[
+  {
+    "id": "choice",
+    "name": "Choice",
+    "primary_metric": "target_mass_at_prediction",
+    "direction": "maximize"
+  },
+  {
+    "id": "noul",
+    "name": "Noul",
+    "primary_metric": "binary_brier",
+    "direction": "minimize"
+  },
+  {
+    "id": "score",
+    "name": "Score",
+    "primary_metric": "normalized_expected_score_mae",
+    "direction": "minimize"
+  }
+]

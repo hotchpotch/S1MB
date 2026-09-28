@@ -1,0 +1,9 @@
+{
+  "id": "gsm8k-choice-test-v1",
+  "task": "choice",
+  "dataset": "datasets/gsm8k",
+  "split": "test",
+  "case_count": 100,
+  "decision_count": 100,
+  "primary_metric": "target_mass_at_prediction"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "scone-choice-test-v1",
+  "task": "choice",
+  "dataset": "datasets/scone",
+  "split": "test",
+  "case_count": 100,
+  "decision_count": 100,
+  "primary_metric": "target_mass_at_prediction"
+}

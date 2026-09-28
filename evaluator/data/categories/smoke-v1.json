@@ -1,0 +1,10 @@
+{
+  "id": "smoke-v1",
+  "name": "Smoke v1",
+  "description": "One benchmark per task for integration checks, not the full leaderboard.",
+  "benchmarks": [
+    "arc-choice-test-v1",
+    "aegis2-noul-test-v1",
+    "patent-similarity-score-test-v1"
+  ]
+}

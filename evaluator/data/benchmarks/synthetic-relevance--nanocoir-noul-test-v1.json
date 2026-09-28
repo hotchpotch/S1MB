@@ -1,0 +1,9 @@
+{
+  "id": "synthetic-relevance--nanocoir-noul-test-v1",
+  "task": "noul",
+  "dataset": "datasets/synthetic_relevance__nanocoir",
+  "split": "test",
+  "case_count": 800,
+  "decision_count": 800,
+  "primary_metric": "binary_brier"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "open-jev--snake-v1-noul-test-v1",
+  "task": "noul",
+  "dataset": "datasets/open_jev__snake-v1",
+  "split": "test",
+  "case_count": 75,
+  "decision_count": 75,
+  "primary_metric": "binary_brier"
+}

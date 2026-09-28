@@ -1,0 +1,9 @@
+{
+  "id": "clinc-choice-test-v1",
+  "task": "choice",
+  "dataset": "datasets/clinc",
+  "split": "test",
+  "case_count": 151,
+  "decision_count": 151,
+  "primary_metric": "target_mass_at_prediction"
+}

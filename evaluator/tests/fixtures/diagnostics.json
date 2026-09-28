@@ -1,0 +1,478 @@
+[
+  {
+    "name": "msmarco_example",
+    "task": "noul",
+    "options": [
+      {
+        "id": "false"
+      },
+      {
+        "id": "true"
+      }
+    ],
+    "samples": [
+      {
+        "target": {
+          "false": 0,
+          "true": 1
+        },
+        "prediction": {
+          "false": 0,
+          "true": 1
+        },
+        "repeat": 1
+      },
+      {
+        "target": {
+          "false": 0,
+          "true": 1
+        },
+        "prediction": {
+          "false": 1,
+          "true": 0
+        },
+        "repeat": 10
+      },
+      {
+        "target": {
+          "false": 1,
+          "true": 0
+        },
+        "prediction": {
+          "false": 1,
+          "true": 0
+        },
+        "repeat": 89
+      }
+    ],
+    "expected": {
+      "accuracy": 0.9,
+      "positive_recall": 0.09090909090909091,
+      "specificity": 1,
+      "precision": 1,
+      "balanced_accuracy": 0.5454545454545454,
+      "binary_brier": 0.1,
+      "baseline_adjusted_score": 0.09090909090909083,
+      "true_positive": 1,
+      "false_negative": 10,
+      "false_positive": 0,
+      "true_negative": 89,
+      "majority_accuracy_baseline": 0.89,
+      "f1": 0.16666666666666666,
+      "constant_brier_baseline": 0.0979
+    }
+  },
+  {
+    "name": "always_false",
+    "task": "noul",
+    "options": [
+      {
+        "id": "false"
+      },
+      {
+        "id": "true"
+      }
+    ],
+    "samples": [
+      {
+        "target": {
+          "false": 0,
+          "true": 1
+        },
+        "prediction": {
+          "false": 1,
+          "true": 0
+        },
+        "repeat": 11
+      },
+      {
+        "target": {
+          "false": 1,
+          "true": 0
+        },
+        "prediction": {
+          "false": 1,
+          "true": 0
+        },
+        "repeat": 89
+      }
+    ],
+    "expected": {
+      "accuracy": 0.89,
+      "positive_recall": 0,
+      "specificity": 1,
+      "precision": null,
+      "balanced_accuracy": 0.5,
+      "baseline_adjusted_score": 0
+    }
+  },
+  {
+    "name": "single_class",
+    "task": "noul",
+    "options": [
+      {
+        "id": "false"
+      },
+      {
+        "id": "true"
+      }
+    ],
+    "samples": [
+      {
+        "target": {
+          "false": 1,
+          "true": 0
+        },
+        "prediction": {
+          "false": 1,
+          "true": 0
+        },
+        "repeat": 3
+      }
+    ],
+    "expected": {
+      "accuracy": 1,
+      "positive_recall": null,
+      "balanced_accuracy": null,
+      "baseline_adjusted_score": null,
+      "brier_skill": null
+    }
+  },
+  {
+    "name": "soft_noul",
+    "task": "noul",
+    "options": [
+      {
+        "id": "false"
+      },
+      {
+        "id": "true"
+      }
+    ],
+    "samples": [
+      {
+        "target": {
+          "false": 0.75,
+          "true": 0.25
+        },
+        "prediction": {
+          "false": 0.8,
+          "true": 0.2
+        },
+        "repeat": 1
+      },
+      {
+        "target": {
+          "false": 0.25,
+          "true": 0.75
+        },
+        "prediction": {
+          "false": 0.2,
+          "true": 0.8
+        },
+        "repeat": 1
+      }
+    ],
+    "expected": {
+      "accuracy": 0.75,
+      "balanced_accuracy": 0.75,
+      "baseline_adjusted_score": 0.5,
+      "binary_brier": 0.0025,
+      "brier_skill": 0.96,
+      "true_positive": 0.75,
+      "false_positive": 0.25
+    }
+  },
+  {
+    "name": "majority_choice",
+    "task": "choice",
+    "options": [
+      {
+        "id": "a"
+      },
+      {
+        "id": "b"
+      }
+    ],
+    "samples": [
+      {
+        "target": {
+          "a": 1,
+          "b": 0
+        },
+        "prediction": {
+          "a": 1,
+          "b": 0
+        },
+        "repeat": 4
+      },
+      {
+        "target": {
+          "a": 0,
+          "b": 1
+        },
+        "prediction": {
+          "a": 1,
+          "b": 0
+        },
+        "repeat": 1
+      }
+    ],
+    "expected": {
+      "target_mass_at_prediction": 0.8,
+      "fixed_answer_accuracy_baseline": 0.8,
+      "uniform_accuracy_baseline": 0.5,
+      "baseline_adjusted_score": 0
+    }
+  },
+  {
+    "name": "all_a",
+    "task": "choice",
+    "options": [
+      {
+        "id": "a"
+      },
+      {
+        "id": "b"
+      }
+    ],
+    "samples": [
+      {
+        "target": {
+          "a": 1,
+          "b": 0
+        },
+        "prediction": {
+          "a": 1,
+          "b": 0
+        },
+        "repeat": 3
+      }
+    ],
+    "expected": {
+      "target_mass_at_prediction": 1,
+      "fixed_answer_accuracy_baseline": 1,
+      "baseline_adjusted_score": null
+    }
+  },
+  {
+    "name": "variable_options",
+    "task": "choice",
+    "options": [
+      {
+        "id": "a"
+      },
+      {
+        "id": "b"
+      }
+    ],
+    "samples": [
+      {
+        "target": {
+          "a": 0,
+          "b": 1
+        },
+        "prediction": {
+          "a": 0,
+          "b": 1
+        },
+        "repeat": 1
+      },
+      {
+        "options": [
+          {
+            "id": "a"
+          },
+          {
+            "id": "b"
+          },
+          {
+            "id": "c"
+          }
+        ],
+        "target": {
+          "a": 0,
+          "b": 0,
+          "c": 1
+        },
+        "prediction": {
+          "a": 0,
+          "b": 0,
+          "c": 1
+        },
+        "repeat": 1
+      }
+    ],
+    "expected": {
+      "target_mass_at_prediction": 1,
+      "fixed_answer_accuracy_baseline": 0.75,
+      "uniform_accuracy_baseline": 0.41666666666666663,
+      "baseline_adjusted_score": 1
+    }
+  },
+  {
+    "name": "constant_score_prediction",
+    "task": "score",
+    "options": [
+      {
+        "id": "a",
+        "value": 10
+      },
+      {
+        "id": "b",
+        "value": 30
+      }
+    ],
+    "samples": [
+      {
+        "target": {
+          "a": 1,
+          "b": 0
+        },
+        "prediction": {
+          "a": 0.5,
+          "b": 0.5
+        },
+        "repeat": 1
+      },
+      {
+        "target": {
+          "a": 0,
+          "b": 1
+        },
+        "prediction": {
+          "a": 0.5,
+          "b": 0.5
+        },
+        "repeat": 1
+      }
+    ],
+    "expected": {
+      "normalized_expected_score_mae": 0.5,
+      "normalized_score_rmse": 0.5,
+      "constant_score_baseline": 0.5,
+      "constant_mae_baseline": 0.5,
+      "baseline_adjusted_score": 0
+    }
+  },
+  {
+    "name": "perfect_score_prediction",
+    "task": "score",
+    "options": [
+      {
+        "id": "a",
+        "value": 10
+      },
+      {
+        "id": "b",
+        "value": 30
+      }
+    ],
+    "samples": [
+      {
+        "target": {
+          "a": 1,
+          "b": 0
+        },
+        "prediction": {
+          "a": 1,
+          "b": 0
+        },
+        "repeat": 1
+      },
+      {
+        "target": {
+          "a": 0,
+          "b": 1
+        },
+        "prediction": {
+          "a": 0,
+          "b": 1
+        },
+        "repeat": 1
+      }
+    ],
+    "expected": {
+      "normalized_expected_score_mae": 0,
+      "normalized_score_rmse": 0,
+      "constant_mae_baseline": 0.5,
+      "baseline_adjusted_score": 1
+    }
+  },
+  {
+    "name": "constant_score_targets",
+    "task": "score",
+    "options": [
+      {
+        "id": "a",
+        "value": 10
+      },
+      {
+        "id": "b",
+        "value": 30
+      }
+    ],
+    "samples": [
+      {
+        "target": {
+          "a": 0.25,
+          "b": 0.75
+        },
+        "prediction": {
+          "a": 0.25,
+          "b": 0.75
+        },
+        "repeat": 2
+      }
+    ],
+    "expected": {
+      "normalized_expected_score_mae": 0,
+      "constant_mae_baseline": 0,
+      "baseline_adjusted_score": null
+    }
+  },
+  {
+    "name": "noul_threshold_tie",
+    "task": "noul",
+    "options": [
+      {
+        "id": "false"
+      },
+      {
+        "id": "true"
+      }
+    ],
+    "samples": [
+      {
+        "target": {
+          "false": 0,
+          "true": 1
+        },
+        "prediction": {
+          "false": 0.5,
+          "true": 0.5
+        },
+        "repeat": 1
+      },
+      {
+        "target": {
+          "false": 1,
+          "true": 0
+        },
+        "prediction": {
+          "false": 0.5,
+          "true": 0.5
+        },
+        "repeat": 1
+      }
+    ],
+    "expected": {
+      "true_positive": 1,
+      "false_positive": 1,
+      "true_negative": 0,
+      "false_negative": 0,
+      "balanced_accuracy": 0.5,
+      "baseline_adjusted_score": 0
+    }
+  }
+]

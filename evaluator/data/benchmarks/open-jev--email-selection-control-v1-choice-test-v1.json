@@ -1,0 +1,9 @@
+{
+  "id": "open-jev--email-selection-control-v1-choice-test-v1",
+  "task": "choice",
+  "dataset": "datasets/open_jev__email-selection-control-v1",
+  "split": "test",
+  "case_count": 48,
+  "decision_count": 48,
+  "primary_metric": "target_mass_at_prediction"
+}

@@ -1,0 +1,78 @@
+[project]
+name = "s1mb"
+version = "0.1.0"
+description = "Fixed-sample benchmarks for System One models"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Yuichi Tateno", email = "hotchpotch@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.12,<3",
+    "httpx>=0.28,<1",
+    "datasets>=4,<5",
+    "huggingface-hub>=1,<2",
+    "filelock>=3,<5",
+]
+
+[project.optional-dependencies]
+laya = ["laya==0.3.20", "torch==2.10.0", "transformers==5.17.0"]
+open-models = ["torch==2.10.0", "transformers==5.17.0", "peft>=0.17,<1", "accelerate>=1,<2", "einops>=0.8,<1", "sentencepiece>=0.2,<1", "kernels==0.16.0"]
+
+[[tool.uv.index]]
+name = "torch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "torch-cu130" }
+
+[project.scripts]
+s1mb = "s1mb:main"
+
+[build-system]
+requires = ["uv_build>=0.12.18,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.9",
+    "tox>=4.64.2",
+    "tox-uv>=1.36.0",
+    "ty>=0.0.84",
+]
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+requires = tox-uv>=1.29.0
+parallel = auto
+parallel_show_output = true
+env_list = py311, lint, type
+
+[testenv]
+pass_env = S1MB_TEST_NO_DATASET
+deps = pytest
+commands = pytest {posargs}
+
+[testenv:lint]
+deps = ruff
+commands = ruff check .
+
+[testenv:type]
+deps =
+    ty
+    pytest
+commands = ty check
+"""
+
+[tool.ruff]
+line-length = 100
+# Release reproduction sources are copied unchanged from upstream.
+extend-exclude = ["data/datasets", "audits"]
+
+[tool.ty.src]
+include = ["src", "tests"]

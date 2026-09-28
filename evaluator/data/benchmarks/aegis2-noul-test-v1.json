@@ -1,0 +1,9 @@
+{
+  "id": "aegis2-noul-test-v1",
+  "task": "noul",
+  "dataset": "datasets/aegis2",
+  "split": "test",
+  "case_count": 100,
+  "decision_count": 148,
+  "primary_metric": "binary_brier"
+}

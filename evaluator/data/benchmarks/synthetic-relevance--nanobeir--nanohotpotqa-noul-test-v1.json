@@ -1,0 +1,9 @@
+{
+  "id": "synthetic-relevance--nanobeir--nanohotpotqa-noul-test-v1",
+  "task": "noul",
+  "dataset": "datasets/synthetic_relevance__nanobeir__NanoHotpotQA",
+  "split": "test",
+  "case_count": 400,
+  "decision_count": 400,
+  "primary_metric": "binary_brier"
+}

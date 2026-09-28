@@ -1,0 +1,9 @@
+{
+  "id": "synthetic-relevance--nanocoir-score-test-v1",
+  "task": "score",
+  "dataset": "datasets/synthetic_relevance__nanocoir",
+  "split": "test",
+  "case_count": 800,
+  "decision_count": 800,
+  "primary_metric": "normalized_expected_score_mae"
+}

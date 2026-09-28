@@ -1,0 +1,9 @@
+{
+  "id": "few-nerd-choice-test-v1",
+  "task": "choice",
+  "dataset": "datasets/few_nerd",
+  "split": "test",
+  "case_count": 100,
+  "decision_count": 358,
+  "primary_metric": "target_mass_at_prediction"
+}

@@ -1,0 +1,34 @@
+name: Check
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  evaluator:
+    runs-on: ubuntu-latest
+    env:
+      S1MB_TEST_NO_DATASET: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.18"
+          python-version: "3.11"
+      - run: uv sync --locked
+        working-directory: evaluator
+      - run: uv run tox
+        working-directory: evaluator
+  viewer:
+    runs-on: ubuntu-latest
+    env:
+      S1MB_TEST_NO_DATASET: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.22.2"
+          cache: npm
+          cache-dependency-path: viewer/package-lock.json
+      - run: npm ci
+        working-directory: viewer
+      - run: npm test && npm run typecheck && npm run build
+        working-directory: viewer

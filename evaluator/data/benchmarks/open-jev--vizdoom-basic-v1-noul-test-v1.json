@@ -1,0 +1,9 @@
+{
+  "id": "open-jev--vizdoom-basic-v1-noul-test-v1",
+  "task": "noul",
+  "dataset": "datasets/open_jev__vizdoom-basic-v1",
+  "split": "test",
+  "case_count": 33,
+  "decision_count": 33,
+  "primary_metric": "binary_brier"
+}

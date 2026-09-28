@@ -1,0 +1,9 @@
+{
+  "id": "open-jev--reasoning-control-v1-choice-test-v1",
+  "task": "choice",
+  "dataset": "datasets/open_jev__reasoning-control-v1",
+  "split": "test",
+  "case_count": 33,
+  "decision_count": 33,
+  "primary_metric": "target_mass_at_prediction"
+}

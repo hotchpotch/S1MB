@@ -1,0 +1,9 @@
+{
+  "id": "ethics-noul-test-v1",
+  "task": "noul",
+  "dataset": "datasets/ethics",
+  "split": "test",
+  "case_count": 82,
+  "decision_count": 82,
+  "primary_metric": "binary_brier"
+}

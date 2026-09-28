@@ -1,0 +1,9 @@
+{
+  "id": "open-jev--phone-extraction-control-v1-choice-test-v1",
+  "task": "choice",
+  "dataset": "datasets/open_jev__phone-extraction-control-v1",
+  "split": "test",
+  "case_count": 79,
+  "decision_count": 79,
+  "primary_metric": "target_mass_at_prediction"
+}

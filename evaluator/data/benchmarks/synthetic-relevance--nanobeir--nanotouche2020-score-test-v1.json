@@ -1,0 +1,9 @@
+{
+  "id": "synthetic-relevance--nanobeir--nanotouche2020-score-test-v1",
+  "task": "score",
+  "dataset": "datasets/synthetic_relevance__nanobeir__NanoTouche2020",
+  "split": "test",
+  "case_count": 392,
+  "decision_count": 392,
+  "primary_metric": "normalized_expected_score_mae"
+}

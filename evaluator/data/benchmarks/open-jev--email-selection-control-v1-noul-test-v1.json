@@ -1,0 +1,9 @@
+{
+  "id": "open-jev--email-selection-control-v1-noul-test-v1",
+  "task": "noul",
+  "dataset": "datasets/open_jev__email-selection-control-v1",
+  "split": "test",
+  "case_count": 52,
+  "decision_count": 52,
+  "primary_metric": "binary_brier"
+}

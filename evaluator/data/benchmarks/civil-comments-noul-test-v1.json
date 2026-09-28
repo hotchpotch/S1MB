@@ -1,0 +1,9 @@
+{
+  "id": "civil-comments-noul-test-v1",
+  "task": "noul",
+  "dataset": "datasets/civil_comments",
+  "split": "test",
+  "case_count": 100,
+  "decision_count": 700,
+  "primary_metric": "binary_brier"
+}

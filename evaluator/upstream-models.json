@@ -1,0 +1,92 @@
+[
+  {
+    "adapter": "von",
+    "repository": "https://github.com/wfzyx/von",
+    "commit": "ca5d608fa79820d4e5388c9cb4c6a9b47a44a98c",
+    "model": "wfzyx/von",
+    "revision": "5df8185a4f2327ad0a7cd117cc4f701ac557b9ae"
+  },
+  {
+    "adapter": "jevforge",
+    "repository": "https://github.com/zwliJay/jev-forge",
+    "commit": "6cf0dfe3b811d623331c0cc8b1c00ff13614772e",
+    "model": "AndeyTait/JevForge-0.8B",
+    "revision": "a7e0e71a8265ed8c4e492e4574b51afa85a85f6a"
+  },
+  {
+    "adapter": "verdict2",
+    "repository": "https://github.com/Heman10x-NGU/openJev-verdict-2.0",
+    "commit": "bff28567cff463b833bf044f351a8b7945d53e07",
+    "model": null
+  },
+  {
+    "adapter": "kev",
+    "repository": "https://github.com/jaredpalmer/kev",
+    "commit": "2855ba2a55a80579176a459f78b95d03548cabb5",
+    "model": "jaredpalmer/kev-0.8b",
+    "revision": "9a45d25eb2ab761841196625383fa1dff0e56c1e"
+  },
+  {
+    "adapter": "luce",
+    "repository": "https://github.com/scienthoon/luce",
+    "commit": "ec584762a01c9117ca5d30845f98cb663a8fd60f",
+    "model": "noscienthoon/ouro-2.6b-decision-lora",
+    "revision": "405389e786f470ecde1978f8db4a9bc14e9af6be"
+  },
+  {
+    "adapter": "minojev",
+    "repository": "https://github.com/zeredy879/minojev",
+    "commit": "622dd952c3db2769a7a32d1a13cc89db04bba95e",
+    "model": "zeredy879/minojev",
+    "revision": "e1e4bbec238c36af6db1af3b1890634440228cb7"
+  },
+  {
+    "adapter": "openvons",
+    "repository": "https://github.com/genai-craft/openvons",
+    "commit": "c2683c4539a78b530b7c36a1536f91fcd8fbc70c",
+    "model": null
+  },
+  {
+    "adapter": "decider",
+    "repository": "https://github.com/Mapika/decider",
+    "commit": "15ab28e8d8e4ec49728165b3426d81de5b77f864",
+    "model": "Mapika/decider-0.8b",
+    "revision": "a0a01d6f8135298f400a8c856b355793012ae971"
+  },
+  {
+    "adapter": "jevk5",
+    "repository": "https://github.com/allebee/jevk5",
+    "commit": "7b97499c9103009d0e634001907353d8d53aaecf",
+    "model": "alibiserikbay/JevK5",
+    "revision": "c4f7fdb3aeab5582336406e78d3bef11bf98833d"
+  },
+  {
+    "adapter": "laya",
+    "model": "convaiinnovations/laya",
+    "variants": [
+      "laya",
+      "laya-multilingual",
+      "laya-typed-decisions"
+    ]
+  },
+  {
+    "adapter": "kev",
+    "repository": "https://github.com/jaredpalmer/kev",
+    "commit": "2855ba2a55a80579176a459f78b95d03548cabb5",
+    "model": "jaredpalmer/kev-4b",
+    "revision": "139fdd94f1b6a6ad80cc15e08fcb99cac885a101"
+  },
+  {
+    "adapter": "kev",
+    "repository": "https://github.com/jaredpalmer/kev",
+    "commit": "2855ba2a55a80579176a459f78b95d03548cabb5",
+    "model": "jaredpalmer/kev-9b",
+    "revision": "2629c06a5aeb0feb3b9783bafed17ed8f39ecf5c"
+  },
+  {
+    "adapter": "kev",
+    "repository": "https://github.com/jaredpalmer/kev",
+    "commit": "2855ba2a55a80579176a459f78b95d03548cabb5",
+    "model": "jaredpalmer/kev-27b"
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "id": "synthetic-relevance--nanobeir--nanotouche2020-noul-test-v1",
+  "task": "noul",
+  "dataset": "datasets/synthetic_relevance__nanobeir__NanoTouche2020",
+  "split": "test",
+  "case_count": 392,
+  "decision_count": 392,
+  "primary_metric": "binary_brier"
+}

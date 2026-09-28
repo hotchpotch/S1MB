@@ -1,0 +1,9 @@
+{
+  "id": "ethics-choice-test-v1",
+  "task": "choice",
+  "dataset": "datasets/ethics",
+  "split": "test",
+  "case_count": 18,
+  "decision_count": 18,
+  "primary_metric": "target_mass_at_prediction"
+}

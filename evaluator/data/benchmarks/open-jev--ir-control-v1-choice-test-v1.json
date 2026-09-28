@@ -1,0 +1,9 @@
+{
+  "id": "open-jev--ir-control-v1-choice-test-v1",
+  "task": "choice",
+  "dataset": "datasets/open_jev__ir-control-v1",
+  "split": "test",
+  "case_count": 17,
+  "decision_count": 17,
+  "primary_metric": "target_mass_at_prediction"
+}

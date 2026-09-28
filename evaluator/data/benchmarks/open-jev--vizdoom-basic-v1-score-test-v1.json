@@ -1,0 +1,9 @@
+{
+  "id": "open-jev--vizdoom-basic-v1-score-test-v1",
+  "task": "score",
+  "dataset": "datasets/open_jev__vizdoom-basic-v1",
+  "split": "test",
+  "case_count": 33,
+  "decision_count": 33,
+  "primary_metric": "normalized_expected_score_mae"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "open-jev--phone-extraction-control-v1-noul-test-v1",
+  "task": "noul",
+  "dataset": "datasets/open_jev__phone-extraction-control-v1",
+  "split": "test",
+  "case_count": 21,
+  "decision_count": 21,
+  "primary_metric": "binary_brier"
+}

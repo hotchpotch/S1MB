@@ -1,0 +1,9 @@
+{
+  "id": "open-jev--ir-control-v1-score-test-v1",
+  "task": "score",
+  "dataset": "datasets/open_jev__ir-control-v1",
+  "split": "test",
+  "case_count": 55,
+  "decision_count": 55,
+  "primary_metric": "normalized_expected_score_mae"
+}

@@ -1,0 +1,14 @@
+# Local credentials
+.env
+.env.*
+!.env.sample
+
+# Local tools, generated data, measurements and reports
+/tmp/
+/.playwright-cli/
+/.ruff_cache/
+/evaluator/data/datasets/
+/evaluator/data/results/*
+!/evaluator/data/results/.gitkeep
+/evaluator/audits/
+/evaluator/OPEN_MODEL_RESULTS.md
