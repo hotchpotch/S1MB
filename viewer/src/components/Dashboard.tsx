@@ -57,6 +57,7 @@ import {
 import { cn } from "../lib/utils";
 import { ModelName } from "./ModelName";
 import { GeneralizationTable } from "./GeneralizationTable";
+import { ComparisonOrder } from "./ComparisonOrder";
 
 type LeaderboardSort = 'overall' | Task | `general-${Task}`;
 type View = "leaderboard" | "benchmarks" | "compare";
@@ -824,6 +825,7 @@ export function Dashboard({
                 </p>
               )}
             </details>
+            <ComparisonOrder snapshot={snapshot} category={category} selectedIds={selectedIds} onChange={setSelected} />
             <ComparisonTables
               snapshot={snapshot}
               categoryId={category.id}

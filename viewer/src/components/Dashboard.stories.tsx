@@ -342,6 +342,10 @@ export const SortableLeaderboard: Story = {
   args: { snapshot: radarFixture },
   parameters: { docs: { description: { story: 'Synthetic results with different task leaders. Click any score heading twice to review descending and ascending order.' } } },
 };
+export const ReorderComparison: Story = {
+  args: { ...ShareableComparison.args },
+  parameters: { docs: { description: { story: 'Synthetic results. Move selected models up or down, or click score headings to sort. Comparison columns and URL selection order follow the displayed model order.' } } },
+};
 export const RankedBenchmarks: Story = {
   args: { snapshot: radarFixture, initialView: 'benchmarks', initialTask: 'noul' },
 };
