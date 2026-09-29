@@ -1,6 +1,6 @@
 import { generalizationComparison } from '../lib/generalization';
 import { modelName } from '../lib/comparison';
-import type { Category, Snapshot, Task } from '../lib/types';
+import type { Category, Snapshot } from '../lib/types';
 import { ParameterCounts, ParameterCountsHeader } from './ParameterCounts';
 import { ModelName } from './ModelName';
 import { Checkbox } from './ui/checkbox';
@@ -9,9 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 const score = (value: number | null) => value == null ? '—' : (value * 100).toFixed(2);
 const title = (value: string) => value[0].toUpperCase() + value.slice(1);
 
-export function GeneralizationTable({ snapshot, category, selectedIds, onToggle, onBenchmarkSelect }: {
+export function GeneralizationTable({ snapshot, category, selectedIds, onToggle }: {
   snapshot: Snapshot; category: Category; selectedIds: string[];
-  onToggle: (id: string) => void; onBenchmarkSelect: (id: string, task: Task) => void;
+  onToggle: (id: string) => void;
 }) {
   const { columns, rows } = generalizationComparison(snapshot, category);
   return <section aria-label="Generalization benchmark comparison" className="space-y-4">
@@ -19,20 +19,20 @@ export function GeneralizationTable({ snapshot, category, selectedIds, onToggle,
       <p className="mt-1 text-sm text-muted-foreground">Diverse and Contextual, each covering Noul, Choice and Score. All six adjusted scores are shown together.</p></div>
     <p className="text-xs text-muted-foreground">0–100 · Higher is better. Average weights the six benchmarks equally and requires all six to be complete and scored. — means incomplete or unavailable; it does not count as zero.</p>
     {rows.length ? <div className="rounded-lg border bg-card overflow-hidden">
-      <Table aria-label="Generalization scores" className="table-fixed text-[9px] sm:text-xs [&_th]:px-0.5 sm:[&_th]:px-2 [&_th]:whitespace-normal [&_td]:px-0.5 sm:[&_td]:px-2 [&_td]:py-3">
+      <Table aria-label="Generalization scores" className="table-fixed text-[9px] sm:text-xs [&_th]:px-0.5 sm:[&_th]:px-1 [&_th]:whitespace-normal [&_th]:break-words [&_td]:px-0.5 sm:[&_td]:px-1 [&_td]:py-2 [&_tr>:first-child]:pl-3 sm:[&_tr>:first-child]:pl-4 [&_tr>:last-child]:pr-3 sm:[&_tr>:last-child]:pr-4 [&_button]:text-[10px] sm:[&_button]:text-xs">
         <TableHeader><TableRow>
           <TableHead className="w-6 sm:w-9"><span className="sr-only">Compare</span></TableHead>
           <TableHead className="w-[22%]">Model</TableHead>
           <TableHead className="text-right">Average ↑</TableHead>
-          {columns.map(({ family, task, benchmark }) => <TableHead key={benchmark.id} className="text-right"><span className="block text-[9px] sm:text-[10px] text-muted-foreground">{title(family)}</span>{title(task)}</TableHead>)}
-          <TableHead className="w-12 sm:w-16 text-right"><ParameterCountsHeader /></TableHead>
+          {columns.map(({ family, task, benchmark }) => <TableHead key={benchmark.id} data-task={task} className="task-accent text-right"><span className="block text-[9px] sm:text-[10px] text-muted-foreground">{title(family)}</span>{title(task)}</TableHead>)}
+          <TableHead className="w-14 sm:w-20 text-right"><ParameterCountsHeader /></TableHead>
         </TableRow></TableHeader>
         <TableBody>{rows.map(row => <TableRow key={row.id} data-state={selectedIds.includes(row.id) ? 'selected' : undefined}>
           <TableCell><Checkbox aria-label={`Compare ${modelName(row.model)}`} checked={selectedIds.includes(row.id)} onCheckedChange={() => onToggle(row.id)} /></TableCell>
           <TableCell className="whitespace-normal [overflow-wrap:anywhere]"><ModelName model={row.model} />{row.demo && <span className="block text-muted-foreground">Demo</span>}</TableCell>
           <TableCell className="text-right font-mono font-semibold tabular-nums">{score(row.average)}</TableCell>
-          {columns.map(({ task, benchmark }, i) => <TableCell key={benchmark.id} className="text-right font-mono tabular-nums">
-            <button className="underline decoration-muted-foreground/40 underline-offset-4 hover:decoration-current" aria-label={`${modelName(row.model)} · ${title(columns[i].family)} ${title(task)}: ${score(row.values[i])}`} onClick={() => onBenchmarkSelect(benchmark.id, task)}>{score(row.values[i])}</button>
+          {columns.map(({ benchmark }, i) => <TableCell key={benchmark.id} className="text-right font-mono tabular-nums">
+            {score(row.values[i])}
           </TableCell>)}
           <TableCell><ParameterCounts model={row.model} /></TableCell>
         </TableRow>)}</TableBody>
@@ -48,7 +48,7 @@ export function GeneralizationTable({ snapshot, category, selectedIds, onToggle,
           <li>Noul: 50% balanced accuracy. True and false cases contribute equally; always predicting one class scores zero when both classes are present.</li>
           <li>Score: always predicting the median normalized target value. The adjusted score measures how much the model reduces absolute error against this constant.</li>
         </ul>
-        <p className="mt-2 text-xs text-muted-foreground">References are computed from evaluation targets. Each benchmark is adjusted and clipped before averaging. Select a score above to inspect its raw metrics and diagnostics.</p>
+        <p className="mt-2 text-xs text-muted-foreground">References are computed from evaluation targets. Each benchmark is adjusted and clipped before averaging.</p>
       </details>
     </section>
     <p className="text-xs text-muted-foreground">These six benchmarks are already included in the overall task scores; they add no extra leaderboard weight. “Generalization” names this general-purpose subset and does not establish performance on unseen tasks or training-data non-overlap.</p>

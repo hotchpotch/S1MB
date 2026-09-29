@@ -38,10 +38,16 @@
   --accent: oklch(0.93 0.025 150);
   --border: oklch(0.88 0.012 145);
   --radius: 0.5rem;
+  --task-choice: oklch(0.48 0.12 250);
+  --task-noul: oklch(0.46 0.10 165);
+  --task-score: oklch(0.48 0.13 310);
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --background: oklch(0.195 0.016 155);
+    --task-choice: oklch(0.78 0.10 245);
+    --task-noul: oklch(0.79 0.11 165);
+    --task-score: oklch(0.79 0.11 310);
     --foreground: oklch(0.94 0.006 145);
     --card: oklch(0.21 0.012 155);
     --primary: oklch(0.77 0.1 155);
@@ -68,4 +74,12 @@
   summary:focus-visible {
     @apply outline-2 outline-offset-4 outline-ring;
   }
+}
+
+/* Task accents retain text labels so color is never the only identifier. */
+.task-accent[data-task="choice"] { color: var(--task-choice); }
+.task-accent[data-task="noul"] { color: var(--task-noul); }
+.task-accent[data-task="score"] { color: var(--task-score); }
+.mosaic-hero {
+  background-image: radial-gradient(ellipse at 0% 0%, color-mix(in oklch, var(--primary) 10%, transparent), transparent 70%);
 }

@@ -510,14 +510,14 @@ export function Dashboard({
         <span className="sm:ml-auto text-xs text-muted-foreground">{benchmarks.length} benchmarks · {runs.length} runs</span>
       </header>}
       <main className={cn("pb-6 space-y-6", view !== "leaderboard" && "pt-6")}>
-        {view === 'leaderboard' ? <section aria-label="About S1MB" className="-mx-4 sm:-mx-8 lg:-mx-12 border-b bg-background text-foreground px-4 sm:px-8 lg:px-12 py-8 sm:py-10">
+        {view === 'leaderboard' ? <section aria-label="About S1MB" className="mosaic-hero -mx-4 sm:-mx-8 lg:-mx-12 border-b bg-background text-foreground px-4 sm:px-8 lg:px-12 py-8 sm:py-10">
           <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr] lg:items-end lg:gap-12">
             <div>
               <a href="/" aria-label="S1MB home" className="mb-6 inline-block text-2xl font-bold tracking-tight">S1MB<span className="text-primary">.</span></a>
-              <h1 className="text-[clamp(2.8rem,5.1vw,4.6rem)] font-semibold leading-[0.98] tracking-[-0.06em]">System One<br />Mosaic Benchmark</h1>
+              <h1 className="text-[clamp(2.8rem,5.1vw,4.6rem)] font-semibold leading-[0.98] tracking-[-0.06em]">System One<br /><span className="text-primary">Mosaic</span> Benchmark</h1>
             </div>
             <div className="space-y-6 lg:pb-1">
-              <p className="max-w-lg text-lg sm:text-xl leading-relaxed tracking-[-0.02em]">Choose an option. Judge a statement. Assign a score.<br className="hidden sm:block" /> Explore how models perform across a mosaic of specialized decision tasks.</p>
+              <p className="max-w-lg text-lg sm:text-xl leading-relaxed tracking-[-0.02em]"><span className="task-accent" data-task="choice">Choose an option.</span> <span className="task-accent" data-task="noul">Judge a statement.</span> <span className="task-accent" data-task="score">Assign a score.</span><br className="hidden sm:block" /> Explore how models perform across a mosaic of specialized decision tasks.</p>
               <div className="flex flex-wrap gap-x-5 gap-y-3 text-xs font-medium text-muted-foreground">
                 <span className="inline-flex items-center gap-2"><ListChecks aria-hidden="true" className="size-4" strokeWidth={1.5} />{benchmarks.length} benchmarks</span>
                 <span className="inline-flex items-center gap-2"><CircleCheck aria-hidden="true" className="size-4" strokeWidth={1.5} />3 decision tasks</span>
@@ -552,7 +552,7 @@ export function Dashboard({
             <Tabs value={generalizationView ? "generalization" : task} onValueChange={chooseTask}>
               <TabsList variant="line">
                 {TASKS.map((t) => (
-                  <TabsTrigger key={t} value={t}>
+                  <TabsTrigger key={t} value={t}><span aria-hidden="true" data-task={t} className="task-accent size-1.5 rounded-full bg-current" />
                     {title(t)}{" "}
                     <span className="text-muted-foreground text-xs">
                       {benchmarks.filter((b) => b.task === t).length}
@@ -591,12 +591,12 @@ export function Dashboard({
                   <TableHead className="w-9 sm:w-11"><span className="sr-only">Compare</span></TableHead>
                   <TableHead className="w-5 sm:w-8"><span aria-label="Rank">#</span></TableHead><TableHead className="w-[16%] sm:w-[22%]">Model</TableHead>
                   <TableHead className="text-right">Overall</TableHead>
-                  {DISPLAY_TASKS.map(t => <TableHead key={t} className="text-right">{title(t)}</TableHead>)}
-                  {DISPLAY_TASKS.map(t => <TableHead key={`general-${t}`} className="text-right"><span className="block text-[9px] sm:text-[10px] text-muted-foreground">General</span>{title(t)}</TableHead>)}
+                  {DISPLAY_TASKS.map(t => <TableHead key={t} data-task={t} className="task-accent text-right">{title(t)}</TableHead>)}
+                  {DISPLAY_TASKS.map(t => <TableHead key={`general-${t}`} data-task={t} className="task-accent text-right"><span className="block text-[9px] sm:text-[10px] text-muted-foreground">General</span>{title(t)}</TableHead>)}
                   <TableHead className="hidden sm:table-cell text-right w-14">Cov</TableHead>
                   <TableHead className="w-14 sm:w-20 text-right"><ParameterCountsHeader /></TableHead>
                 </TableRow></TableHeader>
-                <TableBody>{rows.map((row,i) => <TableRow key={row.runId} className="cursor-pointer" data-state={selectedIds.includes(row.runId) ? 'selected' : undefined}
+                <TableBody>{rows.map((row,i) => <TableRow key={row.runId} className="cursor-pointer data-[state=selected]:bg-primary/10" data-state={selectedIds.includes(row.runId) ? 'selected' : undefined}
                   onClick={event => {
                     if (event.defaultPrevented || !(event.target instanceof Element)) return;
                     if (event.target.closest('a, button, input, select, textarea, label, summary, [role="button"], [role="checkbox"], [role="link"], [contenteditable="true"]')) return;
@@ -606,7 +606,7 @@ export function Dashboard({
                   <TableCell className="font-mono text-muted-foreground">{row.score !== null && !row.demo ? i + 1 : '—'}</TableCell>
                   <TableCell className="whitespace-normal"><ModelLabel model={row.model} runId={row.runId} distinguish={repeatedName(runs, row.model)} onClick={() => setRun(row.runId)} />{row.score === null && <span className="mt-1 block text-xs text-muted-foreground">Aggregate unavailable · {row.results.filter(r => r.status === 'complete').length}/{category.benchmarks.length} complete</span>}{row.demo && <Badge variant="secondary">Demo</Badge>}</TableCell>
                   <TableCell className="text-right">
-                    <span className="font-mono font-semibold">{adjustedScore(row.score)}</span>
+                    <span className="font-mono font-semibold text-primary">{adjustedScore(row.score)}</span>
                   </TableCell>
                   {DISPLAY_TASKS.map(t => <TableCell key={t} className="text-right font-mono">{adjustedScore(diagnosticMean(snapshot, category, t, row.results, 'baseline_adjusted_score'))}</TableCell>)}
                   {DISPLAY_TASKS.map(t => <TableCell key={`general-${t}`} className="text-right font-mono">{adjustedScore(diagnosticMean(snapshot, generalizationCategory(snapshot, category), t, row.results, 'baseline_adjusted_score'))}</TableCell>)}
@@ -625,8 +625,7 @@ export function Dashboard({
             </details>
           </section>
         )}
-        {view === "benchmarks" && generalizationView && <GeneralizationTable snapshot={snapshot} category={category} selectedIds={selectedIds} onToggle={toggle}
-          onBenchmarkSelect={(id, selectedTask) => { chooseTask(selectedTask); setBenchmark(id); }} />}
+        {view === "benchmarks" && generalizationView && <GeneralizationTable snapshot={snapshot} category={category} selectedIds={selectedIds} onToggle={toggle} />}
         {view === "benchmarks" && !generalizationView && (
           <section aria-label="Benchmark results" className="space-y-5">
             <div className="grid sm:grid-cols-[1fr_2fr_auto] items-center gap-3">
@@ -918,7 +917,7 @@ function RunDetails({
         <Select value={task} onValueChange={setTask}><SelectTrigger aria-label="Model detail task" className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All tasks</SelectItem>{TASKS.map(t => <SelectItem key={t} value={t}>{title(t)}</SelectItem>)}</SelectContent></Select>
         <span className="self-center text-xs text-muted-foreground">{visible.length} benchmarks</span>
       </div>
-      <Table aria-label="Run benchmark details">
+      <Table aria-label="Run benchmark details" className="[&_td]:align-top [&_td]:py-3">
         <TableHeader>
           <TableRow>
             <TableHead>Benchmark</TableHead>
@@ -931,18 +930,18 @@ function RunDetails({
           {visible.map((b) => (
             <TableRow key={b.id}>
               <TableCell className="whitespace-normal min-w-48">
-                <p className="capitalize font-medium">{benchmarkName(b)}</p>
-                <p className="font-mono text-[10px] text-muted-foreground break-all">
+                <p className="capitalize font-medium text-base leading-6">{benchmarkName(b)}</p>
+                <p className="mt-1 font-mono text-[10px] leading-4 text-muted-foreground break-all">
                   {b.id}
                 </p>
               </TableCell>
-              <TableCell>
+              <TableCell className="text-base leading-6">
                 {title(b.task)} {METRICS[b.task].direction === "up" ? "↑" : "↓"}
               </TableCell>
-              <TableCell className="text-right font-mono font-semibold">{percent(run.results.find(r => r.benchmark.id === b.id)?.metrics.baseline_adjusted_score)}</TableCell>
+              <TableCell className="text-right text-base leading-6 font-mono font-semibold tabular-nums">{percent(run.results.find(r => r.benchmark.id === b.id)?.metrics.baseline_adjusted_score)}</TableCell>
               <TableCell>
-                <p className="text-xs text-muted-foreground mb-1">{METRICS[b.task].label}</p>
                 <ScoreValue result={run.results.find(r => r.benchmark.id === b.id)} compact />
+                <p className="mt-1 text-xs leading-4 text-muted-foreground">{METRICS[b.task].label}</p>
               </TableCell>
             </TableRow>
           ))}
