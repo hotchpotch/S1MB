@@ -25,7 +25,10 @@ A separate Node child process scans metadata and decodes changed files. Cached
 requests must not wait for refresh. Coalesce concurrent checks, replace the entire
 candidate atomically, and keep the last good snapshot on failure. Local checks
 are request-driven with zero interval by default; managed Spaces default to one
-hour. Definitions participate in the same filesystem check. Never serve raw
+hour. Restore a versioned display-only JSON cache on first access, then rebuild
+all sources in the background after every restart. Keep only two verified immutable
+generations per source/format namespace; no write when summary content is unchanged.
+Never persist inode-based indexes across restarts. Definitions participate in the same filesystem check. Never serve raw
 inputs, predictions, environment settings or credentials to the browser.
 
 The start wrapper binds to Tailscale IPv4 or localhost and rejects public/all-interface

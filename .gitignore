@@ -22,3 +22,6 @@
 # Conventional explicit --output destinations (not source fixtures).
 /output/
 /evaluator/output/
+
+# Persistent viewer summary cache
+/viewer/.cache/

@@ -16,9 +16,10 @@ for (let i = 0; i < args.length; i++) {
   const arg = args[i];
   if (arg === '--dev') dev = true;
   else if (arg === '--space') space = true;
-  else if (['--results-dir', '--check-seconds', '--port', '--host'].includes(arg) && args[i + 1] && !args[i + 1].startsWith('--')) {
+  else if (['--results-dir', '--cache-dir', '--check-seconds', '--port', '--host'].includes(arg) && args[i + 1] && !args[i + 1].startsWith('--')) {
     const value = args[++i];
     if (arg === '--results-dir') dirs.push(path.resolve(value));
+    else if (arg === '--cache-dir') env.S1MB_RESULTS_CACHE_DIR = path.resolve(value);
     else if (arg === '--check-seconds') env.S1MB_RESULTS_CHECK_SECONDS = value;
     else if (arg === '--port') port = value;
     else host = value;
@@ -34,8 +35,9 @@ const seconds = Number(env.S1MB_RESULTS_CHECK_SECONDS ?? (space ? 3600 : 0));
 if (!Number.isSafeInteger(seconds) || seconds < 0 || seconds > 86400) throw new Error('Invalid filesystem check interval');
 const dataDir = path.resolve(env.S1MB_DATA_DIR || path.join(root, 'data'));
 if (!dirs.length) dirs.push(path.resolve(env.S1MB_RESULTS_DIR || (space ? '/mnt/results' : path.join(dataDir, existsSync(path.join(dataDir, 'hub-results')) ? 'hub-results' : 'results'))));
+const cacheDir = path.resolve(env.S1MB_RESULTS_CACHE_DIR || (space ? '/mnt/cache' : path.join(root, '.cache/results')));
 const child = spawn(process.execPath, [path.join(root, 'node_modules/next/dist/bin/next'), dev ? 'dev' : 'start', '--hostname', host, '--port', port], {
-  cwd: root, stdio: 'inherit', env: { ...env, S1MB_DATA_DIR: dataDir, S1MB_RESULTS_DIRS: JSON.stringify(dirs), S1MB_RESULTS_CHECK_SECONDS: String(seconds), NEXT_TELEMETRY_DISABLED: '1' },
+  cwd: root, stdio: 'inherit', env: { ...env, S1MB_DATA_DIR: dataDir, S1MB_RESULTS_CACHE_DIR: cacheDir, S1MB_RESULTS_DIRS: JSON.stringify(dirs), S1MB_RESULTS_CHECK_SECONDS: String(seconds), NEXT_TELEMETRY_DISABLED: '1' },
 });
 for (const signal of ['SIGINT', 'SIGTERM'] as const) process.on(signal, () => child.kill(signal));
 child.on('exit', code => { process.exitCode = code ?? 1; });

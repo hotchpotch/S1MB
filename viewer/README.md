@@ -18,14 +18,31 @@ The wrapper binds to Tailscale IPv4 when available, otherwise localhost.
 
 ## Filesystem cache
 
-The first request waits for initial loading. Later requests return the current
-in-memory snapshot immediately and can trigger a background Node child process.
-It scans file size, modification/change time and inode; unchanged JSON/XZ files
-are not reread. Changed files are decoded with bounded concurrency, output,
-memory and time, and only compact summaries are retained. A second metadata scan
-rejects changes occurring during loading. The complete candidate is published
-atomically. Failed refreshes leave the last good snapshot available with a status
-message. This is process-local caching; a restart performs a fresh initial load.
+On first access after startup, the worker restores the newest valid, checksummed
+summary JSON from disk. It returns this snapshot immediately while rebuilding
+from all original files in the background. Only an installation without a valid
+cache waits for the first full load. No file index is persisted across restarts.
+Subsequent checks reuse the worker's per-file summaries and decode only changes.
+A second metadata scan rejects changes occurring during loading. Candidates
+replace the memory cache atomically; errors retain the last good snapshot.
+
+The default cache directory is `viewer/.cache/results` (Git-ignored). Override it
+with `--cache-dir /path/to/cache` or `S1MB_RESULTS_CACHE_DIR`. Each source configuration
+and cache format has its own namespace; use one viewer writer per namespace.
+The JSON contains display summaries only, never raw inputs or predictions.
+New immutable generations are written only when summary content changes, closed,
+read back and verified, then older and invalid generations are removed. Keep the
+latest two valid generations, with a temporary third while saving. Interrupted
+writes are ignored on restoration and cleaned after the next successful source
+refresh/save. Unknown formats or an entirely corrupt cache trigger a rebuild.
+A persistence failure does not discard fresh measurements; the next source check
+retries the pending save. The server logs persistence failures.
+
+On managed mounts, remote durability follows the mount's flush semantics; a
+local read-back is not proof that an asynchronous remote upload has completed.
+The preceding good generation remains available for recovery. Local files use
+`fsync` before close where supported. Cache directories are disposable and should
+not be shared by independently running viewer deployments.
 
 Local startup checks after every request by default. Set `--check-seconds 3600`
 or `S1MB_RESULTS_CHECK_SECONDS=3600` to check at most hourly. Concurrent requests
@@ -48,7 +65,8 @@ Build from the repository root, then use a read-only bind mount and host network
 docker build -f viewer/Dockerfile -t s1mb-viewer .
 docker run --rm --network host \
   --mount type=bind,src=/absolute/path/to/results,dst=/mnt/results,readonly \
-  s1mb-viewer npm start -- --results-dir /mnt/results --port 3000
+  --mount type=volume,src=s1mb-viewer-cache,dst=/mnt/cache \
+  s1mb-viewer npm start -- --results-dir /mnt/results --cache-dir /mnt/cache --port 3000
 ```
 
 Both Docker targets contain Node.js and `xz`, with no Python or Arrow dependency.
@@ -57,7 +75,8 @@ Only source, UI assets and benchmark/category definitions are in the image.
 ## Hugging Face Spaces
 
 See [deployment](../docs/huggingface_space_deploy.md). Attach the public results
-Dataset as a read-only volume at `/mnt/results`. The managed mount handles Hub/Xet
+Dataset as a read-only volume at `/mnt/results`, and a private writable cache
+Bucket at `/mnt/cache`. The managed mount handles Hub/Xet
 reads and remote updates. The app only reads this filesystem; its hourly scan is
 separate from the mount's own synchronization interval. Local use can bind a
 regular results directory or an externally managed `hf-mount` directory. A regular

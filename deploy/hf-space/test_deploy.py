@@ -39,7 +39,8 @@ def test_deploy_preserves_history_and_checks_parent():
     api = Mock()
     api.space_info.return_value = SimpleNamespace(private=True, sdk="docker", sha=SHA,
         runtime=SimpleNamespace(raw={"volumes": [{"type": "dataset", "source": "hotchpotch/s1mb-result",
-            "mountPath": "/mnt/results", "readOnly": True}]}))
+            "mountPath": "/mnt/results", "readOnly": True},
+            {"type": "bucket", "mountPath": "/mnt/cache", "readOnly": False}]}))
     api.create_commit.return_value = SimpleNamespace(oid="c" * 40)
     assert deployment.deploy(api, "example/S1MB-leaderboard",
                              deployment.payload(IMAGE, SHA), SHA) == "c" * 40

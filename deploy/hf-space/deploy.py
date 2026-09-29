@@ -32,6 +32,9 @@ def check_space(api: HfApi, space: str):
                and v.get("mountPath") == "/mnt/results" and v.get("readOnly") is True
                for v in volumes):
         raise ValueError("Mount the read-only results Dataset at /mnt/results before deploying")
+    if not any(v.get("type") == "bucket" and v.get("mountPath") == "/mnt/cache"
+               and v.get("readOnly") is not True for v in volumes):
+        raise ValueError("Mount a writable cache Bucket at /mnt/cache before deploying")
     return info
 
 

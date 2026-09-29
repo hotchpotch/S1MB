@@ -12,7 +12,7 @@ WORKDIR /app/viewer
 COPY --from=build --chown=node:node /app/viewer ./
 COPY --chown=node:node evaluator/data/benchmarks /app/evaluator/data/benchmarks
 COPY --chown=node:node evaluator/data/categories /app/evaluator/data/categories
-RUN mkdir -p /tmp/s1mb-viewer-results && chown node:node /tmp/s1mb-viewer-results
+RUN mkdir -p /app/viewer/.cache/results /mnt/cache && chown -R node:node /app/viewer/.cache /mnt/cache
 USER node
 CMD ["npm", "start"]
 

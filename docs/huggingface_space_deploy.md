@@ -19,9 +19,12 @@ machine (this replaces the volume list, so inspect existing volumes first):
 ```python
 from huggingface_hub import HfApi, Volume
 api = HfApi()
+api.create_bucket("hotchpotch/s1mb-leaderboard-cache", private=True, exist_ok=True)
 api.set_space_volumes("hotchpotch/S1MB-leaderboard", [
     Volume(type="dataset", source="hotchpotch/s1mb-result",
            mount_path="/mnt/results", read_only=True),
+    Volume(type="bucket", source="hotchpotch/s1mb-leaderboard-cache",
+           mount_path="/mnt/cache", read_only=False),
 ])
 ```
 
@@ -32,13 +35,21 @@ token is required. Defaults are `/mnt/results` and an hourly check. Override wit
 The `--space` startup mode requires HF's `SPACE_ID` and binds port 7860 for the
 managed proxy. Local Docker uses normal startup and safe host binding instead.
 
-The first request loads summaries. Subsequent requests immediately return the
-cached snapshot and, after the interval, trigger a separate Node process to scan
-filesystem metadata. Only changed files are parsed/decompressed. Candidate
-snapshots replace the old cache atomically; errors retain the previous snapshot.
-The application does not force the mount to synchronize: a remote update appears
-only after the mount exposes it, a request triggers an eligible scan, and that
-scan completes. No users means no application refresh work.
+The first request restores a saved summary JSON from the cache Bucket and returns
+it while the Node worker performs a full background rebuild. Only a missing or
+invalid cache needs a synchronous initial load. During the same process lifetime,
+changed source files alone are parsed/decompressed. Existing users receive cached
+data while candidates are built and swapped. The source check interval is one hour.
+
+The cache uses immutable, checksummed JSON generations, keeping the latest two
+valid files per source/format namespace. Unchanged summaries produce no new file.
+Read-back verification precedes cleanup; an interrupted generation is ignored,
+with cleanup retried after a successful refresh. Mount-level asynchronous writes
+can still lose their newest unflushed generation; retain the preceding generation.
+The app does not force the Dataset mount to synchronize. Remote updates appear
+only after the mount exposes them and a request triggers a source check.
+`S1MB_RESULTS_CACHE_DIR` overrides the default `/mnt/cache`. Use one running viewer
+writer per cache namespace. No runtime application token is needed for managed mounts.
 
 GitHub repository variables: `S1MB_SPACE_REPO`, `S1MB_SPACE_IMAGE`.
 GitHub secret: `S1MB_SPACE_DEPLOY_TOKEN` with write access to the private Space.

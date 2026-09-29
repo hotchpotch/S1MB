@@ -118,3 +118,88 @@ test('a failed initial load can retry; a candidate changing during loading is no
     assert.equal((await loader.refresh())!.results[0].model.display_name, 'Renamed synthetic');
   } finally { await rm(f.root, { recursive: true, force: true }); }
 });
+
+test('restored data is returned before the mandatory full background refresh, even inside the interval', async () => {
+  const snapshot: Snapshot = { benchmarks: [], categories: [], results: [], sources: [], issues: ['restored'] };
+  let calls = 0, finish!: (value: Snapshot | null) => void;
+  const cache = new SnapshotCache(() => { calls++; return new Promise(r => { finish = r; }); }, 3600000, Date.now, async () => snapshot);
+  assert.equal(await cache.get(), snapshot);
+  assert.equal(calls, 1);
+  assert.equal(await cache.get(), snapshot);
+  finish({ ...snapshot, issues: ['fresh'] }); await new Promise(r => setImmediate(r));
+  assert.deepEqual((await cache.get()).issues, ['fresh']);
+});
+
+test('worker restart restores JSON without accessing unavailable original files and then rebuilds from source', async () => {
+  const { rename, readdir } = await import('node:fs/promises');
+  const f = await fixture(), cacheDir = path.join(f.root, 'cache');
+  let worker = new ResultsWorker(f.root, [f.results], cacheDir);
+  try {
+    const original = (await worker.refresh())!;
+    worker.close();
+    await rename(f.results, f.results + '-offline');
+    worker = new ResultsWorker(f.root, [f.results], cacheDir);
+    assert.deepEqual((await worker.restore())!.results, original.results);
+    await assert.rejects(worker.refresh());
+    await rename(f.results + '-offline', f.results);
+    await f.write(0.9);
+    assert.equal((await worker.refresh())!.results[0].metrics.target_mass_at_prediction, 0.9);
+    worker.close(); worker = new ResultsWorker(f.root, [f.results], cacheDir);
+    assert.equal((await worker.restore())!.results[0].metrics.target_mass_at_prediction, 0.9);
+    await worker.refresh();
+    const [namespace] = await readdir(cacheDir);
+    assert.equal((await readdir(path.join(cacheDir, namespace))).length, 2, 'Unchanged restart must not add a generation');
+  } finally { worker.close(); await rm(f.root, { recursive: true, force: true }); }
+});
+
+test('disk cache keeps two valid generations, restores fallback, cleans interrupted writes, and isolates sources', async () => {
+  const { SnapshotStore } = await import('./snapshot-store');
+  const { readdir, readFile } = await import('node:fs/promises');
+  const f = await fixture(), cacheDir = path.join(f.root, 'cache');
+  const store = new SnapshotStore(cacheDir, f.root, [f.results]);
+  const loader = new FilesystemResults(f.root, [f.results]);
+  try {
+    assert.equal(await store.restore(), null);
+    let snapshot = (await loader.refresh())!;
+    await store.save(snapshot);
+    const names = () => readdir(store.directory);
+    const first = await names();
+    await store.save({ ...snapshot, cache: { checkedAt: new Date().toISOString(), refreshFailed: false } });
+    assert.deepEqual(await names(), first);
+    for (const score of [0.7, 0.6, 0.9]) {
+      await f.write(score); snapshot = (await loader.refresh())!; await store.save(snapshot);
+      assert.equal((await names()).length, 2);
+    }
+    const latest = (await names()).sort().at(-1)!;
+    const original = await readFile(path.join(store.directory, latest), 'utf8');
+    await writeFile(path.join(store.directory, latest), '{interrupted');
+    assert.equal((await store.restore())!.results[0].metrics.target_mass_at_prediction, 0.6);
+    await store.save(snapshot);
+    assert.equal((await names()).length, 2);
+    assert.equal((await store.restore())!.results[0].metrics.target_mass_at_prediction, 0.9);
+    const changed = JSON.parse(original); changed.snapshot.results[0].metrics.target_mass_at_prediction = 0.1;
+    const newest = (await names()).sort().at(-1)!;
+    await writeFile(path.join(store.directory, newest), JSON.stringify(changed));
+    assert.equal((await store.restore())!.results[0].metrics.target_mass_at_prediction, 0.6, 'Checksum mismatch falls back');
+    changed.version = 999;
+    await writeFile(path.join(store.directory, newest), JSON.stringify(changed));
+    assert.equal((await store.restore())!.results[0].metrics.target_mass_at_prediction, 0.6, 'Unknown format falls back');
+    assert.equal(await new SnapshotStore(cacheDir, f.root, [f.results + '-other']).restore(), null);
+    await store.save(snapshot);
+    assert.equal((await names()).length, 2);
+  } finally { await rm(f.root, { recursive: true, force: true }); }
+});
+
+test('cache write failure does not discard fresh measurements and retries an unchanged snapshot', async () => {
+  const f = await fixture(), cacheDir = path.join(f.root, 'cache');
+  const { readdir } = await import('node:fs/promises');
+  await writeFile(cacheDir, 'not a directory');
+  const worker = new ResultsWorker(f.root, [f.results], cacheDir);
+  try {
+    assert.equal((await worker.refresh())!.results.length, 1);
+    await unlink(cacheDir);
+    assert.equal(await worker.refresh(), null);
+    assert.equal((await readdir(cacheDir)).length, 1);
+    assert.equal((await worker.restore())!.results.length, 1);
+  } finally { worker.close(); await rm(f.root, { recursive: true, force: true }); }
+});

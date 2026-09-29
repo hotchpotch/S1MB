@@ -7,9 +7,9 @@ import { METRICS, type Benchmark, type Category, type ResultSummary, type Snapsh
 
 const id = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/);
 const count = z.number().int().nonnegative();
-const benchmarkSchema = z.object({ id, task: z.enum(['choice', 'noul', 'score']), dataset: z.string(), split: z.string(), case_count: count.positive(), decision_count: count.positive(), primary_metric: z.string() });
-const categorySchema = z.object({ id, name: z.string(), description: z.string(), benchmarks: z.array(id).nonempty() });
-const resultSchema = z.object({
+export const benchmarkSchema = z.object({ id, task: z.enum(['choice', 'noul', 'score']), dataset: z.string(), split: z.string(), case_count: count.positive(), decision_count: count.positive(), primary_metric: z.string() });
+export const categorySchema = z.object({ id, name: z.string(), description: z.string(), benchmarks: z.array(id).nonempty() });
+export const resultSchema = z.object({
   format_version: z.literal(1), run_id: id, benchmark: benchmarkSchema,
   model: z.object({ id: z.string(), adapter: z.string(), settings: z.object({ questions_per_call: count.positive().nullish() }),
     total_params: count.nullish(), active_params: count.nullish(), parameter_count_method: z.literal('non_lookup_parameters_v1').nullish() }).refine(m => m.active_params == null || (m.parameter_count_method === 'non_lookup_parameters_v1' && (m.total_params == null || m.active_params <= m.total_params)), 'Invalid parameter counts'),

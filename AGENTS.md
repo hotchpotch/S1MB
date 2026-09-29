@@ -79,6 +79,8 @@ inputs. Publication validation remains the evaluator's responsibility. On reques
 a separate Node process checks filesystem metadata (every access locally, at most
 hourly in Spaces), reads changed files, and swaps summaries atomically. Existing
 requests receive cached data immediately; refresh failures preserve that cache.
+Persist display-only JSON snapshots in two verified generations. Restore them
+before a full background rebuild after restart; in-process checks remain incremental.
 An external mount or synchronization process must make Hub updates visible locally.
 
 ## Score presentation
