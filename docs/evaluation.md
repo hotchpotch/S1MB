@@ -35,7 +35,13 @@ See [the evaluator guide](../evaluator/README.md#real-adapters),
 does not include every model's runtime. Install the selected adapter's supported
 dependencies and obtain any required checkpoint and upstream source checkout.
 For example, Laya has the `laya` extra; several upstream adapters use the
-`open-models` extra. Bekko requires its own compatible upstream environment.
+`open-models` extra. Kev and Open-Jev also accept `--case-batch-size` (default 16);
+use 1 for their audited 9B conditions to avoid the cross-case BF16 drift observed
+in smoke comparisons. CLM and Tev require `--case-batch-size 1`; see
+[their input and probability conditions](../evaluator/OPEN_MODELS.md#clm-and-tev)
+before comparing measurements. Both use `--source` and a pinned `--revision`.
+The original Bekko adapter requires its compatible upstream
+environment; standalone exports use the `bekko-v0` extra and adapter.
 
 Before evaluation, identify and record:
 
@@ -81,6 +87,15 @@ These are real API calls and may incur charges. Inspect the resolved model
 version saved in the results. `jev` is an API selector; a leaderboard folder such
 as `typesafe__jev_1_14` is a display identity, not necessarily an API model name.
 Choose that folder only when the recorded version supports the name.
+
+### Bekko standalone CPU smoke
+
+The `bekko-v0` adapter supports an explicit CPU diagnostic when a GPU is
+unavailable. Follow the [standalone v0 instructions](../evaluator/README.md#bekko-standalone-v0)
+to install dependencies and evaluate a current local export. CPU runs require
+`--device cpu --category smoke-v1 --limit 1` (or `2`). Validate the saved partial
+results. Full evaluation still requires the GPU path; CPU smoke timing does not
+predict GPU throughput.
 
 ### Local GPU models, including Bekko
 

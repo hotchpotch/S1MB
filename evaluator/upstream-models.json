@@ -116,5 +116,28 @@
     "model": "AlexWortega/openjev",
     "revision": "26de23c44b67586b4bea31c0ef2e016e3068ae66",
     "subfolder": "qwen3.5-4b-nli-v5"
+  },
+  {
+    "adapter": "clm",
+    "repository": "https://github.com/Contrastive-LM/CLM",
+    "commit": "bb42c6c5bf914fd449bed2f6ca65be80602cb1f7",
+    "model": "Contrastive-LM/CLM-v0.1-8B",
+    "revision": "e939398d4556fcd9400c76fa8c5a513202f42b0a",
+    "base_model": "Qwen/Qwen3-8B",
+    "base_revision": "b968826d9c46dd6066d109eabc6255188de91218"
+  },
+  {
+    "adapter": "tev",
+    "repository": "https://github.com/togethercomputer/tev1",
+    "commit": "1dde7782382c9f49d627153759b8d1deab426ce0",
+    "model": "togethercomputer/Tev1-0.8B-experimental",
+    "revision": "6bb2dff14b38fea90ddb14d870166ccaf77374e9"
+  },
+  {
+    "adapter": "tev",
+    "repository": "https://github.com/togethercomputer/tev1",
+    "commit": "1dde7782382c9f49d627153759b8d1deab426ce0",
+    "model": "togethercomputer/Tev1-4B-experimental",
+    "revision": "0b7becf017daa0e5eb222f8ce7483c8c8259c52f"
   }
 ]

@@ -116,6 +116,7 @@ class MinojevAdapter(UpstreamAdapter):
             "input_length_policy": "reject-overflow",
             "checkpoint_subdir": str(path.relative_to(self.path)),
         }
+        self.set_attention("sdpa")
 
     def predict(self, case):
         return self.predict_batch([case])[0]

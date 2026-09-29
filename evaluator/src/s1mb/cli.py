@@ -49,6 +49,7 @@ def main() -> None:
             "typesafe",
             "system-ichi",
             "bekko",
+            "bekko-v0",
             "von",
             "jevforge",
             "kev",
@@ -60,6 +61,8 @@ def main() -> None:
             "luce",
             "open-jev",
             "alex-openjev",
+            "clm",
+            "tev",
         ],
         required=True,
     )
@@ -76,7 +79,7 @@ def main() -> None:
     run.add_argument(
         "--context-limit",
         type=int,
-        help="Explicit non-truncating input limit for Von, JevForge, Kev, or Open-Jev",
+        help="Explicit non-truncating input limit for supported upstream adapters",
     )
     run.add_argument(
         "--query-length",
@@ -92,6 +95,10 @@ def main() -> None:
     run.add_argument("--head-max-len", type=int, help="Laya question/candidate token budget")
     run.add_argument("--questions-per-call", type=int, help="Laya/System Ichi question batch limit")
     run.add_argument("--disable-autocast-cache", action="store_true", help="Reduce Laya GPU memory")
+    run.add_argument(
+        "--case-batch-size", type=int, help="Case window size for Bekko v0, Kev, Open-Jev, CLM or Tev"
+    )
+    run.add_argument("--compile", action="store_true", help="Compile Bekko v0 tensor execution")
     run.add_argument("--microbatch-tokens", type=int, help="Bekko complete-question work budget")
     run.add_argument(
         "--source", help="Upstream source checkout for System Ichi or open-model adapters"
@@ -167,16 +174,31 @@ def execute(args, parser):
             print(f"{b.id}\t{b.task}\t{b.case_count} cases\t{b.decision_count} decisions")
         return
     if args.query_length is not None or args.document_length is not None:
-        if args.adapter not in {"system-ichi", "bekko"}:
-            parser.error("--query-length/--document-length apply only to Ichi/Bekko")
+        if args.adapter not in {"system-ichi", "bekko", "bekko-v0"}:
+            parser.error("--query-length/--document-length apply only to Ichi/Bekko/Bekko v0")
         if args.query_length is not None and args.query_length < 3:
             parser.error("--query-length must be at least 3")
         if args.document_length is not None and args.document_length < 2:
             parser.error("--document-length must be at least 2")
     if args.microbatch_tokens is not None and (
-        args.adapter != "bekko" or args.microbatch_tokens < 1
+        args.adapter not in {"bekko", "bekko-v0"} or args.microbatch_tokens < 1
     ):
         parser.error("--microbatch-tokens must be positive and applies only to Bekko")
+    if args.case_batch_size is not None and (
+        args.adapter not in {"bekko-v0", "kev", "open-jev", "clm", "tev"}
+        or args.case_batch_size < 1
+    ):
+        parser.error(
+            "--case-batch-size must be positive and applies only to Bekko v0, Kev, Open-Jev, CLM or Tev"
+        )
+    if args.compile and args.adapter != "bekko-v0":
+        parser.error("--compile applies only to Bekko v0")
+    if (
+        args.adapter == "bekko-v0"
+        and args.device == "cpu"
+        and (args.category != "smoke-v1" or args.limit is None or not 1 <= args.limit <= 2)
+    ):
+        parser.error("Bekko v0 CPU requires --category smoke-v1 and --limit 1 or 2")
     if args.limit is not None and args.limit < 1:
         parser.error("--limit must be positive")
     if any(value is not None and value <= 0 for value in [args.max_len, args.head_max_len]):
@@ -195,10 +217,10 @@ def execute(args, parser):
         parser.error("--dtype applies only to the Minojev adapter")
     if args.context_limit is not None and (
         args.context_limit < 1
-        or args.adapter not in {"von", "jevforge", "kev", "open-jev", "alex-openjev"}
+        or args.adapter not in {"von", "jevforge", "kev", "open-jev", "alex-openjev", "clm", "tev"}
     ):
         parser.error(
-            "--context-limit must be positive and applies only to Von/JevForge/Kev/Open-Jev"
+            "--context-limit must be positive and applies only to supported upstream adapters"
         )
     if args.attention and args.adapter not in {
         "von",
@@ -210,6 +232,8 @@ def execute(args, parser):
         "luce",
         "open-jev",
         "alex-openjev",
+        "clm",
+        "tev",
     }:
         parser.error("--attention applies only to measured upstream adapters")
     if args.benchmark:
@@ -245,6 +269,19 @@ def execute(args, parser):
             args.questions_per_call,
             not args.disable_autocast_cache,
         )
+    elif args.adapter == "bekko-v0":
+        from .adapters.bekko_v0 import BekkoV0Adapter
+
+        adapter = BekkoV0Adapter(
+            args.model,
+            args.device,
+            args.query_length,
+            args.document_length,
+            token_budget=args.microbatch_tokens if args.microbatch_tokens is not None else 64_000,
+            case_batch_size=args.case_batch_size if args.case_batch_size is not None else 128,
+            compile_model=args.compile,
+            cpu_smoke=args.device == "cpu",
+        )
     elif args.adapter == "bekko":
         if not args.source:
             parser.error("--source is required for the Bekko checkout")
@@ -274,6 +311,8 @@ def execute(args, parser):
         "luce",
         "open-jev",
         "alex-openjev",
+        "clm",
+        "tev",
     }:
         if not args.source:
             parser.error("--source is required for upstream model adapters")
@@ -291,6 +330,8 @@ def execute(args, parser):
             "luce": "LuceAdapter",
             "open-jev": "OpenJevAdapter",
             "alex-openjev": "AlexOpenJevAdapter",
+            "clm": "CLMAdapter",
+            "tev": "TevAdapter",
         }
         module_name = {"open-jev": "open_jev", "alex-openjev": "alex_openjev"}.get(
             args.adapter, args.adapter
@@ -301,6 +342,8 @@ def execute(args, parser):
             options["context_limit"] = args.context_limit
         if args.subfolder is not None:
             options["subfolder"] = args.subfolder
+        if args.case_batch_size is not None:
+            options["case_batch_size"] = args.case_batch_size
         adapter = getattr(module, classes[args.adapter])(
             args.model, args.revision, args.source, args.device, **options
         )

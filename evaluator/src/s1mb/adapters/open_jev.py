@@ -12,7 +12,10 @@ from .upstream import UpstreamAdapter, candidate_batches
 class OpenJevAdapter(UpstreamAdapter):
     case_batch_size = 16
 
-    def __init__(self, model, revision, source, device, context_limit=32768):
+    def __init__(self, model, revision, source, device, context_limit=32768, case_batch_size=16):
+        if case_batch_size < 1:
+            raise ValueError("case_batch_size must be positive")
+        self.case_batch_size = case_batch_size
         self.setup("open-jev", model, revision, source, device)
         for name in ("JEV_DEVICE_MAP", "JEV_LOAD_8BIT", "JEV_LOAD_4BIT"):
             import os
@@ -47,6 +50,12 @@ class OpenJevAdapter(UpstreamAdapter):
         return self.predict_batch([case])[0]
 
     def predict_batch(self, cases):
+        if len(cases) > self.case_batch_size:
+            return [
+                output
+                for offset in range(0, len(cases), self.case_batch_size)
+                for output in self.predict_batch(cases[offset : offset + self.case_batch_size])
+            ]
         texts, refs = [], []
         for index, case in enumerate(cases):
             for q in case.questions:

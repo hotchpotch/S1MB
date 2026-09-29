@@ -14,6 +14,7 @@ source hashes, rendering, attention backend, precision and input limits.
 | Adapter | Interface |
 | --- | --- |
 | Bekko | Native typed training renderer and optimized shared-prefix inference |
+| Bekko v0 (`bekko-v0`) | Local standalone export, native typed renderer and SDPA; no source checkout required |
 | System Ichi | Local typed model with bounded question batching |
 | Laya | Full native token layout, FP32 arithmetic, bounded cross-case batches; no CPU fallback |
 | Von | Native option-marker backend and calibration |
@@ -24,6 +25,8 @@ source hashes, rendering, attention backend, precision and input limits.
 | Minojev | Native decision head and calibrated candidate scores |
 | Open-Jev | Zefan Cai's pinned Qwen backbone, LoRA, scalar head and saved temperature |
 | Alex Openjev | Alex Wortega's NLI head, native overlapping windows and normalized entailment |
+| CLM | Native typed rendering and contrastive heads with local last-token Qwen3 embeddings |
+| Tev | Native decision JSON and A–X letter probabilities, with an explicit large-menu extension |
 | Luce | Standalone inference with recurrent backbone and typed criteria |
 | Verdict2 | Requires a compatible `model.pt` checkpoint |
 | Openvons | Requires a trained text checkpoint with `head.pt` |
@@ -33,7 +36,43 @@ that every benchmark fits its context limit. Failed or partial runs remain visib
 incomplete. Do not interpret arbitrary upstream truncation or unavailable weights
 as successful evaluation. Model and source licenses must be reviewed separately.
 
+## CLM and Tev
+
+CLM uses the published projection heads and a pinned Qwen3-8B encoder. State and
+action inputs are encoded separately with last-token pooling and L2 normalization;
+the native FP32 heads and saved logit scale produce the typed distributions.
+The local SDPA implementation retains full inputs up to the configured 32768-token
+limit, rejecting overflow. This is a full-input condition rather than the official
+HTTP example's 2048-token limit. State embeddings are computed on every call.
+Action projections use the official bounded GPU cache with a fixed 64 MiB budget,
+keyed by exact candidate text and head identity. Evaluation time includes cache
+misses and subsequent reuse; report this condition when comparing throughput.
+
+Tev retains its native system prompt, decision JSON and thinking-disabled chat
+template. The adapter takes a temperature-1 softmax over the allowed A–X token
+logits at the first answer position. These are conditional label probabilities,
+not a claimed calibrated probability API; official examples return a single label.
+Only the final token passes through the vocabulary head (`logits_to_keep=1`).
+For more than 24 candidates, S1MB uses balanced contiguous groups in declaration
+order and multiplies group and within-group probabilities. All candidate text and
+probability mass remain present, but this is an explicit S1MB extension to the
+official 2–24-option interface. Group composition can affect the predictions.
+Both adapters use `--case-batch-size 1` and reject longer inputs without truncation.
+
+Primary sources: [CLM model card](https://huggingface.co/Contrastive-LM/CLM-v0.1-8B),
+[CLM source](https://github.com/Contrastive-LM/CLM),
+[Tev model card](https://huggingface.co/togethercomputer/Tev1-4B-experimental), and
+[Tev source](https://github.com/togethercomputer/tev1).
+
 ## Input fidelity and throughput
+
+For standalone Bekko exports, see [Bekko v0 setup](README.md#bekko-standalone-v0).
+The adapter preserves native rendering and candidate order, checks lengths before
+native tokenization, and records the exported code and weight hashes. This adds a
+preflight tokenization pass. Native attention uses dense masks and gathers shared
+prefix keys/values for candidate paths; padding and long contexts can therefore
+dominate despite a linear token budget. Benchmark batching and optional compilation
+on the intended hardware before selecting throughput settings.
 
 Local adapters reject inputs exceeding their explicit budgets. The full-input Laya
 renderer retains instructions, candidate descriptions and state in the native token
@@ -54,6 +93,11 @@ With the pinned Torch 2.10 runtime, convolution stays on the native GPU path;
 the Hub convolution layer builds require a newer Torch version. Decider and JevK5 process
 one case at a time because their BF16 cross-case batch probes exceeded the accepted
 probability drift, while retaining native candidate processing within each case.
+Kev supports `--case-batch-size`; the audited 9B condition uses 1 after its
+16-case BF16 probe exceeded the probability-drift threshold. The 0.8B and 4B
+conditions retain 16 cases per call.
+Open-Jev likewise supports `--case-batch-size`; its audited 9B condition uses 1,
+while 2B retains 16. Both preserve native within-case candidate order.
 Minojev's FP32 checkpoint path is the measured default: converting its backbone
 to BF16 produced substantial batch-dependent drift in the preflight probe.
 Its FP32 SDPA bridge expands grouped keys and values explicitly and requires the

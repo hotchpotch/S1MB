@@ -11,7 +11,10 @@ from .upstream import UpstreamAdapter, candidate_batches
 class KevAdapter(UpstreamAdapter):
     case_batch_size = 16
 
-    def __init__(self, model, revision, source, device, context_limit=None):
+    def __init__(self, model, revision, source, device, context_limit=None, case_batch_size=16):
+        if case_batch_size < 1:
+            raise ValueError("case_batch_size must be positive")
+        self.case_batch_size = case_batch_size
         self.setup("kev", model, revision, source, device)
         cp = importlib.import_module("kev.checkpoint")
         self.api = importlib.import_module("kev.api")
@@ -40,6 +43,12 @@ class KevAdapter(UpstreamAdapter):
         return self.predict_batch([case])[0]
 
     def predict_batch(self, cases):
+        if len(cases) > self.case_batch_size:
+            return [
+                output
+                for offset in range(0, len(cases), self.case_batch_size)
+                for output in self.predict_batch(cases[offset : offset + self.case_batch_size])
+            ]
         rows = []
         for index, case in enumerate(cases):
             for q in case.questions:

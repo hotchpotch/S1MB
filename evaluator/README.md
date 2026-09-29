@@ -92,6 +92,41 @@ budget is 64,000; lower it when GPU memory is limited. Complete decisions stay
 together in a microbatch. Explicit branch limits reject overflow rather than
 silently truncating. Effective settings are recorded in every result.
 
+### Bekko standalone v0
+
+Use `--adapter bekko-v0` with a local checkpoint exported by the current
+`bekko_system_one.export_v0`. Run the export in the upstream training environment;
+the export directory must contain `inference_v0.py` with
+`BekkoSentenceTransformer`. Older exports without this wrapper must be re-exported.
+S1MB loads the checkpoint's Python code, so use a reviewed export.
+
+```sh
+uv sync --locked --extra bekko-v0
+uv run --extra bekko-v0 s1mb run \
+  --adapter bekko-v0 --model /path/to/exported-checkpoint --device cpu \
+  --category smoke-v1 --limit 1 --run-id bekko-v0-cpu-smoke-001
+uv run s1mb validate data/results/bekko-v0-cpu-smoke-001
+```
+
+This standalone runtime uses SDPA and needs neither `--source`, the training
+package, nor external FlashAttention. CPU inference is explicitly supported only
+for `smoke-v1` with `--limit 1` or `2`; it uses FP32 and never initializes CUDA.
+It is a diagnostic check, not a complete leaderboard evaluation or GPU speed estimate.
+
+For GPU evaluation, inspect free memory and run a fresh smoke first with
+`CUDA_VISIBLE_DEVICES=1`, `--device cuda`, and a new run ID. After it succeeds,
+select `--category english-v1` without `--limit`. CUDA uses native BF16 autocast;
+there is no automatic CPU fallback.
+
+Input limits default to the exported configuration; `--query-length` and
+`--document-length` override them with overflow rejection. `--case-batch-size`
+defaults to 128 and `--microbatch-tokens` to 64000. Complete decisions stay together,
+so a single oversized decision can exceed the token budget. Length sorting reduces
+padding but a large budget can still combine dissimilar lengths and increase
+attention work. Tune the budget on representative inputs. Optional `--compile`
+enables native tensor compilation; measure startup and warmed calls separately.
+Results record checkpoint file hashes, effective settings and runtime versions.
+
 ### Other adapters
 
 `uv sync --locked --extra laya` installs Laya dependencies. Other local adapters

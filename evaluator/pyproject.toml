@@ -18,6 +18,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+bekko-v0 = ["torch==2.10.0", "transformers==5.17.0", "sentence-transformers==6.1.0", "safetensors>=0.7", "tqdm>=4.67"]
 laya = ["laya==0.3.20", "torch==2.10.0", "transformers==5.17.0"]
 open-models = ["torch==2.10.0", "transformers==5.17.0", "peft>=0.17,<1", "accelerate>=1,<2", "einops>=0.8,<1", "sentencepiece>=0.2,<1", "kernels==0.16.0"]
 
