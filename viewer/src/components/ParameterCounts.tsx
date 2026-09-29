@@ -20,7 +20,7 @@ export function ParameterCountsHeader() {
 
 export function ParameterCounts({ model }: { model: ModelInfo }) {
   return <div className="font-mono tabular-nums text-[10px] text-right leading-tight whitespace-nowrap">
-    <span className="block" title={`Total Parameters: ${model.total_params?.toLocaleString('en-US') ?? 'Unknown'}`}><span className="sr-only">TP: </span>{formatCount(model.total_params)}</span>
-    <span className="block text-muted-foreground" title={`Active Parameters: ${model.active_params?.toLocaleString('en-US') ?? 'Unknown'}`}><span className="sr-only">AP: </span>{formatCount(model.active_params)}</span>
+    <span data-export-value={formatCount(model.total_params)} className="block" title={`Total Parameters: ${model.total_params?.toLocaleString('en-US') ?? 'Unknown'}`}><span className="sr-only">TP: </span>{formatCount(model.total_params)}</span>
+    <span data-export-value={formatCount(model.active_params)} className="block text-muted-foreground" title={`Active Parameters: ${model.active_params?.toLocaleString('en-US') ?? 'Unknown'}`}><span className="sr-only">AP: </span>{formatCount(model.active_params)}</span>
   </div>;
 }

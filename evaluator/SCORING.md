@@ -103,6 +103,45 @@ A majority-class correction does not fix mislabeled examples, answer artifacts,
 input truncation, inappropriate prompts, or missing information. Existing dataset
 and adapter audits still apply.
 
+## Viewer leaderboard ordering
+
+The viewer labels the existing overall index **Task Avg**: an equal-weight mean
+of the three task scores, displayed on a 0–100 scale. Its formula is unchanged.
+
+The default leaderboard order is descending **Borda Score**, a separate relative
+display score computed from saved baseline-adjusted benchmark scores. The cohort
+contains all complete measured models in the current category with a defined
+Task Avg; selecting models for comparison does not change this cohort.
+
+For each benchmark, rank the cohort from highest to lowest adjusted score. With
+`N` models and one-based average rank `r`, award `100 * (N - r) / (N - 1)` points.
+Exact ties in the saved scores receive the average points of their occupied
+positions; displayed rounding does not create ties. Thus an all-model tie earns
+50, and score magnitudes do not affect rank points. This follows the
+[Borda count with averaged tie points](https://www.math.hkust.edu.hk/~maykwok/courses/MATH392K/07Spring/Topic4.pdf).
+
+Average these points equally across **all active benchmarks** in the category
+(currently 137). Do not average within tasks first: tasks with more benchmarks
+contribute proportionally more to Borda. General benchmarks participate once.
+Every benchmark must have a defined eligible adjusted score for every cohort
+member, respecting each result's recorded eligibility before the snapshot default.
+Borda is unavailable with fewer than two cohort members or any unavailable
+benchmark adjustment; benchmarks are never silently omitted from its denominator.
+
+The leaderboard's **Generalization tasks only** checkbox restricts the ranking
+scope to the active Diverse and Contextual generalization benchmarks across Noul,
+Choice and Score. Borda, Task Avg, coverage and model eligibility are recomputed
+within that subset. A model complete in the subset may participate even if its
+other benchmarks are incomplete. The checkbox resets sorting to descending Borda;
+`generalOnly=1` in the viewer URL preserves the selected scope on reload. This
+subset does not establish unseen-task generalization.
+
+Borda is relative to the model roster: adding or removing models can change
+scores and rankings. Its zero and 100 are relative ranking endpoints, not the
+baseline and reference ceiling used by Task Avg. It does not measure accuracy
+or statistical significance. Borda is not stored in evaluator result files;
+publication validation and the Python baseline-adjusted formulas are unchanged.
+
 ## Storage and validation
 
 Python evaluations store primary and additional metrics. Validation requires the

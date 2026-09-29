@@ -291,3 +291,12 @@ Missing or partial benchmarks remain visible and cannot claim complete aggregate
 coverage. Detailed provenance remains in original result files and Hub history.
 Results remain self-reported: consistency checks do not prove which model
 generated a prediction.
+
+### Generalization-only submissions
+
+Runs made with `s1mb run --generalization-only` use the same export and validation
+workflow. Publish only the completed benchmarks; do not fill missing measurements.
+The viewer lists models with complete active Generalization coverage (currently
+six benchmarks), shows their General scores, and leaves full-category aggregates
+unavailable until full coverage exists. See [the viewer guide](../viewer/README.md)
+for combining a verified remote snapshot with local runs before publication.

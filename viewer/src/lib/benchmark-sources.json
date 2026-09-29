@@ -1,0 +1,321 @@
+{
+  "datasets/aegis2": [
+    "https://huggingface.co/datasets/nvidia/Aegis-AI-Content-Safety-Dataset-2.0"
+  ],
+  "datasets/aqua_rat": [
+    "https://github.com/google-deepmind/AQuA",
+    "https://huggingface.co/datasets/deepmind/aqua_rat"
+  ],
+  "datasets/arc": [
+    "https://huggingface.co/datasets/allenai/ai2_arc"
+  ],
+  "datasets/arct": [
+    "https://huggingface.co/datasets/tasksource/arct"
+  ],
+  "datasets/argument_quality": [
+    "https://huggingface.co/datasets/ibm-research/argument_quality_ranking_30k"
+  ],
+  "datasets/babi_nli": [
+    "https://huggingface.co/datasets/tasksource/babi_nli"
+  ],
+  "datasets/banking77": [
+    "https://huggingface.co/datasets/PolyAI/banking77"
+  ],
+  "datasets/bbq": [
+    "https://huggingface.co/datasets/lighteval/bbq_helm"
+  ],
+  "datasets/boardgameqa": [
+    "https://huggingface.co/datasets/tasksource/Boardgame-QA"
+  ],
+  "datasets/canttalk": [
+    "https://huggingface.co/datasets/nvidia/CantTalkAboutThis-Topic-Control-Dataset"
+  ],
+  "datasets/civil_comments": [
+    "https://huggingface.co/datasets/google/civil_comments"
+  ],
+  "datasets/cladder": [
+    "https://github.com/causalNLP/cladder"
+  ],
+  "datasets/clinc": [
+    "https://huggingface.co/datasets/clinc/clinc_oos"
+  ],
+  "datasets/contract_nli": [
+    "https://github.com/stanfordnlp/contract-nli"
+  ],
+  "datasets/corr2cause": [
+    "https://huggingface.co/datasets/tasksource/corr2cause"
+  ],
+  "datasets/creak": [
+    "https://huggingface.co/datasets/amydeng2000/CREAK"
+  ],
+  "datasets/crows_pairs": [
+    "https://github.com/nyu-mll/crows-pairs"
+  ],
+  "datasets/dbpedia": [
+    "https://huggingface.co/datasets/fancyzhx/dbpedia_14"
+  ],
+  "datasets/defeasible_nli": [
+    "https://huggingface.co/datasets/tasksource/defeasible-nli"
+  ],
+  "datasets/esci": [
+    "https://huggingface.co/datasets/tasksource/esci"
+  ],
+  "datasets/ethics": [
+    "https://huggingface.co/datasets/hendrycks/ethics"
+  ],
+  "datasets/ethos": [
+    "https://huggingface.co/datasets/SetFit/ethos_binary"
+  ],
+  "datasets/few_nerd": [
+    "https://huggingface.co/datasets/DFKI-SLT/few-nerd"
+  ],
+  "datasets/fol_nli": [
+    "https://huggingface.co/datasets/tasksource/FOL-nli"
+  ],
+  "datasets/followir_core17": [
+    "https://huggingface.co/datasets/mteb/Core17InstructionRetrieval"
+  ],
+  "datasets/followir_news21": [
+    "https://huggingface.co/datasets/mteb/News21InstructionRetrieval"
+  ],
+  "datasets/followir_robust04": [
+    "https://huggingface.co/datasets/mteb/Robust04InstructionRetrieval"
+  ],
+  "datasets/go_emotions": [
+    "https://huggingface.co/datasets/google-research-datasets/go_emotions"
+  ],
+  "datasets/gretel_pii": [
+    "https://huggingface.co/datasets/gretelai/gretel-pii-masking-en-v1"
+  ],
+  "datasets/gsm8k": [
+    "https://huggingface.co/datasets/openai/gsm8k"
+  ],
+  "datasets/hans": [
+    "https://huggingface.co/datasets/tasksource/hans"
+  ],
+  "datasets/hatecheck": [
+    "https://huggingface.co/datasets/Paul/hatecheck"
+  ],
+  "datasets/hh_rlhf": [
+    "https://huggingface.co/datasets/Anthropic/hh-rlhf"
+  ],
+  "datasets/hwu64": [
+    "https://huggingface.co/datasets/FastFit/hwu_64"
+  ],
+  "datasets/impli": [
+    "https://github.com/UKPLab/acl2022-impli"
+  ],
+  "datasets/laya__ag_news": [
+    "https://huggingface.co/datasets/fancyzhx/ag_news"
+  ],
+  "datasets/laya__enron_spam": [
+    "https://huggingface.co/datasets/SetFit/enron_spam"
+  ],
+  "datasets/laya__typed_decisions": [
+    "https://huggingface.co/datasets/LocalLLaMA/typed-decisions"
+  ],
+  "datasets/lexcomp": [
+    "https://huggingface.co/datasets/tasksource/lexcomp-nc-relation"
+  ],
+  "datasets/logical_entailment": [
+    "https://huggingface.co/datasets/tasksource/logical-entailment"
+  ],
+  "datasets/lonli": [
+    "https://huggingface.co/datasets/tasksource/lonli"
+  ],
+  "datasets/massive": [
+    "https://huggingface.co/datasets/AmazonScience/massive"
+  ],
+  "datasets/miqa": [
+    "https://huggingface.co/datasets/tasksource/miqa"
+  ],
+  "datasets/mtop": [
+    "https://huggingface.co/datasets/tasksource/mtop"
+  ],
+  "datasets/nlsat": [
+    "https://huggingface.co/datasets/tasksource/nlsat"
+  ],
+  "datasets/open_jev__amount-extraction-control-v1": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__browser-control-v1": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__citation-control-v1": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__context-retention-control-v1": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__customer-control-v1": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__drone-control-v1": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__email-selection-control-v1": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__entity-alignment-control-v1": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__ir-control-v1": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__mailroom-control-v1": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__painting-geometry-v1": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__phone-extraction-control-v1": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__reasoning-control-v1": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__silent-failure-control-v1": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__snake-v1": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__sponsor-segment-control-v1": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__tic_tac_toe-v1": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__vizdoom-basic-v1": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__workflow-controls-v1__agent_trace_observability": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__workflow-controls-v1__customer_service": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__workflow-controls-v1__invoice_processing": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/open_jev__workflow-controls-v1__security_incidents": [
+    "https://huggingface.co/datasets/ZefanCai/Open-Jev"
+  ],
+  "datasets/openbookqa": [
+    "https://huggingface.co/datasets/allenai/openbookqa"
+  ],
+  "datasets/patent_similarity": [
+    "https://huggingface.co/datasets/tasksource/patent-phrase-similarity"
+  ],
+  "datasets/paws": [
+    "https://huggingface.co/datasets/google-research-datasets/paws"
+  ],
+  "datasets/plane": [
+    "https://huggingface.co/datasets/tasksource/PLANE-ood"
+  ],
+  "datasets/poem_sentiment": [
+    "https://huggingface.co/datasets/google-research-datasets/poem_sentiment"
+  ],
+  "datasets/qasper": [
+    "https://huggingface.co/datasets/allenai/qasper"
+  ],
+  "datasets/quartz": [
+    "https://huggingface.co/datasets/allenai/quartz"
+  ],
+  "datasets/robust_lr": [
+    "https://huggingface.co/datasets/tasksource/robustLR"
+  ],
+  "datasets/ruletaker": [
+    "https://huggingface.co/datasets/tasksource/ruletaker"
+  ],
+  "datasets/s1mb-generalization-contextual-choice": [
+    "https://huggingface.co/datasets/hotchpotch/s1mb-dataset"
+  ],
+  "datasets/s1mb-generalization-contextual-noul": [
+    "https://huggingface.co/datasets/hotchpotch/s1mb-dataset"
+  ],
+  "datasets/s1mb-generalization-contextual-score": [
+    "https://huggingface.co/datasets/hotchpotch/s1mb-dataset"
+  ],
+  "datasets/s1mb-generalization-diverse-choice": [
+    "https://huggingface.co/datasets/hotchpotch/s1mb-dataset"
+  ],
+  "datasets/s1mb-generalization-diverse-noul": [
+    "https://huggingface.co/datasets/hotchpotch/s1mb-dataset"
+  ],
+  "datasets/s1mb-generalization-diverse-score": [
+    "https://huggingface.co/datasets/hotchpotch/s1mb-dataset"
+  ],
+  "datasets/scicite": [
+    "https://huggingface.co/datasets/tasksource/scicite"
+  ],
+  "datasets/scitail": [
+    "https://huggingface.co/datasets/allenai/scitail"
+  ],
+  "datasets/scone": [
+    "https://huggingface.co/datasets/tasksource/scone"
+  ],
+  "datasets/sdoh_nli": [
+    "https://huggingface.co/datasets/tasksource/SDOH-NLI"
+  ],
+  "datasets/sgd": [
+    "https://github.com/google-research-datasets/dstc8-schema-guided-dialogue"
+  ],
+  "datasets/snli": [
+    "https://huggingface.co/datasets/stanfordnlp/snli"
+  ],
+  "datasets/spartqa": [
+    "https://huggingface.co/datasets/tasksource/spartqa-mchoice"
+  ],
+  "datasets/stepgame": [
+    "https://huggingface.co/datasets/tasksource/stepgame"
+  ],
+  "datasets/synthetic_relevance__nanobeir__NanoArguAna": [
+    "https://huggingface.co/datasets/hakari-bench/NanoBEIR-en"
+  ],
+  "datasets/synthetic_relevance__nanobeir__NanoDBPedia": [
+    "https://huggingface.co/datasets/hakari-bench/NanoBEIR-en"
+  ],
+  "datasets/synthetic_relevance__nanobeir__NanoFiQA2018": [
+    "https://huggingface.co/datasets/hakari-bench/NanoBEIR-en"
+  ],
+  "datasets/synthetic_relevance__nanobeir__NanoHotpotQA": [
+    "https://huggingface.co/datasets/hakari-bench/NanoBEIR-en"
+  ],
+  "datasets/synthetic_relevance__nanobeir__NanoMSMARCO": [
+    "https://huggingface.co/datasets/hakari-bench/NanoBEIR-en"
+  ],
+  "datasets/synthetic_relevance__nanobeir__NanoNFCorpus": [
+    "https://huggingface.co/datasets/hakari-bench/NanoBEIR-en"
+  ],
+  "datasets/synthetic_relevance__nanobeir__NanoNQ": [
+    "https://huggingface.co/datasets/hakari-bench/NanoBEIR-en"
+  ],
+  "datasets/synthetic_relevance__nanobeir__NanoSCIDOCS": [
+    "https://huggingface.co/datasets/hakari-bench/NanoBEIR-en"
+  ],
+  "datasets/synthetic_relevance__nanobeir__NanoTouche2020": [
+    "https://huggingface.co/datasets/hakari-bench/NanoBEIR-en"
+  ],
+  "datasets/synthetic_relevance__nanocoir": [
+    "https://huggingface.co/datasets/hakari-bench/NanoCoIR"
+  ],
+  "datasets/temporal_nli": [
+    "https://huggingface.co/datasets/tasksource/temporal-nli"
+  ],
+  "datasets/tracie": [
+    "https://huggingface.co/datasets/tasksource/tracie"
+  ],
+  "datasets/ud_ewt": [
+    "https://huggingface.co/datasets/universal-dependencies/universal_dependencies"
+  ],
+  "datasets/winobias": [
+    "https://github.com/uclanlp/corefBias"
+  ],
+  "datasets/winowhy": [
+    "https://huggingface.co/datasets/tasksource/winowhy"
+  ],
+  "datasets/wiqa": [
+    "https://huggingface.co/datasets/allenai/wiqa"
+  ]
+}

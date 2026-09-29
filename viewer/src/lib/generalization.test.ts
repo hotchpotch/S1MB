@@ -44,3 +44,19 @@ test('a changed or incomplete set of definitions cannot silently reduce the aver
   assert.equal(result.columns.length, 5);
   assert.equal(result.rows[0].average, null);
 });
+
+test('general-only coverage permits listing without inventing full-category aggregates', async () => {
+  const { hasLeaderboardCoverage } = await import('./comparison');
+  const { overallIndex } = await import('./types');
+  const data = fixture();
+  const extra = { ...data.benchmarks[0], id: 'specialized', dataset: 'datasets/specialized' };
+  data.benchmarks.push(extra);
+  data.categories[0].benchmarks.push(extra.id);
+  assert.equal(hasLeaderboardCoverage(data, data.categories[0], data.results), true);
+  assert.equal(overallIndex(data, data.categories[0], data.results), null);
+  data.results[0].status = 'partial';
+  assert.equal(hasLeaderboardCoverage(data, data.categories[0], data.results), false);
+  data.results[0].status = 'complete';
+  data.results[0].provenance = 'demo';
+  assert.equal(hasLeaderboardCoverage(data, data.categories[0], data.results), false);
+});

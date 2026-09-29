@@ -203,3 +203,21 @@ test('cache write failure does not discard fresh measurements and retries an unc
     assert.equal((await worker.restore())!.results.length, 1);
   } finally { worker.close(); await rm(f.root, { recursive: true, force: true }); }
 });
+
+test('combines published and local rows without merging model runs or overriding conflicts', async () => {
+  const f = await fixture();
+  const local = path.join(f.root, 'local');
+  await mkdir(local);
+  const file = path.join(local, 'choice.json');
+  await writeFile(file, JSON.stringify(result(0.9)));
+  const loader = new FilesystemResults(f.root, [f.results, local]);
+  try {
+    const snapshot = (await loader.refresh())!;
+    assert.deepEqual(snapshot.results.map(r => r.run_id).sort(), ['example__model', 'run']);
+    assert.deepEqual(snapshot.sources.map(s => s.files), [1, 1]);
+    await writeFile(path.join(local, 'duplicate.json'), JSON.stringify(result(0.7)));
+    await assert.rejects(loader.refresh(), /Conflicting result/);
+    await unlink(path.join(local, 'duplicate.json'));
+    assert.equal(await loader.refresh(), null);
+  } finally { await rm(f.root, { recursive: true, force: true }); }
+});

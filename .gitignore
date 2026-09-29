@@ -25,3 +25,6 @@
 
 # Persistent viewer summary cache
 /viewer/.cache/
+
+# Downloaded remote leaderboard snapshots and synchronization artifacts
+/cache/

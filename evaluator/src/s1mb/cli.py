@@ -106,6 +106,11 @@ def main() -> None:
     )
     run.add_argument("--category", default="english-v1")
     run.add_argument("--benchmark", action="append", help="Select specific category benchmarks")
+    run.add_argument(
+        "--generalization-only",
+        action="store_true",
+        help="Select only generalization benchmarks within the category",
+    )
     run.add_argument("--task", choices=["choice", "noul", "score"], help="Select one task")
     run.add_argument("--limit", type=int, help="First N cases per benchmark; remains partial")
     run.add_argument("--output", type=Path)
@@ -242,6 +247,10 @@ def execute(args, parser):
         if set(args.benchmark) - set(category.benchmarks):
             parser.error("Selected benchmark is not in the category")
         benchmarks = [b for b in benchmarks if b.id in args.benchmark]
+    if args.generalization_only:
+        benchmarks = [
+            b for b in benchmarks if b.dataset.startswith("datasets/s1mb-generalization-")
+        ]
     if args.task:
         benchmarks = [b for b in benchmarks if b.task == args.task]
     if not benchmarks:

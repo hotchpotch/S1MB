@@ -13,6 +13,9 @@ export default async function Page({
       initialCategory={
         typeof params.category === "string" ? params.category : undefined
       }
+      initialCheckedOnly={params.checkedOnly === "1"}
+      initialModelSearch={typeof params.modelSearch === "string" ? params.modelSearch : undefined}
+      initialGeneralizationOnly={params.generalOnly === "1"}
       initialTask={typeof params.task === "string" ? params.task : undefined}
       initialView={typeof params.view === "string" ? params.view : undefined}
       initialBenchmark={

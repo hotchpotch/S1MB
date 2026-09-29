@@ -46,14 +46,14 @@ export function leaderboard(snapshot: Snapshot, category: Category, task: Task):
 
 export const DIAGNOSTIC_COLUMNS: Record<Task, { name: string; label: string }[]> = {
   noul: [
-    { name: 'accuracy', label: 'Accuracy ↑' },
-    { name: 'balanced_accuracy', label: 'Balanced acc. ↑' },
-    { name: 'positive_recall', label: 'True recall ↑' },
-    { name: 'specificity', label: 'False recall ↑' },
+    { name: 'accuracy', label: 'Accuracy' },
+    { name: 'balanced_accuracy', label: 'Balanced acc.' },
+    { name: 'positive_recall', label: 'True recall' },
+    { name: 'specificity', label: 'False recall' },
   ],
   choice: [{ name: 'fixed_answer_accuracy_baseline', label: 'Fixed baseline' }],
   score: [
-    { name: 'normalized_score_rmse', label: 'RMSE ↓' },
+    { name: 'normalized_score_rmse', label: 'RMSE' },
     { name: 'constant_mae_baseline', label: 'Baseline MAE' },
   ],
 };

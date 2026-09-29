@@ -1,3 +1,4 @@
+import { MetricDirection } from './MetricIcons';
 import { ColumnHelp } from './ColumnHelp';
 import { generalizationComparison } from '../lib/generalization';
 import { modelName, metricRanks } from '../lib/comparison';
@@ -26,7 +27,7 @@ export function GeneralizationTable({ snapshot, category, selectedIds, onToggle 
           <TableHead className="w-9 sm:w-11"><span className="sr-only">Compare</span></TableHead>
           <TableHead className="w-8"><ColumnHelp label="Rank" description="Rank by average, highest first. Complete measured results only; ties share a rank.">#</ColumnHelp></TableHead>
           <TableHead className="w-[22%]"><ColumnHelp description="Evaluated model. Model links open the authored model page.">Model</ColumnHelp></TableHead>
-          <TableHead className="text-right"><ColumnHelp description="Equal-weight average of these six baseline-adjusted benchmark scores. 0–100; higher is better. All six must be complete and scored.">Average ↑</ColumnHelp></TableHead>
+          <TableHead className="text-right"><ColumnHelp description="Equal-weight average of these six baseline-adjusted benchmark scores. 0–100; higher is better. All six must be complete and scored."><MetricDirection direction="up">Average</MetricDirection></ColumnHelp></TableHead>
           {columns.map(({ family, task, benchmark }) => <TableHead key={benchmark.id} data-task={task} className="task-accent text-right"><ColumnHelp description={`${title(family)} ${title(task)} benchmark, baseline-adjusted on a 0–100 scale. Higher is better; 0 means at or below the reference baseline. — means incomplete or unavailable.`}><span className="block text-[9px] sm:text-[10px] text-muted-foreground">{title(family)}</span>{title(task)}</ColumnHelp></TableHead>)}
           <TableHead className="w-14 sm:w-20 text-right"><ParameterCountsHeader /></TableHead>
         </TableRow></TableHeader>

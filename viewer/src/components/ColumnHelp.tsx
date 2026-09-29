@@ -11,7 +11,7 @@ export function ColumnHelp({ children, description, label, onClick }: {
     <Tooltip.Trigger asChild>
       <button type="button" aria-label={label} onClick={onClick} className={`${onClick ? 'cursor-pointer' : 'cursor-help'} text-inherit font-bold leading-tight [text-align:inherit] no-underline focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2`}>{children}</button>
     </Tooltip.Trigger>
-    <Tooltip.Portal><Tooltip.Content sideOffset={6} collisionPadding={12} className="z-50 max-w-[min(20rem,calc(100vw-24px))] rounded-md border bg-popover p-3 text-xs font-normal text-popover-foreground shadow-md">
+    <Tooltip.Portal><Tooltip.Content sideOffset={6} collisionPadding={12} className="z-50 max-w-[min(22rem,calc(100vw-24px))] whitespace-pre-line rounded-md border bg-popover p-3 text-xs font-normal leading-relaxed text-popover-foreground shadow-md">
       {description}<Tooltip.Arrow className="fill-popover" />
     </Tooltip.Content></Tooltip.Portal>
   </Tooltip.Root></Tooltip.Provider>;

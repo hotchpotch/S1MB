@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from 'react';
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import { ArrowDown, ArrowUp } from 'lucide-react';
 import { categoryRuns, modelName } from '../lib/comparison';
 import { diagnosticMean, DISPLAY_TASKS, generalizationCategory, overallIndex, type Category, type Snapshot } from '../lib/types';
+import { TASK_AVG_DESCRIPTION } from '../lib/borda';
 import { moveComparison } from '../lib/radar';
 import { Button } from './ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { SortIcon } from './MetricIcons';
 import { ColumnHelp } from './ColumnHelp';
 import { ModelName } from './ModelName';
 
-const columns = ['Overall', 'Noul', 'Choice', 'Score', 'General Noul', 'General Choice', 'General Score'];
+const columns = ['Task Avg', 'Noul', 'Choice', 'Score', 'General Noul', 'General Choice', 'General Score'];
 
 export function ComparisonOrder({ snapshot, category, selectedIds, onChange }: {
   snapshot: Snapshot; category: Category; selectedIds: string[]; onChange: (ids: string[]) => void;
@@ -43,11 +45,10 @@ export function ComparisonOrder({ snapshot, category, selectedIds, onChange }: {
           <TableHead>Order</TableHead><TableHead>Model</TableHead>
           {columns.map((label, column) => {
             const active = activeSort?.column === column;
-            const Icon = active ? activeSort.ascending ? ArrowUp : ArrowDown : ArrowUpDown;
             return <TableHead key={label} className="text-right" data-task={column ? DISPLAY_TASKS[(column - 1) % 3] : undefined} aria-sort={active ? activeSort.ascending ? 'ascending' : 'descending' : 'none'}>
-              <ColumnHelp onClick={() => sortBy(column)} description={`Sort models by ${label}. Baseline-adjusted scores require complete coverage; unavailable values stay last. Click again to reverse the order.`}>
+              <ColumnHelp onClick={() => sortBy(column)} description={column === 0 ? TASK_AVG_DESCRIPTION : `Sort models by ${label}. Baseline-adjusted scores require complete coverage; unavailable values stay last. Click again to reverse the order.`}>
                 {label.startsWith('General ') && <span className="block text-[10px] text-muted-foreground">General</span>}
-                {label.replace('General ', '')}<Icon aria-hidden="true" className={`inline-block ml-0.5 size-3 ${active ? 'text-primary' : 'opacity-40'}`} />
+                <span className="inline-flex items-center whitespace-nowrap">{label.replace('General ', '')}<SortIcon direction={active ? activeSort.ascending ? 'ascending' : 'descending' : 'none'} /></span>
               </ColumnHelp>
             </TableHead>;
           })}

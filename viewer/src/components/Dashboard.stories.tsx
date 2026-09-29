@@ -52,6 +52,11 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Default: Story = {};
+export const EnglishScope: Story = {
+  parameters: {
+    docs: { description: { story: "Hero tasks ordered Noul, Choice, Score with short descriptions, an English category badge, and an underlined GitHub repository link. All measurements are synthetic." } },
+  },
+};
 export const Empty: Story = { args: { snapshot: { ...fixture, results: [] } } };
 export const Partial: Story = {
   args: {
@@ -140,6 +145,20 @@ export const Comparison: Story = {
   },
 };
 export const EmptyComparison: Story = { args: { initialView: "compare" } };
+export const EmptyModelPicker: Story = {
+  args: { initialView: "compare", snapshot: { ...fixture, results: [] } },
+  parameters: { docs: { description: { story: 'Synthetic empty model picker with a styled no-results message.' } } },
+};
+export const ModelPicker: Story = {
+  args: {
+    initialView: "compare",
+    snapshot: { ...comparisonFixture, results: comparisonFixture.results.map(result => ({
+      ...result,
+      model: { ...result.model, short_name: `Short ${result.run_id} · Synthetic`, display_name: `Full ${result.run_id} checkpoint · Synthetic`, url: 'https://example.com/synthetic-model' },
+    })) },
+  },
+  parameters: { docs: { description: { story: 'Synthetic model picker: short leaderboard names, full names underneath, searchable by either name, and persistent selection panel.' } } },
+};
 
 export const NoulDiagnostics: Story = { args: { initialView: "benchmarks", initialTask: "noul" } };
 
@@ -317,7 +336,7 @@ export const DesignAuditMobileNavigation: Story = {
 
 export const LeaderboardColumnHelp: Story = {
   ...DesignAuditLeaderboard,
-  parameters: { docs: { description: { story: 'Synthetic results. Hover or keyboard-focus each column heading to read its definition. Help triggers have no underline. TP/AP explains the non-lookup counting convention and its distinction from routed MoE activity and memory usage.' } } },
+  parameters: { docs: { description: { story: 'Synthetic leaderboard with multiline column help, including the synthetic generalization-evaluation subset used by General columns.' } } },
 };
 
 export const HuggingFaceModelLinks: Story = { args: {
@@ -342,12 +361,60 @@ export const SortableLeaderboard: Story = {
   args: { snapshot: radarFixture },
   parameters: { docs: { description: { story: 'Synthetic results with different task leaders. Click any score heading twice to review descending and ascending order.' } } },
 };
+export const BordaLeaderboard: Story = {
+  args: { snapshot: radarFixture },
+  parameters: { docs: { description: { story: 'Synthetic results. Borda Score is the default descending sort; Task Avg retains the equal-task average. Inspect both tooltips and reverse each sort.' } } },
+};
+export const GeneralizationOnlyLeaderboard: Story = {
+  args: { snapshot: radarFixture, initialGeneralizationOnly: true },
+  parameters: { docs: { description: { story: 'Synthetic results. Generalization-only ranking recalculates Borda, Task Avg, coverage and cohort from the general subset. Toggle off to restore all benchmarks.' } } },
+};
+export const GeneralizationSelectionActions: Story = {
+  args: { snapshot: radarFixture, initialGeneralizationOnly: true, initialCompare: ['synthetic-radar-0', 'synthetic-radar-1'] },
+  parameters: { docs: { description: { story: 'Synthetic selected models. Compare is a separate heading action, outside the generalization filter.' } } },
+};
+export const LeaderboardExports: Story = {
+  args: { snapshot: radarFixture },
+  parameters: { docs: { description: { story: 'Synthetic export preview. Sort any column and toggle Generalization tasks only before exporting CSV or opening a plain-text Markdown table.' } } },
+};
+export const CompactLeaderboardToolbar: Story = {
+  args: { snapshot: radarFixture, initialCompare: ['synthetic-radar-0'] },
+  parameters: { docs: { description: { story: 'Synthetic results. Compact exports sit beside model and benchmark counts; scope and comparison controls share one toolbar and wrap on mobile.' } } },
+};
+export const CheckedOnlyLeaderboard: Story = {
+  args: { snapshot: radarFixture, initialCompare: ['synthetic-radar-0', 'synthetic-radar-2'], initialCheckedOnly: true },
+  parameters: { docs: { description: { story: 'Synthetic results. Checked-only and model-name search filter displayed rows without changing Borda scores or ranks. Exports follow the filtered display.' } } },
+};
+export const CompactLeaderboardHeadings: Story = {
+  args: { snapshot: radarFixture },
+  render: args => <div className="max-w-[960px] mx-auto"><Dashboard {...args} /></div>,
+  parameters: { docs: { description: { story: 'Synthetic results at a constrained width. Sort arrows stay to the right of the final label line, including Choice and General Choice.' } } },
+};
+export const BordaTies: Story = { args: { snapshot: {
+  ...radarFixture,
+  results: radarFixture.results.map(result => ({ ...result, metrics: { baseline_adjusted_score: 0.5 } })),
+} } };
+export const BordaSingleModel: Story = { args: { snapshot: {
+  ...radarFixture, results: radarFixture.results.filter(result => result.run_id === 'synthetic-radar-0'),
+} } };
 export const ReorderComparison: Story = {
   args: { ...ShareableComparison.args },
   parameters: { docs: { description: { story: 'Synthetic results. Move selected models up or down, or click score headings to sort. Comparison columns and URL selection order follow the displayed model order.' } } },
 };
 export const RankedBenchmarks: Story = {
   args: { snapshot: radarFixture, initialView: 'benchmarks', initialTask: 'noul' },
+};
+export const MetricDirectionIcons: Story = {
+  args: { snapshot: radarFixture, initialView: 'benchmarks', initialTask: 'noul' },
+  parameters: { docs: { description: { story: 'Synthetic metrics. Sort headings use the shared leaderboard icons; metric direction hints retain higher/lower-is-better semantics.' } } },
+};
+export const BenchmarkSourceLinks: Story = {
+  args: { initialView: 'benchmarks', initialTask: 'choice', snapshot: {
+    ...fixture,
+    benchmarks: fixture.benchmarks.map(b => b.task === 'choice' ? { ...b, dataset: 'datasets/aqua_rat' } : b),
+    results: fixture.results.map(r => r.benchmark.task === 'choice' ? { ...r, benchmark: { ...r.benchmark, dataset: 'datasets/aqua_rat' } } : r),
+  } },
+  parameters: { docs: { description: { story: 'Synthetic results with underlined public AQuA source links and GitHub/Hugging Face icons. The dataset identity is used only to preview the links; these are not AQuA measurements.' } } },
 };
 
 export const ComparisonLongModelNames: Story = { args: {
@@ -365,3 +432,13 @@ export const SharedHeaderCompare: Story = { args: { ...ShareableComparison.args 
 export const OrganizedRunDetails: Story = { args: {
   snapshot: radarFixture, initialRun: 'synthetic-radar-0',
 }, parameters: { docs: { description: { story: 'Synthetic model details: results first, with identity, settings and per-benchmark provenance grouped below the table.' } } } };
+
+export const GeneralizationCoverageOnly: Story = { args: { snapshot: {
+  ...radarFixture,
+  results: radarFixture.results.filter(result => result.run_id !== 'synthetic-radar-0' || result.benchmark.dataset.startsWith('datasets/s1mb-generalization-')),
+} }, parameters: { docs: { description: { story: 'Synthetic results. A model with only general benchmarks remains listed, with General scores and unavailable full-category aggregates.' } } } };
+
+export const LeaderboardHeadingActions: Story = {
+  args: { snapshot: radarFixture, initialCompare: ['synthetic-radar-0'], initialCheckedOnly: true },
+  parameters: { docs: { description: { story: 'Synthetic results. Heading actions appear in Generalization tasks only, Checked only, Compare order and wrap below the title on mobile.' } } },
+};

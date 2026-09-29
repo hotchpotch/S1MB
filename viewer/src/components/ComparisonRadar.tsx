@@ -122,7 +122,8 @@ export function ComparisonRadar({ snapshot, category, selectedIds, onMove, onRem
             <text x="90" y="43" fontSize="24" fontWeight="700" fill="#ffffff">S1MB <tspan fontWeight="400" fill="#d5eadb">/ Model comparison</tspan></text>
             <text x="90" y="68" fontSize="14" fill="#c0d5c7">{category.name}</text>
             <text x="1170" y="43" textAnchor="end" fontSize="12" fontWeight="700" letterSpacing="1.3" fill="#c0d5c7">ADJUSTED SCORES</text>
-            <text x="1170" y="69" textAnchor="end" fontSize="18" fontWeight="600" fill="#ffffff">0–100 ↑</text>
+            <text x="1148" y="69" textAnchor="end" fontSize="18" fontWeight="600" fill="#ffffff">0–100</text>
+            <ArrowUp x={1154} y={53} size={18} color="#ffffff" aria-hidden="true" />
             <g transform="translate(0 28)">
             {[100, 75, 50, 25].map(value => <polygon key={value} points={points(Array(6).fill(value))} fill={value === 100 ? '#ffffff' : 'none'} stroke="#d4dfd6" strokeWidth="1" />)}
             {RADAR_AXES.map((axis, index) => {

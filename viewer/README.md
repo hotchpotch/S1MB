@@ -11,10 +11,60 @@ npm start -- --results-dir /absolute/path/to/results
 ```
 
 The default source is `data/hub-results` when present, otherwise `data/results`.
-Repeat `--results-dir` to combine folders. `S1MB_RESULTS_DIR` configures one folder.
-`S1MB_DATA_DIR` points to tracked benchmark/category definitions and defaults to
-`viewer/data` (a symlink to `../evaluator/data`). No evaluation dataset is needed.
+Repeat `--results-dir` to combine folders. Definitions default to `viewer/data`
+(a symlink to `../evaluator/data`). No evaluation dataset is needed by the viewer.
+See [`../.env.sample`](../.env.sample) for environment-based configuration.
 The wrapper binds to Tailscale IPv4 when available, otherwise localhost.
+
+## Remote leaderboard plus local evaluations
+
+From `evaluator/`, install a verified remote snapshot into the Git-ignored
+repository-root cache (the first synchronization may download recorded evaluation
+revisions for validation):
+
+```sh
+uv run s1mb sync-results --repo-id hotchpotch/s1mb-result \
+  --output ../cache/hf-s1mb-result
+```
+
+Then, from `viewer/`, combine that snapshot with local runs:
+
+```sh
+npm run dev -- --results-dir ../cache/hf-s1mb-result \
+  --results-dir ../evaluator/data/results
+# Or, after npm run build:
+npm start -- --results-dir ../cache/hf-s1mb-result \
+  --results-dir ../evaluator/data/results
+```
+
+Use a specific `../evaluator/data/results/<run-id>` directory to show only one
+local run alongside the remote leaderboard. Both directories must exist.
+Repeat synchronization to update remote results, then restart the viewer after
+remote or local results change. Synchronization leaves the previous verified
+snapshot installed on failure. The viewer does not pull from the Hub itself.
+A fully downloaded Git/Xet checkout with the same published layout can also be
+passed as a results directory; pointer files are not result data. Prefer the
+validated synchronization command above for atomic updates.
+
+Published model folders retain their model IDs and display metadata; local runs
+retain their run IDs, so the same model can appear as separate remote and local
+rows. Sources are combined without overriding conflicting measurements. Identical
+row/benchmark results are deduplicated; conflicting identities or results reject
+the refresh and preserve the last good viewer snapshot.
+
+Models completing just the active Generalization benchmarks (currently six:
+Diverse and Contextual × Noul, Choice and Score) appear on the overall leaderboard
+with General scores. Missing full-category aggregates remain unavailable and
+coverage is shown explicitly. Select **Generalization tasks only** to rank within
+that subset. Evaluation selection from `evaluator/` is:
+
+```sh
+uv run s1mb run --adapter YOUR_ADAPTER --model YOUR_MODEL \
+  --generalization-only --run-id YOUR_FRESH_RUN_ID
+```
+
+This option intersects with `--category`, `--task`, and repeated `--benchmark`
+filters. It does not establish unseen-task generalization or training-data non-overlap.
 
 ## Filesystem cache
 
@@ -30,7 +80,7 @@ A second metadata scan rejects changes occurring during loading. Candidates
 replace the memory cache atomically; errors retain the last good snapshot.
 
 The default cache directory is `viewer/.cache/results` (Git-ignored). Override it
-with `--cache-dir /path/to/cache` or `S1MB_RESULTS_CACHE_DIR`. Each source configuration
+with `--cache-dir /path/to/cache`. Each source configuration
 and cache format has its own namespace; use one viewer writer per namespace.
 The JSON contains display summaries only, never raw inputs or predictions.
 New immutable generations are written only when summary content changes, closed,
@@ -48,7 +98,7 @@ The preceding good generation remains available for recovery. Local files use
 not be shared by independently running viewer deployments.
 
 Local startup checks after every request by default. Set `--check-seconds 3600`
-or `S1MB_RESULTS_CHECK_SECONDS=3600` to check at most hourly. Concurrent requests
+to check at most hourly. Concurrent requests
 share one refresh. There is no polling when nobody accesses the viewer. A check
 starts on the first request after the interval; that request receives old data,
 and a subsequent request sees successfully refreshed results.

@@ -1,9 +1,12 @@
 "use client";
 
+import { MetricDirection, SortIcon } from "./MetricIcons";
 import { ColumnHelp } from "./ColumnHelp";
+import { GitHubIcon } from "./GitHubIcon";
+import { BenchmarkSources } from "./BenchmarkSources";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeftRight, ArrowUpRight, ArrowDown, ArrowUp, ArrowUpDown, BarChart3, Blocks, Check, CircleCheck, GitFork, ListChecks, Trophy, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { ArrowLeftRight, ArrowUpRight, BarChart3, Blocks, Check, CircleCheck, ListChecks, Trophy, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { ModelWebsiteLink } from "./ModelWebsiteLink";
 import { ParameterCounts, ParameterCountsHeader } from "./ParameterCounts";
 import { Dialog } from "radix-ui";
@@ -47,7 +50,7 @@ import {
   benchmarkName,
   categoryRuns,
   compareRuns,
-  hasCompleteCoverage,
+  hasLeaderboardCoverage,
   compareResultMetric,
   comparisonSpread,
   comparisonDelta,
@@ -57,30 +60,32 @@ import {
 import { cn } from "../lib/utils";
 import { ModelName } from "./ModelName";
 import { GeneralizationTable } from "./GeneralizationTable";
+import { bordaScores, BORDA_DESCRIPTION, TASK_AVG_DESCRIPTION } from "../lib/borda";
+import { TableExports } from "./TableExports";
 import { ComparisonOrder } from "./ComparisonOrder";
 
-type LeaderboardSort = 'overall' | Task | `general-${Task}`;
+type LeaderboardSort = 'borda' | 'overall' | Task | `general-${Task}`;
 type View = "leaderboard" | "benchmarks" | "compare";
 const adjustedScore = (value: number | null | undefined) => value == null ? '—' : (value * 100).toFixed(2);
 const percent = (value: number | null | undefined) => value == null ? '—' : `${(value * 100).toFixed(2)}%`;
 const BENCHMARK_METRICS = {
-  choice: [{ name: 'target_mass_at_prediction', label: 'Target mass ↑' }],
+  choice: [{ name: 'target_mass_at_prediction', label: 'Target mass' }],
   noul: [
-    { name: 'f1', label: 'F1 ↑' },
-    { name: 'precision', label: 'Precision ↑' },
-    { name: 'positive_recall', label: 'Recall ↑' },
-    { name: 'balanced_accuracy', label: 'Balanced acc. ↑' },
-    { name: 'binary_brier', label: 'Brier ↓' },
+    { name: 'f1', label: 'F1' },
+    { name: 'precision', label: 'Precision' },
+    { name: 'positive_recall', label: 'Recall' },
+    { name: 'balanced_accuracy', label: 'Balanced acc.' },
+    { name: 'binary_brier', label: 'Brier' },
   ],
   score: [
-    { name: 'normalized_expected_score_mae', label: 'MAE ↓' },
-    { name: 'normalized_score_rmse', label: 'RMSE ↓' },
+    { name: 'normalized_expected_score_mae', label: 'MAE' },
+    { name: 'normalized_score_rmse', label: 'RMSE' },
   ],
 };
 const title = (s: string) => s[0].toUpperCase() + s.slice(1);
 const repeatedName = (runs: Run[], model: ModelInfo) => runs.filter(r => modelName(r.model) === modelName(model)).length > 1;
 const direction = (task: Task) =>
-  METRICS[task].direction === "up" ? "↑ Higher is better" : "↓ Lower is better";
+  <MetricDirection direction={METRICS[task].direction}>{METRICS[task].direction === "up" ? "Higher is better" : "Lower is better"}</MetricDirection>;
 
 export function CoverageBadge({
   complete,
@@ -301,7 +306,7 @@ export function ComparisonTables({
               </h3>
               <Badge variant="secondary">{group.rows.length} benchmarks</Badge>
               <span className="text-xs text-muted-foreground">
-                {adjusted ? 'Baseline-adjusted score · ↑ Higher is better' : `${METRICS[group.task].label} · ${direction(group.task)}`}
+                {adjusted ? <MetricDirection direction="up">Baseline-adjusted score · Higher is better</MetricDirection> : <>{METRICS[group.task].label} · {direction(group.task)}</>}
               </span>
             </div>
             <div className="rounded-lg border bg-card overflow-hidden">
@@ -378,6 +383,9 @@ export function Dashboard({
   initialTask,
   initialRun,
   initialView,
+  initialGeneralizationOnly = false,
+  initialCheckedOnly = false,
+  initialModelSearch = "",
   initialCompare = [],
   initialBenchmark,
 }: {
@@ -386,9 +394,13 @@ export function Dashboard({
   initialTask?: string;
   initialRun?: string;
   initialView?: string;
+  initialGeneralizationOnly?: boolean;
+  initialCheckedOnly?: boolean;
+  initialModelSearch?: string;
   initialCompare?: string[];
   initialBenchmark?: string;
 }) {
+  const leaderboardTable = useRef<HTMLTableElement>(null);
   const categoryId = "english-v1";
   const [task, setTask] = useState<Task>(
     TASKS.includes(initialTask as Task) ? (initialTask as Task) : "choice",
@@ -403,9 +415,13 @@ export function Dashboard({
   const [selectedIds, setSelected] = useState<string[]>([
     ...new Set(initialCompare),
   ]);
+  const [generalizationOnly, setGeneralizationOnly] = useState(initialGeneralizationOnly);
+  const [checkedOnly, setCheckedOnly] = useState(initialCheckedOnly);
+  const [modelSearch, setModelSearch] = useState(initialModelSearch);
   const [includeIncomplete, setIncomplete] = useState(false);
+  const [modelPickerOpen, setModelPickerOpen] = useState(true);
   const [query, setQuery] = useState("");
-  const [leaderboardSort, setLeaderboardSort] = useState<LeaderboardSort>('overall');
+  const [leaderboardSort, setLeaderboardSort] = useState<LeaderboardSort>('borda');
   const [leaderboardAscending, setLeaderboardAscending] = useState(false);
   const [benchmarkMetric, setBenchmarkMetric] = useState('baseline_adjusted_score');
   const [benchmarkId, setBenchmark] = useState(initialBenchmark ?? "");
@@ -422,16 +438,22 @@ export function Dashboard({
       "run",
       "benchmark",
       "compare",
+      "generalOnly",
+      "checkedOnly",
+      "modelSearch",
     ])
       params.delete(key);
     params.set("category", category.id);
     params.set("task", generalizationView ? "generalization" : task);
     params.set("view", view);
+    if (generalizationOnly) params.set("generalOnly", "1");
+    if (checkedOnly) params.set("checkedOnly", "1");
+    if (modelSearch) params.set("modelSearch", modelSearch);
     if (runId) params.set("run", runId);
     if (benchmarkId) params.set("benchmark", benchmarkId);
     for (const id of selectedIds) params.append("compare", id);
     window.history.replaceState(null, "", `?${params}`);
-  }, [category, task, generalizationView, view, runId, selectedIds, benchmarkId]);
+  }, [category, task, generalizationView, view, runId, selectedIds, benchmarkId, generalizationOnly, checkedOnly, modelSearch]);
   if (!category)
     return (
       <main className="max-w-6xl mx-auto p-8">
@@ -447,26 +469,28 @@ export function Dashboard({
   const runs = categoryRuns(snapshot, category);
   const selectedRuns = selectedIds.flatMap(id => { const run = runs.find(r => r.id === id); return run ? [run] : []; });
   const active = runs.find((r) => r.id === runId);
-  const rawRows = leaderboard(snapshot, category, task);
-  const allRows = rawRows.map(row => ({ ...row, score: overallIndex(snapshot, category, row.results) }))
+  const rankingCategory = generalizationOnly ? generalizationCategory(snapshot, category) : category;
+  const rawRows = leaderboard(snapshot, rankingCategory, task);
+  const allRows = rawRows.map(row => ({ ...row, score: overallIndex(snapshot, rankingCategory, row.results) }))
     .sort((a, b) => Number(a.demo) - Number(b.demo) || Number(a.score === null) - Number(b.score === null) || (b.score ?? 0) - (a.score ?? 0) || a.runId.localeCompare(b.runId));
-  const rows = allRows.filter(row => row.score !== null && hasCompleteCoverage(category, row.results));
-  const leaderboardValue = (row: typeof rows[number]) => leaderboardSort === 'overall' ? row.score
-    : diagnosticMean(snapshot, leaderboardSort.startsWith('general-') ? generalizationCategory(snapshot, category) : category,
+  const rows = allRows.filter(row => hasLeaderboardCoverage(snapshot, rankingCategory, row.results));
+  const borda = bordaScores(snapshot, rankingCategory);
+  const leaderboardValue = (row: typeof rows[number]) => leaderboardSort === 'borda' ? borda.get(row.runId) ?? null : leaderboardSort === 'overall' ? row.score
+    : diagnosticMean(snapshot, leaderboardSort.startsWith('general-') ? generalizationCategory(snapshot, category) : rankingCategory,
       leaderboardSort.replace('general-', '') as Task, row.results, 'baseline_adjusted_score');
   const leaderboardRanks = metricRanks(rows.map(row => ({ id: row.runId, value: leaderboardValue(row) })));
   rows.sort((a, b) => {
     const av = leaderboardValue(a), bv = leaderboardValue(b);
     return Number(av == null) - Number(bv == null) || (av != null && bv != null ? (av - bv) * (leaderboardAscending ? 1 : -1) : 0) || a.runId.localeCompare(b.runId);
   });
+  const displayedRows = rows.filter(row =>
+    (!checkedOnly || selectedIds.includes(row.runId)) &&
+    [row.model.id, row.model.short_name, modelName(row.model)].some(name => name?.toLowerCase().includes(modelSearch.trim().toLowerCase())));
   function sortLeaderboard(column: LeaderboardSort) {
     setLeaderboardAscending(column === leaderboardSort ? !leaderboardAscending : false);
     setLeaderboardSort(column);
   }
-  const sortIcon = (column: LeaderboardSort) => {
-    const Icon = column !== leaderboardSort ? ArrowUpDown : leaderboardAscending ? ArrowUp : ArrowDown;
-    return <Icon aria-hidden="true" className={cn('inline-block ml-0.5 size-3 shrink-0', column !== leaderboardSort ? 'opacity-40' : 'text-primary')} />;
-  };
+  const sortIcon = (column: LeaderboardSort) => <SortIcon direction={sortDirection(column)} />;
   const sortDirection = (column: LeaderboardSort) => column === leaderboardSort ? leaderboardAscending ? 'ascending' as const : 'descending' as const : 'none' as const;
   const filteredBenchmarks = benchmarks
     .filter(
@@ -490,8 +514,8 @@ export function Dashboard({
     individual?.cells
       .filter((c) => c.result && (includeIncomplete || c.result.provenance === "measured"))
       .sort((a, b) => compareResultMetric(a.result!, b.result!, benchmarkMetric)) ?? [];
-  const metricColumns = [{ name: 'baseline_adjusted_score', label: 'Adjusted ↑' }, ...BENCHMARK_METRICS[task]];
-  const sortLabel = metricColumns.find(m => m.name === benchmarkMetric)?.label ?? 'Adjusted ↑';
+  const metricColumns = [{ name: 'baseline_adjusted_score', label: 'Adjusted' }, ...BENCHMARK_METRICS[task]];
+  const sortLabel = metricColumns.find(m => m.name === benchmarkMetric)?.label ?? 'Adjusted';
   const metricDirection = ['binary_brier', 'normalized_expected_score_mae', 'normalized_score_rmse'].includes(benchmarkMetric) ? 'ascending' : 'descending';
   const benchmarkRanks = metricRanks(individualCells.map(cell => ({ id: cell.runId,
     value: cell.result?.status === 'complete' && cell.result.provenance === 'measured' ? cell.result.metrics[benchmarkMetric] ?? null : null,
@@ -520,7 +544,7 @@ export function Dashboard({
         (!r.demo && r.results.some((x) => x.status === "complete")),
     )
     .filter((r) =>
-      `${r.id} ${r.model.id} ${modelName(r.model)} ${instructionLabel(r.model)}`
+      `${r.id} ${r.model.id} ${r.model.short_name ?? ''} ${modelName(r.model)} ${instructionLabel(r.model)}`
         .toLowerCase()
         .includes(query.toLowerCase()),
     );
@@ -537,17 +561,21 @@ export function Dashboard({
               <p className="text-[clamp(1.6rem,2.5vw,2.25rem)] font-semibold leading-[1.08] tracking-[-0.06em] text-foreground">Compare models across<br /><span className="text-primary">{benchmarks.length} specialized benchmarks.</span></p>
               <div className="grid grid-cols-3 gap-3 sm:gap-5">
                 {([
+                  { task: 'noul', label: 'Noul', description: 'Assess a condition', Icon: CircleCheck },
                   { task: 'choice', label: 'Choice', description: 'Select an option', Icon: ListChecks },
-                  { task: 'noul', label: 'Noul', description: 'Judge a statement', Icon: CircleCheck },
-                  { task: 'score', label: 'Score', description: 'Assign a value', Icon: BarChart3 },
+                  { task: 'score', label: 'Score', description: 'Rate on a scale', Icon: BarChart3 },
                 ] as const).map(({ task, label, description, Icon }) => <div key={task} className="space-y-2">
                   <div data-task={task} className="task-accent border-t-2 border-current pt-3 flex items-center gap-2 text-sm font-semibold"><Icon aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.5} />{label}</div>
                   <p className="text-[11px] sm:text-xs leading-relaxed text-muted-foreground">{description}</p>
                 </div>)}
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] sm:text-xs text-muted-foreground">
-                <p>Baseline-adjusted scores <span aria-hidden="true" className="mx-1">·</span> Higher is better</p>
-                <a href="https://github.com/hotchpotch/S1MB" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 transition-colors hover:text-primary"><GitFork aria-hidden="true" className="size-3.5" />hotchpotch/S1MB<ArrowUpRight aria-hidden="true" className="size-3" /></a>
+                <Badge variant="outline" className="rounded-md border-primary/20 bg-primary/5 font-mono text-[10px] text-primary sm:text-[11px]">{category.id}</Badge>
+                <a href="https://github.com/hotchpotch/S1MB" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 transition-colors hover:text-primary">
+                  <GitHubIcon />
+                  <span className="underline underline-offset-2">hotchpotch/S1MB</span>
+                  <ArrowUpRight aria-hidden="true" className="size-3" />
+                </a>
               </div>
             </div>
           </div>
@@ -603,26 +631,58 @@ export function Dashboard({
         )}
         {view === "leaderboard" && (
           <section aria-label="Leaderboard" className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div><h2 className="text-xl font-semibold">Overall leaderboard</h2>
-                <p className="text-sm text-muted-foreground mt-1">Baseline-adjusted scores · Higher is better · Equal weight per task</p></div>
-              <Button variant="outline" disabled={!selectedRuns.length} onClick={() => { setView('compare'); setQuery(''); }}>
-                <ArrowLeftRight className="size-4" /> Compare selected ({selectedRuns.length})
-              </Button>
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+              <h2 className="text-xl font-semibold">{generalizationOnly ? 'Generalization leaderboard' : 'Overall leaderboard'}</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label title="Rank only the Diverse and Contextual Noul, Choice and Score benchmarks" className={cn('inline-flex h-8 cursor-pointer items-center gap-2 whitespace-nowrap rounded-md border px-2.5 text-xs transition-colors hover:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring', generalizationOnly ? 'border-primary/30 bg-primary/10 text-primary' : 'bg-background')}>
+                    <Checkbox className="size-3.5" checked={generalizationOnly} onCheckedChange={checked => {
+                      setGeneralizationOnly(checked === true);
+                      setLeaderboardSort('borda'); setLeaderboardAscending(false);
+                    }} />
+                    Generalization tasks only
+                  </label>
+                  <label title="Show checked models without recalculating scores or ranks" className={cn('inline-flex h-8 cursor-pointer items-center gap-2 whitespace-nowrap rounded-md border px-2.5 text-xs transition-colors hover:bg-accent has-focus-visible:ring-2 has-focus-visible:ring-ring', checkedOnly ? 'border-primary/30 bg-primary/10 text-primary' : 'bg-background')}>
+                    <Checkbox className="size-3.5" checked={checkedOnly} onCheckedChange={checked => setCheckedOnly(checked === true)} />
+                    Checked only
+                  </label>
+                  <Button variant="outline" size="sm" className="text-xs" disabled={!selectedRuns.length} onClick={() => { setView('compare'); setQuery(''); }}>
+                    <ArrowLeftRight className="size-3.5" /> Compare ({selectedRuns.length})
+                  </Button>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground" role="status">
+                    <span><strong className="font-mono text-foreground">{displayedRows.length}{displayedRows.length !== rows.length && <span className="font-normal text-muted-foreground"> / {rows.length}</span>}</strong> models</span>
+                    <span className="h-3 border-l" aria-hidden="true" />
+                    <span><strong className="font-mono text-foreground">{rankingCategory.benchmarks.length}</strong> benchmarks</span>
+                  </div>
+                  <div className="flex items-center gap-0.5 border-l pl-2">
+                    <TableExports tableRef={leaderboardTable} filename={`s1mb-${generalizationOnly ? 'generalization' : 'all'}-${leaderboardSort}-${leaderboardAscending ? 'asc' : 'desc'}`} disabled={!displayedRows.length} />
+                  </div>
+                  <div className="relative w-44">
+                    <Search aria-hidden="true" className="absolute left-2 top-2 size-3.5 text-muted-foreground" />
+                    <Input aria-label="Search leaderboard models" placeholder="Search models…" value={modelSearch} onChange={event => setModelSearch(event.target.value)} className="h-8 pl-7 pr-7 text-xs md:text-xs" />
+                    {modelSearch && <Button variant="ghost" size="icon-xs" aria-label="Clear model search" className="absolute right-1 top-1" onClick={() => setModelSearch('')}><X className="size-3" /></Button>}
+                  </div>
+                </div>
+
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">Noul, Choice and Score include all benchmarks. General columns show the diverse/contextual subset; they receive no additional ranking weight.</p>
-            {rows.length ? <div className="rounded-lg border bg-card overflow-hidden">
-              <Table aria-label="Overall leaderboard" className="table-fixed min-w-[760px] text-xs [&_th]:px-0.5 sm:[&_th]:px-1 [&_th]:whitespace-normal [&_th]:break-words [&_td]:px-0.5 sm:[&_td]:px-1 [&_td]:py-2 [&_tr>:first-child]:pl-3 sm:[&_tr>:first-child]:pl-4 [&_tr>:last-child]:pr-3 sm:[&_tr>:last-child]:pr-4 [&_button]:text-xs">
+            {displayedRows.length ? <div className="rounded-lg border bg-card overflow-hidden">
+              <Table ref={leaderboardTable} aria-label="Overall leaderboard" className="table-fixed min-w-[840px] text-xs [&_th]:px-0.5 sm:[&_th]:px-1 [&_th]:whitespace-normal [&_th]:break-words [&_td]:px-0.5 sm:[&_td]:px-1 [&_td]:py-2 [&_tr>:first-child]:pl-3 sm:[&_tr>:first-child]:pl-4 [&_tr>:last-child]:pr-3 sm:[&_tr>:last-child]:pr-4 [&_button]:text-xs">
                 <TableHeader><TableRow>
                   <TableHead className="w-9 sm:w-11"><span className="sr-only">Compare</span></TableHead>
-                  <TableHead className="w-5 sm:w-8"><ColumnHelp label="Rank" description="Rank by the selected score column, highest first. Ties share a rank; reversing the order preserves ranks. Only complete measured results are ranked.">#</ColumnHelp></TableHead><TableHead className="w-[22%]"><ColumnHelp description="Evaluated model. Select its name to view model information and benchmark results.">Model</ColumnHelp></TableHead>
-                  <TableHead className="text-right" aria-sort={sortDirection('overall')}><ColumnHelp onClick={() => sortLeaderboard('overall')} description="Equal-weight average of the Noul, Choice and Score task scores on a 0–100 scale. Each benchmark is baseline-adjusted and clipped before averaging. Complete coverage is required; higher is better.">Overall{sortIcon('overall')}</ColumnHelp></TableHead>
-                  {DISPLAY_TASKS.map(t => <TableHead key={t} data-task={t} className="task-accent text-right" aria-sort={sortDirection(t)}><ColumnHelp onClick={() => sortLeaderboard(t)} description={`Mean baseline-adjusted score across all ${title(t)} benchmarks, including the general subset. 0–100; higher is better. Complete task coverage is required.`}>{title(t)}{sortIcon(t)}</ColumnHelp></TableHead>)}
-                  {DISPLAY_TASKS.map(t => <TableHead key={`general-${t}`} data-task={t} className="task-accent text-right" aria-sort={sortDirection(`general-${t}`)}><ColumnHelp onClick={() => sortLeaderboard(`general-${t}`)} description={`Mean baseline-adjusted score for the Diverse and Contextual ${title(t)} benchmarks. Already included in the task score, with no additional ranking weight. This subset does not establish unseen-task generalization.`}><span className="block text-[9px] sm:text-[10px] text-muted-foreground">General</span>{title(t)}{sortIcon(`general-${t}`)}</ColumnHelp></TableHead>)}
-                  <TableHead className="hidden sm:table-cell text-right w-14"><ColumnHelp label="Coverage" description="Number of completed benchmarks in this category. Every benchmark must be complete for a model to appear on the leaderboard.">Cov</ColumnHelp></TableHead>
-                  <TableHead className="w-14 sm:w-20 text-right"><ParameterCountsHeader /></TableHead>
+                  <TableHead className="w-5 sm:w-8"><ColumnHelp label="Rank" description={'Position based on the selected score column.\n\nHigher scores rank first. Tied models share a rank. Reversing the display order does not change ranks.\n\nOnly models with complete measured results are ranked.'}>#</ColumnHelp></TableHead><TableHead className="w-[22%]"><ColumnHelp description={'The evaluated model.\n\nSelect its name to see model details and individual benchmark results.'}>Model</ColumnHelp></TableHead>
+                  <TableHead className="text-right" aria-sort={sortDirection('borda')}><ColumnHelp label="Borda Score" onClick={() => sortLeaderboard('borda')} description={`${BORDA_DESCRIPTION}\n\nThis ranking covers ${rankingCategory.benchmarks.length} benchmarks.`}><span className="block">Borda</span><span className="inline-flex items-center whitespace-nowrap">Score{sortIcon('borda')}</span></ColumnHelp></TableHead>
+                  <TableHead className="text-right" aria-sort={sortDirection('overall')}><ColumnHelp onClick={() => sortLeaderboard('overall')} label="Task Avg" description={TASK_AVG_DESCRIPTION}><span className="block">Task</span><span className="inline-flex items-center whitespace-nowrap">Avg{sortIcon('overall')}</span></ColumnHelp></TableHead>
+                  {!generalizationOnly && DISPLAY_TASKS.map(t => <TableHead key={t} data-task={t} className="task-accent text-right" aria-sort={sortDirection(t)}><ColumnHelp onClick={() => sortLeaderboard(t)} description={`Average performance on all ${title(t)} benchmarks (0–100; higher is better).\n\nEach benchmark is adjusted against its baseline, clipped to 0–100, then given equal weight.\n\n0 = at or below the baseline; 100 = the reference ceiling. This is not accuracy.\n\nIncludes General ${title(t)}. Requires complete results for this task.`}><span className="inline-flex items-center whitespace-nowrap">{title(t)}{sortIcon(t)}</span></ColumnHelp></TableHead>)}
+                  {DISPLAY_TASKS.map(t => <TableHead key={`general-${t}`} data-task={t} className="task-accent text-right" aria-sort={sortDirection(`general-${t}`)}><ColumnHelp onClick={() => sortLeaderboard(`general-${t}`)} description={`General ${title(t)} limits the score to synthetic datasets designed to evaluate generalization, rather than all ${title(t)} benchmarks.\n\nIncludes the Diverse and Contextual ${title(t)} benchmarks. Their baseline-adjusted scores receive equal weight (0–100; higher is better). Both must be complete.\n\n${generalizationOnly ? 'Only the General benchmarks contribute to Task Avg and Borda Score in this view.' : `These benchmarks already count in ${title(t)}, Task Avg and Borda Score. This column adds no extra weight.`}\n\nThe evaluation purpose does not establish generalization to unseen tasks or rule out training-data overlap.`}><span className="block text-[9px] sm:text-[10px] text-muted-foreground">General</span><span className="inline-flex items-center whitespace-nowrap">{title(t)}{sortIcon(`general-${t}`)}</span></ColumnHelp></TableHead>)}
+                  <TableHead className="hidden sm:table-cell text-right w-14"><ColumnHelp label="Coverage" description={'Number of completed benchmarks in the selected ranking scope.\n\nModels with complete measured coverage of the selected scope or its General subset appear here. Full-scope aggregates remain unavailable until that scope is complete.'}>Cov</ColumnHelp></TableHead>
+                  <TableHead data-export-columns="TP,AP" className="w-14 sm:w-20 text-right"><ParameterCountsHeader /></TableHead>
                 </TableRow></TableHeader>
-                <TableBody>{rows.map((row) => <TableRow key={row.runId} className="cursor-pointer data-[state=selected]:bg-primary/10" data-state={selectedIds.includes(row.runId) ? 'selected' : undefined}
+                <TableBody>{displayedRows.map((row) => <TableRow key={row.runId} className="cursor-pointer data-[state=selected]:bg-primary/10" data-state={selectedIds.includes(row.runId) ? 'selected' : undefined}
                   onClick={event => {
                     if (event.defaultPrevented || !(event.target instanceof Element)) return;
                     if (event.target.closest('a, button, input, select, textarea, label, summary, [role="button"], [role="checkbox"], [role="link"], [contenteditable="true"]')) return;
@@ -630,21 +690,28 @@ export function Dashboard({
                   }}>
                   <TableCell><CheckRun id={row.runId} checked={selectedIds.includes(row.runId)} onToggle={toggle} /></TableCell>
                   <TableCell className="font-mono text-muted-foreground">{leaderboardRanks.get(row.runId) ?? '—'}</TableCell>
-                  <TableCell className="whitespace-normal"><ModelLabel model={row.model} runId={row.runId} distinguish={repeatedName(runs, row.model)} onClick={() => setRun(row.runId)} />{row.score === null && <span className="mt-1 block text-xs text-muted-foreground">Aggregate unavailable · {row.results.filter(r => r.status === 'complete').length}/{category.benchmarks.length} complete</span>}{row.demo && <Badge variant="secondary">Demo</Badge>}</TableCell>
+                  <TableCell className="whitespace-normal"><ModelLabel model={row.model} runId={row.runId} distinguish={repeatedName(runs, row.model)} onClick={() => setRun(row.runId)} />{row.score === null && <span className="mt-1 block text-xs text-muted-foreground">Aggregate unavailable · {row.results.filter(r => rankingCategory.benchmarks.includes(r.benchmark.id) && r.status === 'complete').length}/{rankingCategory.benchmarks.length} complete</span>}{row.demo && <Badge variant="secondary">Demo</Badge>}</TableCell>
+                  <TableCell className="text-right font-mono font-semibold text-primary">{adjustedScore(borda.get(row.runId))}</TableCell>
                   <TableCell className="text-right">
-                    <span className="font-mono font-semibold text-primary">{adjustedScore(row.score)}</span>
+                    <span className="font-mono">{adjustedScore(row.score)}</span>
                   </TableCell>
-                  {DISPLAY_TASKS.map(t => <TableCell key={t} className="text-right font-mono">{adjustedScore(diagnosticMean(snapshot, category, t, row.results, 'baseline_adjusted_score'))}</TableCell>)}
+                  {!generalizationOnly && DISPLAY_TASKS.map(t => <TableCell key={t} className="text-right font-mono">{adjustedScore(diagnosticMean(snapshot, category, t, row.results, 'baseline_adjusted_score'))}</TableCell>)}
                   {DISPLAY_TASKS.map(t => <TableCell key={`general-${t}`} className="text-right font-mono">{adjustedScore(diagnosticMean(snapshot, generalizationCategory(snapshot, category), t, row.results, 'baseline_adjusted_score'))}</TableCell>)}
-                  <TableCell className="hidden sm:table-cell text-right text-xs text-muted-foreground">{row.results.filter(r => r.status === 'complete').length}{row.demo && ' · Demo'}</TableCell>
+                  <TableCell className="hidden sm:table-cell text-right text-xs text-muted-foreground">{row.results.filter(r => rankingCategory.benchmarks.includes(r.benchmark.id) && r.status === 'complete').length}{row.demo && ' · Demo'}</TableCell>
                   <TableCell><ParameterCounts model={row.model} /></TableCell>
                 </TableRow>)}</TableBody>
               </Table>
-            </div> : <Empty title="No complete models yet" description="Only measured models with every benchmark complete appear on the leaderboard. Use Compare to inspect partial results." />}
+            </div> : rows.length ? <div className="rounded-lg border bg-muted/20 p-6 text-center space-y-3">
+              <p className="text-sm font-medium">{checkedOnly && !selectedIds.length ? 'Check models to show them here' : 'No models match these filters'}</p>
+              <p className="text-xs text-muted-foreground">Search and Checked only do not change Borda scores or ranks.</p>
+              <Button variant="outline" size="sm" onClick={() => { setCheckedOnly(false); setModelSearch(''); }}>Show all models</Button>
+            </div> : <Empty title="No complete models yet" description="Only measured models with every benchmark in the selected scope complete appear on the leaderboard. Use Compare to inspect partial results." />}
             <details className="text-xs text-muted-foreground py-2">
-              <summary>How scores are calculated</summary>
+              <summary>Scoring & scope</summary>
               <div className="mt-3 space-y-2 leading-relaxed">
-                <p>These are baseline-adjusted scores, not accuracy. 0 means at or below the constant baseline; 100 means the reference ceiling.</p>
+                <p>{generalizationOnly ? 'Only the Diverse and Contextual benchmarks contribute to this ranking. Borda, Task Avg and eligibility are recalculated within this subset.' : 'All benchmarks contribute to this ranking. General columns show the Diverse and Contextual subset already included in the task scores, with no extra weight.'} This subset does not establish unseen-task generalization.</p>
+                <p className="whitespace-pre-line">{BORDA_DESCRIPTION}</p>
+                <p>Task Avg and task columns are baseline-adjusted scores, not accuracy. 0 means at or below the constant baseline; 100 means the reference ceiling.</p>
                 <p>Choice: (target mass − baseline) / (1 − baseline). Noul: 2 × balanced accuracy − 1. Score: 1 − MAE / constant baseline MAE.</p>
                 <p>Clip each benchmark to 0–100, average benchmarks within each task, then average the three tasks equally. Complete measured coverage is required. Baselines are fitted to evaluation targets.</p>
               </div>
@@ -685,9 +752,12 @@ export function Dashboard({
             {benchmark && individual ? (
               <>
                 <div className="flex flex-wrap items-baseline justify-between gap-3">
+                  <div className="space-y-1.5">
                   <h2 className="text-xl font-semibold capitalize">
                     {benchmarkName(benchmark)}
                   </h2>
+                  <BenchmarkSources dataset={benchmark.dataset} />
+                  </div>
 
                   {snapshot.scoring?.[benchmark.id]?.reason && <p className="mt-3 text-sm text-muted-foreground">Excluded from adjusted index: {snapshot.scoring[benchmark.id].reason}</p>}
                   <div className="flex flex-wrap gap-2">
@@ -713,7 +783,7 @@ export function Dashboard({
                         <TableHead className="w-12">#</TableHead>
                         <TableHead>Model / run</TableHead>
                         {metricColumns.map(m => <TableHead key={m.name} className="text-right" aria-sort={benchmarkMetric === m.name ? metricDirection : 'none'}>
-                          <button className={cn('rounded px-1 py-2 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring', benchmarkMetric === m.name && 'text-primary font-bold underline')} onClick={() => setBenchmarkMetric(m.name)} aria-label={`Rank by ${m.label}`}>{m.label}</button>
+                          <button className={cn('inline-flex items-center whitespace-nowrap rounded px-1 py-2 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring', benchmarkMetric === m.name && 'text-primary font-bold underline')} onClick={() => setBenchmarkMetric(m.name)} aria-label={`Rank by ${m.label}`}>{m.label}<SortIcon direction={benchmarkMetric === m.name ? metricDirection : 'none'} /></button>
                         </TableHead>)}
                         <TableHead>Details</TableHead>
                       </TableRow>
@@ -790,8 +860,8 @@ export function Dashboard({
                 Clear selection
               </Button>
             </div>
-            <details className="rounded-lg border bg-card p-3" open={selectedRuns.length === 0 || undefined}>
-              <summary className="font-medium text-sm">Choose models ({selectedRuns.length} selected)</summary>
+            <details className="rounded-lg border bg-card p-3" open={modelPickerOpen}>
+              <summary className="cursor-pointer font-medium text-sm" onClick={event => { event.preventDefault(); setModelPickerOpen(open => !open); }}>Choose models ({selectedRuns.length} selected)</summary>
               <div className="flex flex-col sm:flex-row gap-4 sm:items-center my-3">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
@@ -811,18 +881,28 @@ export function Dashboard({
                   Show incomplete & demo runs
                 </label>
               </div>
-              <Table aria-label="Choose models" containerClassName="max-h-72">
+              {visibleRuns.length > 0 ? <Table aria-label="Choose models" containerClassName="max-h-72">
                 <TableHeader><TableRow><TableHead className="w-10"><span className="sr-only">Select</span></TableHead><TableHead>Model</TableHead><TableHead className="text-right">Complete benchmarks</TableHead></TableRow></TableHeader>
-                <TableBody>{visibleRuns.map(run => <TableRow key={run.id} data-state={selectedIds.includes(run.id) ? 'selected' : undefined}>
-                  <TableCell><Checkbox aria-label={`Select ${modelName(run.model)}`} checked={selectedIds.includes(run.id)} onCheckedChange={() => toggle(run.id)} /></TableCell>
-                  <TableCell className="whitespace-normal"><ModelName model={run.model} /></TableCell>
+                <TableBody>{visibleRuns.map(run => <TableRow key={run.id} className="cursor-pointer" data-state={selectedIds.includes(run.id) ? 'selected' : undefined} onClick={event => {
+                  if (event.target instanceof Element && event.target.closest('[role="checkbox"]')) return;
+                  toggle(run.id);
+                }}>
+                  <TableCell><Checkbox aria-label={`Select ${run.model.short_name ?? modelName(run.model)}`} checked={selectedIds.includes(run.id)} onCheckedChange={() => toggle(run.id)} /></TableCell>
+                  <TableCell className="whitespace-normal">
+                    <span className="block font-semibold text-sm break-words">{run.model.short_name ?? modelName(run.model)}</span>
+                    <span className="mt-1 block text-[11px] text-muted-foreground break-words">{modelName(run.model)}</span>
+                  </TableCell>
                   <TableCell className="text-right text-xs text-muted-foreground">{run.results.filter(r => r.status === 'complete').length}/{benchmarks.length}{run.demo ? ' · Demo' : ''}</TableCell>
                 </TableRow>)}</TableBody>
-              </Table>
-              {!visibleRuns.length && (
-                <p className="text-sm text-muted-foreground">
-                  No matching runs.
-                </p>
+              </Table> : (
+                <div className="rounded-lg border border-dashed bg-muted/20 px-4 py-8 text-center">
+                  <div role="status">
+                    <Search aria-hidden="true" className="mx-auto mb-3 size-5 text-muted-foreground" />
+                    <p className="text-sm font-semibold">No matching runs</p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Try another model name or include incomplete and demo runs.</p>
+                  </div>
+                  {query && <Button variant="outline" size="sm" className="mt-4" onClick={() => setQuery('')}>Clear search</Button>}
+                </div>
               )}
             </details>
             <ComparisonOrder snapshot={snapshot} category={category} selectedIds={selectedIds} onChange={setSelected} />
@@ -928,7 +1008,7 @@ function RunDetails({
           <TableRow>
             <TableHead>Benchmark</TableHead>
             <TableHead>Task</TableHead>
-            <TableHead className="text-right">Adjusted ↑</TableHead>
+            <TableHead className="text-right"><MetricDirection direction="up">Adjusted</MetricDirection></TableHead>
             <TableHead>Original metric</TableHead>
           </TableRow>
         </TableHeader>
@@ -947,7 +1027,7 @@ function RunDetails({
               <TableCell className="text-right text-xs leading-5 font-mono font-semibold tabular-nums">{percent(run.results.find(r => r.benchmark.id === b.id)?.metrics.baseline_adjusted_score)}</TableCell>
               <TableCell>
                 <ScoreValue result={run.results.find(r => r.benchmark.id === b.id)} compact />
-                <p className="mt-1 text-xs leading-4 text-muted-foreground">{METRICS[b.task].label} {METRICS[b.task].direction === 'up' ? '↑' : '↓'}</p>
+                <p className="mt-1 text-xs leading-4 text-muted-foreground"><MetricDirection direction={METRICS[b.task].direction}>{METRICS[b.task].label}</MetricDirection></p>
               </TableCell>
             </TableRow>
           ))}

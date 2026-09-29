@@ -230,3 +230,12 @@ Continue with [the submission guide](contributing_results.md#prepare-a-submissio
 for `metadata.json`, compressed export, the PR description template, and upload.
 Keep measurements, downloaded data, checkpoints, and credentials out of the code
 repository. Dataset and model licenses remain separate from the code's MIT license.
+
+### Generalization-only runs
+
+Add `--generalization-only` to `s1mb run` to evaluate only the active category's
+generalization benchmarks (currently six in `english-v1`). This intersects with
+`--task` and repeated `--benchmark` filters; an empty selection is an error.
+Use a fresh run ID. These runs retain normal per-benchmark completeness, but do
+not provide full-category coverage. The viewer lists them with General scores
+and leaves unavailable full-category aggregates blank.
