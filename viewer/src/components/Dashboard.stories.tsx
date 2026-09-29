@@ -304,3 +304,19 @@ const generalizationFixture: Snapshot = {
   }))),
 };
 export const GeneralizationSix: Story = { args: { snapshot: generalizationFixture, initialView: 'benchmarks', initialTask: 'generalization' } };
+
+// Keep every primary screen on the same synthetic snapshot for visual review.
+export const DesignAuditLeaderboard: Story = { args: { snapshot: generalizationFixture } };
+export const DesignAuditChoice: Story = { args: { snapshot: generalizationFixture, initialView: 'benchmarks', initialTask: 'choice' } };
+export const DesignAuditNoul: Story = { args: { snapshot: generalizationFixture, initialView: 'benchmarks', initialTask: 'noul' } };
+export const DesignAuditScore: Story = { args: { snapshot: generalizationFixture, initialView: 'benchmarks', initialTask: 'score' } };
+export const DesignAuditGeneralization: Story = { ...GeneralizationSix };
+export const DesignAuditComparison: Story = { args: {
+  snapshot: generalizationFixture, initialView: 'compare', initialCompare: ['synthetic-general-0', 'synthetic-general-1'],
+} };
+export const DesignAuditDetails: Story = { args: { snapshot: generalizationFixture, initialRun: 'synthetic-general-1' } };
+export const DesignAuditMobileNavigation: Story = {
+  ...DesignAuditGeneralization,
+  decorators: [(Story) => <div style={{ width: 390, maxWidth: '100%' }}><Story /></div>],
+  parameters: { docs: { description: { story: 'Synthetic results. Constrained width reproduces mobile task navigation without requiring a viewport addon.' } } },
+};

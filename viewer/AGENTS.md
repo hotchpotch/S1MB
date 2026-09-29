@@ -5,6 +5,10 @@ Use Node.js 22.22.2 and run npm commands from this directory. Run `npm test`,
 include Storybook and must not require private data or credentials. Dataset integration tests skip
 when data is absent or disabled by public CI; other tests use synthetic fixtures.
 
+For visual changes, add or update synthetic Storybook states before changing the
+design. Review primary screens at desktop and mobile widths, including selected
+comparison runs and the details dialog. Keep screenshots under ignored `../tmp/`.
+
 Use shared shadcn/ui components. Clearly label all Storybook measurements as
 synthetic. Read current compact Arrow datasets with Apache Arrow JS and native
 Zstandard decoding; do not introduce historical-schema adapters or Python services.

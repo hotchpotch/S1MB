@@ -19,9 +19,9 @@ export function GeneralizationTable({ snapshot, category, selectedIds, onToggle 
       <p className="mt-1 text-sm text-muted-foreground">Diverse and Contextual, each covering Noul, Choice and Score. All six adjusted scores are shown together.</p></div>
     <p className="text-xs text-muted-foreground">0–100 · Higher is better. Average weights the six benchmarks equally and requires all six to be complete and scored. — means incomplete or unavailable; it does not count as zero.</p>
     {rows.length ? <div className="rounded-lg border bg-card overflow-hidden">
-      <Table aria-label="Generalization scores" className="table-fixed text-[9px] sm:text-xs [&_th]:px-0.5 sm:[&_th]:px-1 [&_th]:whitespace-normal [&_th]:break-words [&_td]:px-0.5 sm:[&_td]:px-1 [&_td]:py-2 [&_tr>:first-child]:pl-3 sm:[&_tr>:first-child]:pl-4 [&_tr>:last-child]:pr-3 sm:[&_tr>:last-child]:pr-4 [&_button]:text-[10px] sm:[&_button]:text-xs">
+      <Table aria-label="Generalization scores" className="table-fixed min-w-[760px] text-xs [&_th]:px-0.5 sm:[&_th]:px-1 [&_th]:whitespace-normal [&_th]:break-words [&_td]:px-0.5 sm:[&_td]:px-1 [&_td]:py-2 [&_tr>:first-child]:pl-3 sm:[&_tr>:first-child]:pl-4 [&_tr>:last-child]:pr-3 sm:[&_tr>:last-child]:pr-4 [&_button]:text-xs">
         <TableHeader><TableRow>
-          <TableHead className="w-6 sm:w-9"><span className="sr-only">Compare</span></TableHead>
+          <TableHead className="w-9 sm:w-11"><span className="sr-only">Compare</span></TableHead>
           <TableHead className="w-[22%]">Model</TableHead>
           <TableHead className="text-right">Average ↑</TableHead>
           {columns.map(({ family, task, benchmark }) => <TableHead key={benchmark.id} data-task={task} className="task-accent text-right"><span className="block text-[9px] sm:text-[10px] text-muted-foreground">{title(family)}</span>{title(task)}</TableHead>)}

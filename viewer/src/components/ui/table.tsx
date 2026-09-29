@@ -14,7 +14,7 @@ function Table({ className, containerClassName, containerLabel, ...props }: Reac
     >
       <table
         data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
+        className={cn("w-full caption-bottom text-xs [&_button]:text-xs", className)}
         {...props}
       />
     </div>

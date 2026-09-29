@@ -192,7 +192,7 @@ function ScoreValue({
     <div className="space-y-1">
       <div
         className={cn(
-          "font-mono tabular-nums text-base",
+          "font-mono tabular-nums text-xs",
           best && "font-bold text-primary",
         )}
       >
@@ -307,7 +307,7 @@ export function ComparisonTables({
                     <TableHead className="sticky left-0 top-0 z-30 bg-card w-[128px] sm:w-[220px] whitespace-normal">
                       Benchmark
                     </TableHead>
-                    <TableHead className="sticky top-0 z-20 bg-card text-right w-[64px] sm:w-[100px]">Gap {adjusted ? '(pp)' : ''}</TableHead>
+                    <TableHead className="sticky top-0 z-20 bg-card text-right whitespace-normal w-[64px] sm:w-[100px]">Gap {adjusted ? '(pp)' : ''}</TableHead>
                     {comparison.runs.map((run) => (
                       <TableHead
                         key={run.id}
@@ -534,7 +534,7 @@ export function Dashboard({
             setQuery("");
           }}
         >
-          <TabsList variant="line" className="w-full sm:w-auto justify-start">
+          <TabsList variant="line" className="w-full sm:w-auto justify-start [&_button]:gap-1 [&_button]:px-1 [&_button]:text-xs sm:[&_button]:gap-1.5 sm:[&_button]:px-2 sm:[&_button]:text-sm">
             <TabsTrigger value="leaderboard"><Trophy aria-hidden="true" className="size-4" />Leaderboard</TabsTrigger>
             <TabsTrigger value="benchmarks"><Blocks aria-hidden="true" className="size-4" />Benchmarks</TabsTrigger>
             <TabsTrigger value="compare">
@@ -549,17 +549,17 @@ export function Dashboard({
         </Tabs>
         {view === "benchmarks" && (
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <Tabs value={generalizationView ? "generalization" : task} onValueChange={chooseTask}>
-              <TabsList variant="line">
+            <Tabs className="w-full min-w-0 sm:w-auto" value={generalizationView ? "generalization" : task} onValueChange={chooseTask}>
+              <TabsList variant="line" className="w-full sm:w-auto [&_button]:gap-1 [&_button]:px-1 [&_button]:text-xs sm:[&_button]:gap-1.5 sm:[&_button]:px-2 sm:[&_button]:text-sm">
                 {TASKS.map((t) => (
                   <TabsTrigger key={t} value={t}><span aria-hidden="true" data-task={t} className="task-accent size-1.5 rounded-full bg-current" />
                     {title(t)}{" "}
-                    <span className="text-muted-foreground text-xs">
+                    <span className="hidden text-muted-foreground text-xs sm:inline">
                       {benchmarks.filter((b) => b.task === t).length}
                     </span>
                   </TabsTrigger>
                 ))}
-                <TabsTrigger value="generalization">Generalization <span className="text-muted-foreground text-xs">6</span></TabsTrigger>
+                <TabsTrigger value="generalization">Generalization <span className="hidden text-muted-foreground text-xs sm:inline">6</span></TabsTrigger>
               </TabsList>
             </Tabs>
             <Button
@@ -586,10 +586,10 @@ export function Dashboard({
             </div>
             <p className="text-xs text-muted-foreground">Noul, Choice and Score include all benchmarks. General columns show the diverse/contextual subset; they receive no additional ranking weight.</p>
             {rows.length ? <div className="rounded-lg border bg-card overflow-hidden">
-              <Table aria-label="Overall leaderboard" className="table-fixed text-[9px] sm:text-xs [&_th]:px-0.5 sm:[&_th]:px-1 [&_th]:whitespace-normal [&_th]:break-words [&_td]:px-0.5 sm:[&_td]:px-1 [&_td]:py-2 [&_tr>:first-child]:pl-3 sm:[&_tr>:first-child]:pl-4 [&_tr>:last-child]:pr-3 sm:[&_tr>:last-child]:pr-4 [&_button]:text-[10px] sm:[&_button]:text-xs">
+              <Table aria-label="Overall leaderboard" className="table-fixed min-w-[760px] text-xs [&_th]:px-0.5 sm:[&_th]:px-1 [&_th]:whitespace-normal [&_th]:break-words [&_td]:px-0.5 sm:[&_td]:px-1 [&_td]:py-2 [&_tr>:first-child]:pl-3 sm:[&_tr>:first-child]:pl-4 [&_tr>:last-child]:pr-3 sm:[&_tr>:last-child]:pr-4 [&_button]:text-xs">
                 <TableHeader><TableRow>
                   <TableHead className="w-9 sm:w-11"><span className="sr-only">Compare</span></TableHead>
-                  <TableHead className="w-5 sm:w-8"><span aria-label="Rank">#</span></TableHead><TableHead className="w-[16%] sm:w-[22%]">Model</TableHead>
+                  <TableHead className="w-5 sm:w-8"><span aria-label="Rank">#</span></TableHead><TableHead className="w-[22%]">Model</TableHead>
                   <TableHead className="text-right">Overall</TableHead>
                   {DISPLAY_TASKS.map(t => <TableHead key={t} data-task={t} className="task-accent text-right">{title(t)}</TableHead>)}
                   {DISPLAY_TASKS.map(t => <TableHead key={`general-${t}`} data-task={t} className="task-accent text-right"><span className="block text-[9px] sm:text-[10px] text-muted-foreground">General</span>{title(t)}</TableHead>)}
@@ -659,7 +659,7 @@ export function Dashboard({
             {benchmark && individual ? (
               <>
                 <div className="flex flex-wrap items-baseline justify-between gap-3">
-                  <h2 className="text-2xl font-semibold capitalize">
+                  <h2 className="text-xl font-semibold capitalize">
                     {benchmarkName(benchmark)}
                   </h2>
 
@@ -710,7 +710,7 @@ export function Dashboard({
                                 onToggle={toggle}
                               />
                             </TableCell>
-                            <TableCell className="w-72 min-w-56 max-w-80 py-4 pr-5">
+                            <TableCell className="w-72 min-w-56 max-w-80 py-2 pr-5">
                               <ModelLabel
                                 model={r.model}
                                 distinguish={repeatedName(runs, r.model)}
@@ -930,15 +930,15 @@ function RunDetails({
           {visible.map((b) => (
             <TableRow key={b.id}>
               <TableCell className="whitespace-normal min-w-48">
-                <p className="capitalize font-medium text-base leading-6">{benchmarkName(b)}</p>
+                <p className="capitalize font-medium text-xs leading-5">{benchmarkName(b)}</p>
                 <p className="mt-1 font-mono text-[10px] leading-4 text-muted-foreground break-all">
                   {b.id}
                 </p>
               </TableCell>
-              <TableCell className="text-base leading-6">
+              <TableCell className="text-xs leading-5">
                 {title(b.task)} {METRICS[b.task].direction === "up" ? "↑" : "↓"}
               </TableCell>
-              <TableCell className="text-right text-base leading-6 font-mono font-semibold tabular-nums">{percent(run.results.find(r => r.benchmark.id === b.id)?.metrics.baseline_adjusted_score)}</TableCell>
+              <TableCell className="text-right text-xs leading-5 font-mono font-semibold tabular-nums">{percent(run.results.find(r => r.benchmark.id === b.id)?.metrics.baseline_adjusted_score)}</TableCell>
               <TableCell>
                 <ScoreValue result={run.results.find(r => r.benchmark.id === b.id)} compact />
                 <p className="mt-1 text-xs leading-4 text-muted-foreground">{METRICS[b.task].label}</p>
