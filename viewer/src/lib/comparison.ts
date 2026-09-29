@@ -138,3 +138,14 @@ export function hasCompleteCoverage(category: Category, results: ResultSummary[]
   return category.benchmarks.length > 0 && category.benchmarks.every(id =>
     results.some(result => result.benchmark.id === id && result.status === 'complete' && result.provenance === 'measured'));
 }
+
+/** Competition ranks exclude unavailable values and give ties the same rank. */
+export function metricRanks(entries: { id: string; value: number | null }[], lowerIsBetter = false): Map<string, number> {
+  const scored = entries.filter((entry): entry is { id: string; value: number } => entry.value != null && Number.isFinite(entry.value))
+    .sort((a, b) => (a.value - b.value) * (lowerIsBetter ? 1 : -1));
+  let rank = 0;
+  return new Map(scored.map((entry, index) => {
+    if (index === 0 || entry.value !== scored[index - 1].value) rank = index + 1;
+    return [entry.id, rank];
+  }));
+}

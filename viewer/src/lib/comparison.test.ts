@@ -180,3 +180,10 @@ test('leaderboard coverage requires all active benchmarks, including when no mod
   assert.equal(hasCompleteCoverage(category, complete.map(r => ({ ...r, provenance: 'demo' }))), false);
   assert.equal(hasCompleteCoverage({ ...category, benchmarks: [] }, complete), false);
 });
+
+test('metric ranks preserve ties and exclude missing or nonfinite scores', async () => {
+  const { metricRanks } = await import('./comparison');
+  const entries = [{ id: 'a', value: 0.8 }, { id: 'b', value: 0.8 }, { id: 'c', value: 0 }, { id: 'missing', value: null }, { id: 'invalid', value: NaN }];
+  assert.deepEqual([...metricRanks(entries)], [['a', 1], ['b', 1], ['c', 3]]);
+  assert.deepEqual([...metricRanks(entries, true)], [['c', 1], ['a', 2], ['b', 2]]);
+});

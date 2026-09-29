@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, Download, Link, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Download, Link, X, Blocks, CircleCheck, ListChecks, BarChart3 } from 'lucide-react';
 import { Button } from './ui/button';
 import { ModelName } from './ModelName';
 import { RADAR_AXES, radarPoint, radarProfiles } from '../lib/radar';
@@ -33,16 +33,23 @@ export function ComparisonRadar({ snapshot, category, selectedIds, onMove, onRem
   const profiles = radarProfiles(snapshot, category, selectedIds);
   useEffect(() => { setShareUrl(''); setMessage(''); }, [selectedIds]);
   if (!profiles.length) return null;
-  let cursor = 120;
+  let cursor = 128;
   const legend = profiles.map(profile => {
-    const nameLines = lines(profile.name, 58);
+    const nameLines = lines(profile.name, 47);
+    let repository = '';
+    try {
+      const url = new URL(profile.model.hf_url || profile.model.url || '');
+      if (['huggingface.co', 'www.huggingface.co'].includes(url.hostname)) repository = decodeURI(url.pathname).split('/').filter(Boolean).slice(0, 2).join('/');
+    } catch { /* Models without a valid repository URL omit the secondary label. */ }
+    const repositoryLines = lines(repository, 76);
     const y = cursor;
-    cursor += nameLines.length * 22 + 72;
-    return { profile, nameLines, y };
+    const cardHeight = nameLines.length * 24 + repositoryLines.length * 17 + 111;
+    cursor += cardHeight + 12;
+    return { profile, nameLines, repositoryLines, cardHeight, y };
   });
   const sourceLines = snapshot.resultsSource ? lines(`https://huggingface.co/datasets/${snapshot.resultsSource.repoId}`, 140) : [];
-  const footerTop = Math.max(505, cursor + 12);
-  const height = footerTop + (snapshot.resultsSource ? 120 + sourceLines.length * 18 : 88);
+  const footerTop = Math.max(545, cursor + 8);
+  const height = footerTop + (snapshot.resultsSource ? 65 + sourceLines.length * 18 : 38);
 
   async function download() {
     if (!svg.current) return;
@@ -105,21 +112,27 @@ export function ComparisonRadar({ snapshot, category, selectedIds, onMove, onRem
       </div>
       <div className="min-w-0 space-y-3">
         <div className="flex flex-wrap justify-end gap-2"><Button variant="outline" size="sm" onClick={copyLink}><Link className="size-4" />Copy comparison link</Button><Button size="sm" onClick={download} disabled={busy}><Download className="size-4" />{busy ? 'Creating PNG…' : 'Download PNG'}</Button></div>
-        <div className="overflow-x-auto rounded-lg border bg-slate-50" tabIndex={0} aria-label="Scrollable chart preview">
+        <div className="overflow-x-auto rounded-lg border bg-card" tabIndex={0} aria-label="Scrollable chart preview">
           <svg ref={svg} xmlns="http://www.w3.org/2000/svg" width="1200" height={height} viewBox={`0 0 1200 ${height}`} role="img" aria-label="Six-axis model score comparison" className="w-full min-w-[560px] h-auto" style={{ fontFamily: 'Arial, sans-serif' }}>
             <title>{`S1MB model comparison · ${category.name}`}</title>
             <desc>{profiles.map(p => `${p.name}: ${RADAR_AXES.map((axis, i) => `${axis} ${score(p.values[i])}`).join(', ')}`).join('; ')}</desc>
-            <rect width="1200" height={height} fill="#f8fafc" />
-            <rect x="28" y="25" width="4" height="40" rx="2" fill="#6366f1" />
-            <text x="46" y="42" fontSize="23" fontWeight="700" fill="#0f172a">S1MB · Model comparison</text>
-            <text x="46" y="66" fontSize="14" fill="#475569">{category.name} · Adjusted scores · 0–100</text>
-            <line x1="520" y1="98" x2="520" y2={footerTop - 28} stroke="#e2e8f0" />
-            {[100, 75, 50, 25].map(value => <polygon key={value} points={points(Array(6).fill(value))} fill={value === 100 ? '#ffffff' : 'none'} stroke="#cbd5e1" strokeWidth="1" />)}
+            <rect width="1200" height={height} fill="#f5f8f5" />
+            <rect width="1200" height="94" fill="#183e30" />
+            <rect x="26" y="23" width="48" height="48" rx="12" fill="#2d5844" />
+            <Blocks x={37} y={34} size={26} color="#d5eadb" strokeWidth={1.7} />
+            <text x="90" y="43" fontSize="24" fontWeight="700" fill="#ffffff">S1MB <tspan fontWeight="400" fill="#d5eadb">/ Model comparison</tspan></text>
+            <text x="90" y="68" fontSize="14" fill="#c0d5c7">{category.name}</text>
+            <text x="1170" y="43" textAnchor="end" fontSize="12" fontWeight="700" letterSpacing="1.3" fill="#c0d5c7">ADJUSTED SCORES</text>
+            <text x="1170" y="69" textAnchor="end" fontSize="18" fontWeight="600" fill="#ffffff">0–100 ↑</text>
+            <g transform="translate(0 28)">
+            {[100, 75, 50, 25].map(value => <polygon key={value} points={points(Array(6).fill(value))} fill={value === 100 ? '#ffffff' : 'none'} stroke="#d4dfd6" strokeWidth="1" />)}
             {RADAR_AXES.map((axis, index) => {
               const [x, y] = radarPoint(index, 100);
               const [lx, ly] = radarPoint(index, 100, 185);
-              return <g key={axis}><line x1="285" y1="285" x2={x} y2={y} stroke="#cbd5e1" />
-                <text x={lx} y={ly + 5} textAnchor={index === 0 || index === 3 ? 'middle' : index < 3 ? 'start' : 'end'} fontSize="16" fontWeight="600" fill="#334155">{axis.replace("General ", "G. ")}</text>
+              return <g key={axis}><line x1="285" y1="285" x2={x} y2={y} stroke="#d4dfd6" />
+                <text x={lx} y={ly + 5} textAnchor={index === 0 || index === 3 ? 'middle' : index < 3 ? 'start' : 'end'} fontSize="16" fontWeight="600" fill={['#287456', '#3069a1', '#80529a'][index % 3]}>
+                  {axis.startsWith('General ') ? <><tspan x={lx} dy="-7" fontSize="12" fontWeight="400" fill="#64766b">General</tspan><tspan x={lx} dy="19">{axis.replace('General ', '')}</tspan></> : axis}
+                </text>
               </g>;
             })}
             {[25, 50, 75, 100].map(value => <text key={value} x="293" y={285 - value * 1.4 + 4} fontSize="11" fill="#64748b">{value}</text>)}
@@ -136,20 +149,32 @@ export function ComparisonRadar({ snapshot, category, selectedIds, onMove, onRem
                 </g>;
               })}
             </g>)}
-            {legend.map(({ profile, nameLines, y }) => <g key={profile.id}>
-              <circle cx="550" cy={y - 6} r="5" fill={profile.color} />
-              {nameLines.map((line, i) => <text key={i} x="565" y={y + i * 22} fontSize="18" fontWeight="600" fill={profile.color}>{line}</text>)}
-              {RADAR_AXES.map((axis, i) => <g key={axis}>
-                <text x={565 + i * 100} y={y + nameLines.length * 22 + 5} fontSize="13" fill="#64748b">{axis.startsWith('General ') ? 'G. ' : ''}{axis.replace('General ', '')}</text>
-                <text x={565 + i * 100} y={y + nameLines.length * 22 + 29} fontSize="20" fontWeight="600" fill={profile.color}>{score(profile.values[i])}</text>
-              </g>)}
-              <line x1="540" x2="1170" y1={y + nameLines.length * 22 + 50} y2={y + nameLines.length * 22 + 50} stroke="#e2e8f0" />
-            </g>)}
-            <text x="30" y={footerTop} fontSize="13" fill="#475569">Higher is better · 0 = at or below baseline · 100 = reference ceiling · — = incomplete or unavailable</text>
-            <text x="30" y={footerTop + 22} fontSize="12" fill="#64748b">G. / General = general-purpose subset. Scores are not accuracy or evidence of unseen-task generalization.</text>
-            {snapshot.resultsSource && <text x="30" y={footerTop + 46} fontSize="12" fill="#64748b">Results commit: {snapshot.resultsSource.revision}{snapshot.resultsSource.refreshFailed ? ' · Cached; refresh failed' : ''}</text>}
-            {sourceLines.map((line, index) => <text key={index} x="30" y={footerTop + 65 + index * 18} fontSize="12" fill="#64748b">{line}</text>)}
-            <text x="30" y={height - 20} fontSize="12" fill="#64748b">System One Mosaic Benchmark{profiles.some(p => p.demo) ? ' · SYNTHETIC / DEMO' : ''}</text>
+            </g>
+            {legend.map(({ profile, nameLines, repositoryLines, cardHeight, y }) => {
+              const metricsY = y + nameLines.length * 24 + repositoryLines.length * 17 + 20;
+              return <g key={profile.id}>
+                <rect x="535" y={y - 18} width="639" height={cardHeight} rx="12" fill="#ffffff" stroke="#dce5de" />
+                <rect x="535" y={y - 2} width="4" height={cardHeight - 32} rx="2" fill={profile.color} />
+                <line x1="554" x2="575" y1={y + 4} y2={y + 4} stroke={profile.color} strokeWidth="3" strokeDasharray={profiles.indexOf(profile) % 3 === 1 ? '7 3' : profiles.indexOf(profile) % 3 === 2 ? '2 3' : undefined} />
+                {nameLines.map((line, i) => <text key={i} x="585" y={y + 10 + i * 24} fontSize="19" fontWeight="700" fill="#203d2e">{line}</text>)}
+                {repositoryLines.map((line, i) => <text key={i} x="585" y={y + nameLines.length * 24 + 5 + i * 17} fontSize="12" fill="#748278">{line}</text>)}
+                {RADAR_AXES.map((axis, i) => {
+                  const Icon = [CircleCheck, ListChecks, BarChart3][i % 3];
+                  const x = 554 + i * 102;
+                  return <g key={axis}>
+                    <Icon x={x} y={metricsY} size={14} color={['#287456', '#3069a1', '#80529a'][i % 3]} strokeWidth={1.8} />
+                    <text x={x + 20} y={metricsY + 11} fontSize="11" fill="#64766b">
+                      {axis.startsWith('General ') ? <><tspan x={x + 20}>General</tspan><tspan x={x + 20} dy="15">{axis.replace('General ', '')}</tspan></> : axis}
+                    </text>
+                    <text x={x} y={metricsY + 58} fontSize="27" fontWeight="700" fill={profile.color} style={{ fontVariantNumeric: 'tabular-nums' }}>{score(profile.values[i])}</text>
+                  </g>;
+                })}
+              </g>;
+            })}
+            <line x1="28" x2="1172" y1={footerTop - 12} y2={footerTop - 12} stroke="#dce5de" />
+            {snapshot.resultsSource && <text x="30" y={footerTop + 12} fontSize="12" fill="#64748b">Results commit: {snapshot.resultsSource.revision}{snapshot.resultsSource.refreshFailed ? ' · Cached; refresh failed' : ''}</text>}
+            {sourceLines.map((line, index) => <text key={index} x="30" y={footerTop + 31 + index * 18} fontSize="12" fill="#64748b">{line}</text>)}
+            <text x="30" y={height - 20} fontSize="12" fill="#64766b">System One Mosaic Benchmark{profiles.some(p => p.demo) ? ' · SYNTHETIC / DEMO' : ''}</text>
           </svg>
         </div>
         {message && <p role="status" className="text-sm text-muted-foreground">{message}</p>}

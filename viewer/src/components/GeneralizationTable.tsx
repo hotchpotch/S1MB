@@ -1,6 +1,6 @@
 import { ColumnHelp } from './ColumnHelp';
 import { generalizationComparison } from '../lib/generalization';
-import { modelName } from '../lib/comparison';
+import { modelName, metricRanks } from '../lib/comparison';
 import type { Category, Snapshot } from '../lib/types';
 import { ParameterCounts, ParameterCountsHeader } from './ParameterCounts';
 import { ModelName } from './ModelName';
@@ -15,6 +15,7 @@ export function GeneralizationTable({ snapshot, category, selectedIds, onToggle 
   onToggle: (id: string) => void;
 }) {
   const { columns, rows } = generalizationComparison(snapshot, category);
+  const ranks = metricRanks(rows.map(row => ({ id: row.id, value: row.demo ? null : row.average })));
   return <section aria-label="Generalization benchmark comparison" className="space-y-4">
     <div><h2 className="text-xl font-semibold">Generalization · 6 benchmarks</h2>
       <p className="mt-1 text-sm text-muted-foreground">Diverse and Contextual, each covering Noul, Choice and Score. All six adjusted scores are shown together.</p></div>
@@ -23,6 +24,7 @@ export function GeneralizationTable({ snapshot, category, selectedIds, onToggle 
       <Table aria-label="Generalization scores" className="table-fixed min-w-[760px] text-xs [&_th]:px-0.5 sm:[&_th]:px-1 [&_th]:whitespace-normal [&_th]:break-words [&_td]:px-0.5 sm:[&_td]:px-1 [&_td]:py-2 [&_tr>:first-child]:pl-3 sm:[&_tr>:first-child]:pl-4 [&_tr>:last-child]:pr-3 sm:[&_tr>:last-child]:pr-4 [&_button]:text-xs">
         <TableHeader><TableRow>
           <TableHead className="w-9 sm:w-11"><span className="sr-only">Compare</span></TableHead>
+          <TableHead className="w-8"><ColumnHelp label="Rank" description="Rank by average, highest first. Complete measured results only; ties share a rank.">#</ColumnHelp></TableHead>
           <TableHead className="w-[22%]"><ColumnHelp description="Evaluated model. Model links open the authored model page.">Model</ColumnHelp></TableHead>
           <TableHead className="text-right"><ColumnHelp description="Equal-weight average of these six baseline-adjusted benchmark scores. 0–100; higher is better. All six must be complete and scored.">Average ↑</ColumnHelp></TableHead>
           {columns.map(({ family, task, benchmark }) => <TableHead key={benchmark.id} data-task={task} className="task-accent text-right"><ColumnHelp description={`${title(family)} ${title(task)} benchmark, baseline-adjusted on a 0–100 scale. Higher is better; 0 means at or below the reference baseline. — means incomplete or unavailable.`}><span className="block text-[9px] sm:text-[10px] text-muted-foreground">{title(family)}</span>{title(task)}</ColumnHelp></TableHead>)}
@@ -30,6 +32,7 @@ export function GeneralizationTable({ snapshot, category, selectedIds, onToggle 
         </TableRow></TableHeader>
         <TableBody>{rows.map(row => <TableRow key={row.id} data-state={selectedIds.includes(row.id) ? 'selected' : undefined}>
           <TableCell><Checkbox aria-label={`Compare ${modelName(row.model)}`} checked={selectedIds.includes(row.id)} onCheckedChange={() => onToggle(row.id)} /></TableCell>
+          <TableCell className="font-mono text-muted-foreground">{ranks.get(row.id) ?? '—'}</TableCell>
           <TableCell className="whitespace-normal [overflow-wrap:anywhere]"><ModelName model={row.model} />{row.demo && <span className="block text-muted-foreground">Demo</span>}</TableCell>
           <TableCell className="text-right font-mono font-semibold tabular-nums">{score(row.average)}</TableCell>
           {columns.map(({ benchmark }, i) => <TableCell key={benchmark.id} className="text-right font-mono tabular-nums">

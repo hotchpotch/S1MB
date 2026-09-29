@@ -66,9 +66,9 @@ synchronized `data/hub-results` when present, otherwise `data/results`. To inspe
 a particular local run, pass `--results-dir ../evaluator/data/results/RUN_ID`.
 Results load at startup; restart after data or result changes.
 
-To use contributed results, run `uv run s1mb sync-results --repo-id ORG/RESULTS`
-from `evaluator/`, then restart the viewer. `ORG/RESULTS` is a placeholder for the
-maintainer-designated results repository. Reading `.json.xz` files requires `xz`
+To use contributed results, run `uv run s1mb sync-results --repo-id hotchpotch/s1mb-result`
+from `evaluator/`, then restart the viewer. The results repository is public.
+Reading `.json.xz` files requires `xz`
 (`xz-utils` on Debian/Ubuntu). See the [submission guide](docs/contributing_results.md)
 for PR previews and recorded-dataset validation.
 

@@ -334,3 +334,36 @@ export const HuggingFaceModelLinks: Story = { args: {
     hf_url: 'https://huggingface.co/example/synthetic-model/tree/main/checkpoint',
   } })) },
 } };
+
+export const ComparisonExportIdentity: Story = { args: {
+  ...ShareableComparison.args,
+  snapshot: { ...radarFixture, results: radarFixture.results.map(result => ({ ...result, model: {
+    ...result.model,
+    display_name: result.run_id === 'synthetic-radar-0' ? 'Synthetic compact model' : result.run_id === 'synthetic-radar-1' ? 'Synthetic model with a deliberately long display name for export wrapping' : 'Synthetic model without a repository',
+    hf_url: result.run_id === 'synthetic-radar-0' ? 'https://huggingface.co/example/synthetic-system-one-v0-17m' : result.run_id === 'synthetic-radar-1' ? 'https://huggingface.co/example/synthetic-long-model-repository-name-for-export-layout' : undefined,
+  } })) },
+} };
+
+export const SortableLeaderboard: Story = {
+  args: { snapshot: radarFixture },
+  parameters: { docs: { description: { story: 'Synthetic results with different task leaders. Click any score heading twice to review descending and ascending order.' } } },
+};
+export const RankedBenchmarks: Story = {
+  args: { snapshot: radarFixture, initialView: 'benchmarks', initialTask: 'noul' },
+};
+
+export const ComparisonLongModelNames: Story = { args: {
+  initialView: 'compare',
+  initialCompare: Array.from({ length: 4 }, (_, index) => `synthetic-long-${index}`),
+  snapshot: { ...radarFixture, results: Array.from({ length: 4 }, (_, index) => radarFixture.results.filter(result => result.run_id === 'synthetic-radar-0').map(result => ({
+    ...result, run_id: `synthetic-long-${index}`, model: { ...result.model, id: `example/synthetic-very-long-model-name-without-spaces-${index}`, display_name: `SyntheticOrganization/SyntheticLongModelNameWithoutSpacesToCheckWrapping-${index}` },
+  }))).flat() },
+} };
+
+// The shared hero stays identical when switching between the three main views.
+export const SharedHeaderBenchmarks: Story = { args: { snapshot: radarFixture, initialView: 'benchmarks' } };
+export const SharedHeaderCompare: Story = { args: { ...ShareableComparison.args } };
+
+export const OrganizedRunDetails: Story = { args: {
+  snapshot: radarFixture, initialRun: 'synthetic-radar-0',
+}, parameters: { docs: { description: { story: 'Synthetic model details: results first, with identity, settings and per-benchmark provenance grouped below the table.' } } } };

@@ -68,6 +68,7 @@ class CLMAdapter(UpstreamAdapter):
             "logit_scale": self.head.scale,
             "case_batch_size": self.case_batch_size,
             "microbatch_tokens": 4096,
+            "embedding_batch_size": 1,
             "embedding_cache": "within-call-deduplication-only",
             "action_projection_cache": "native-vector-arena-exact-text-and-head-namespace",
             "action_cache_budget_bytes": 64 << 20,
@@ -84,7 +85,7 @@ class CLMAdapter(UpstreamAdapter):
             raise ValueError(f"CLM input token length outside [1, {self.context_limit}]")
         vectors = []
         with self.torch.inference_mode():
-            for indices in candidate_batches(range(len(unique)), lengths, max_batch=8):
+            for indices in candidate_batches(range(len(unique)), lengths, max_batch=1):
                 batch = self.tokenizer.pad(
                     {"input_ids": [encoded[i] for i in indices]}, return_tensors="pt"
                 ).to(self.device)

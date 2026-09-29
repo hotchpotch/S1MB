@@ -1,1 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#276c4a"/><text x="32" y="42" text-anchor="middle" font-family="Arial,sans-serif" font-size="30" font-weight="bold" fill="white">S1</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>S1MB</title>
+  <rect width="64" height="64" rx="14" fill="#185d3c"/>
+  <path d="M38 12H12v24h16v6H12v10h26V26H22v-4h16Z" fill="#f4faf6"/>
+  <rect x="44" y="12" width="10" height="10" rx="2" fill="#79b9ed"/>
+  <rect x="44" y="27" width="10" height="10" rx="2" fill="#74d4ab"/>
+  <rect x="44" y="42" width="10" height="10" rx="2" fill="#c5a1e8"/>
+</svg>
