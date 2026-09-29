@@ -18,6 +18,9 @@ The wrapper binds to Tailscale IPv4 when available, otherwise localhost.
 
 ## Filesystem cache
 
+See [Display data and cache lifecycle](DISPLAY_DATA.md) for the source-to-display
+flow, background updates, generation retention, recovery and implementation map.
+
 On first access after startup, the worker restores the newest valid, checksummed
 summary JSON from disk. It returns this snapshot immediately while rebuilding
 from all original files in the background. Only an installation without a valid
