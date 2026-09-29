@@ -40,8 +40,8 @@ use 1 for their audited 9B conditions to avoid the cross-case BF16 drift observe
 in smoke comparisons. CLM and Tev require `--case-batch-size 1`; see
 [their input and probability conditions](../evaluator/OPEN_MODELS.md#clm-and-tev)
 before comparing measurements. Both use `--source` and a pinned `--revision`.
-The original Bekko adapter requires its compatible upstream
-environment; standalone exports use the `bekko-v0` extra and adapter.
+Bekko uses the `bekko-v0` extra and adapter with a Hugging Face model ID;
+its remote `BekkoSentenceTransformer.predict()` supplies inference.
 
 Before evaluation, identify and record:
 
@@ -56,7 +56,9 @@ as a code PR. An arbitrary text-generation model cannot use an existing typed
 adapter merely by changing `--model`. Preserve criterion order, authored Noul
 true/false definitions, structured inputs, soft targets, and numeric Score levels.
 Keep targets and provenance out of model input. Validate probabilities and reject
-input overflow instead of truncating.
+input overflow instead of truncating unless an explicitly documented adapter
+policy applies. Bekko v0 uses native adaptive budgeting with truncation recorded
+in model metadata; use a Hub model containing the current runtime.
 
 ## 2. Run a smoke check
 
@@ -91,8 +93,8 @@ Choose that folder only when the recorded version supports the name.
 ### Bekko standalone CPU smoke
 
 The `bekko-v0` adapter supports an explicit CPU diagnostic when a GPU is
-unavailable. Follow the [standalone v0 instructions](../evaluator/README.md#bekko-standalone-v0)
-to install dependencies and evaluate a current local export. CPU runs require
+unavailable. Follow the [standalone v0 instructions](../evaluator/README.md#bekko)
+to install dependencies and evaluate the remote Hub model. CPU runs require
 `--device cpu --category smoke-v1 --limit 1` (or `2`). Validate the saved partial
 results. Full evaluation still requires the GPU path; CPU smoke timing does not
 predict GPU throughput.
@@ -111,20 +113,20 @@ running the commands below. That GPU becomes logical device `cuda:0`; `--device
 cuda` uses it. On your own machine, choose the appropriate available GPU. Do not
 fall back to CPU inference. Prefer FlashAttention 2 or SDPA where supported.
 
-In the prepared Bekko environment, with S1MB importable and GPU visibility set:
+With the `bekko-v0` extra installed and GPU visibility set:
 
 ```sh
-python -m s1mb run \
-  --adapter bekko --source /path/to/bekko-system-one --model /path/to/checkpoint \
-  --device cuda --query-length 16384 --document-length 2048 \
+uv run --extra bekko-v0 s1mb run \
+  --adapter bekko-v0 --model hotchpotch/bekko-system-one-v0-17m \
+  --device cuda --context-limit 7999 --document-length 3800 \
   --microbatch-tokens 64000 \
   --category smoke-v1 --limit 2 --run-id bekko-smoke-001
-python -m s1mb validate data/results/bekko-smoke-001
+uv run s1mb validate data/results/bekko-smoke-001
 ```
 
 Inspect failures, probabilities, recorded model identity, and effective settings.
-Lower Bekko's token batching budget if memory is insufficient; do not silently
-shorten inputs. Flags are adapter-specific: consult `run --help` and the adapter
+Lower Bekko's token batching budget if memory is insufficient. Standalone v0
+uses its documented adaptive input budget independently of this batching budget. Flags are adapter-specific: consult `run --help` and the adapter
 notes rather than applying a precision or attention option to every model.
 
 ## 3. Run the complete evaluation
@@ -139,9 +141,9 @@ uv run --env-file ../.env s1mb run --adapter typesafe --model jev \
 For Bekko, retain the tested runtime and input settings:
 
 ```sh
-python -m s1mb run \
-  --adapter bekko --source /path/to/bekko-system-one --model /path/to/checkpoint \
-  --device cuda --query-length 16384 --document-length 2048 \
+uv run --extra bekko-v0 s1mb run \
+  --adapter bekko-v0 --model hotchpotch/bekko-system-one-v0-17m \
+  --device cuda --context-limit 7999 --document-length 3800 \
   --microbatch-tokens 64000 \
   --category english-v1 --run-id bekko-full-001
 ```

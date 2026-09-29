@@ -48,7 +48,6 @@ def main() -> None:
             "laya",
             "typesafe",
             "system-ichi",
-            "bekko",
             "bekko-v0",
             "von",
             "jevforge",
@@ -79,24 +78,26 @@ def main() -> None:
     run.add_argument(
         "--context-limit",
         type=int,
-        help="Explicit non-truncating input limit for supported upstream adapters",
+        help="Input limit for supported adapters; Bekko v0 uses adaptive truncation",
     )
     run.add_argument(
         "--query-length",
         type=int,
-        help="Ichi/Bekko query tokens, including special tokens; reject overflow",
+        help="Ichi/Bekko query token cap including special tokens; v0 truncates adaptively",
     )
     run.add_argument(
         "--document-length",
         type=int,
-        help="Ichi/Bekko candidate tokens, including special tokens; reject overflow",
+        help="Ichi/Bekko candidate token cap including special tokens; v0 truncates adaptively",
     )
     run.add_argument("--max-len", type=int, help="Laya total token limit")
     run.add_argument("--head-max-len", type=int, help="Laya question/candidate token budget")
     run.add_argument("--questions-per-call", type=int, help="Laya/System Ichi question batch limit")
     run.add_argument("--disable-autocast-cache", action="store_true", help="Reduce Laya GPU memory")
     run.add_argument(
-        "--case-batch-size", type=int, help="Case window size for Bekko v0, Kev, Open-Jev, CLM or Tev"
+        "--case-batch-size",
+        type=int,
+        help="Case window size for Bekko v0, Kev, Open-Jev, CLM or Tev",
     )
     run.add_argument("--compile", action="store_true", help="Compile Bekko v0 tensor execution")
     run.add_argument("--microbatch-tokens", type=int, help="Bekko complete-question work budget")
@@ -174,14 +175,14 @@ def execute(args, parser):
             print(f"{b.id}\t{b.task}\t{b.case_count} cases\t{b.decision_count} decisions")
         return
     if args.query_length is not None or args.document_length is not None:
-        if args.adapter not in {"system-ichi", "bekko", "bekko-v0"}:
-            parser.error("--query-length/--document-length apply only to Ichi/Bekko/Bekko v0")
+        if args.adapter not in {"system-ichi", "bekko-v0"}:
+            parser.error("--query-length/--document-length apply only to Ichi/Bekko v0")
         if args.query_length is not None and args.query_length < 3:
             parser.error("--query-length must be at least 3")
         if args.document_length is not None and args.document_length < 2:
             parser.error("--document-length must be at least 2")
     if args.microbatch_tokens is not None and (
-        args.adapter not in {"bekko", "bekko-v0"} or args.microbatch_tokens < 1
+        args.adapter != "bekko-v0" or args.microbatch_tokens < 1
     ):
         parser.error("--microbatch-tokens must be positive and applies only to Bekko")
     if args.case_batch_size is not None and (
@@ -217,7 +218,8 @@ def execute(args, parser):
         parser.error("--dtype applies only to the Minojev adapter")
     if args.context_limit is not None and (
         args.context_limit < 1
-        or args.adapter not in {"von", "jevforge", "kev", "open-jev", "alex-openjev", "clm", "tev"}
+        or args.adapter
+        not in {"von", "jevforge", "kev", "open-jev", "alex-openjev", "clm", "tev", "bekko-v0"}
     ):
         parser.error(
             "--context-limit must be positive and applies only to supported upstream adapters"
@@ -279,21 +281,10 @@ def execute(args, parser):
             args.document_length,
             token_budget=args.microbatch_tokens if args.microbatch_tokens is not None else 64_000,
             case_batch_size=args.case_batch_size if args.case_batch_size is not None else 128,
+            context_length=args.context_limit,
+            revision=args.revision,
             compile_model=args.compile,
             cpu_smoke=args.device == "cpu",
-        )
-    elif args.adapter == "bekko":
-        if not args.source:
-            parser.error("--source is required for the Bekko checkout")
-        from .adapters.bekko import BekkoAdapter
-
-        adapter = BekkoAdapter(
-            args.model,
-            args.source,
-            args.device,
-            args.query_length or 16384,
-            args.document_length or 2048,
-            token_budget=args.microbatch_tokens if args.microbatch_tokens is not None else 64_000,
         )
     elif args.adapter == "typesafe":
         from .adapters.typesafe import TypeSafeAdapter

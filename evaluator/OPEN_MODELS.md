@@ -13,8 +13,7 @@ source hashes, rendering, attention backend, precision and input limits.
 
 | Adapter | Interface |
 | --- | --- |
-| Bekko | Native typed training renderer and optimized shared-prefix inference |
-| Bekko v0 (`bekko-v0`) | Local standalone export, native typed renderer and SDPA; no source checkout required |
+| Bekko v0 (`bekko-v0`) | Hub remote `BekkoSentenceTransformer.predict()`; pinned code and weights, no local checkout |
 | System Ichi | Local typed model with bounded question batching |
 | Laya | Full native token layout, FP32 arithmetic, bounded cross-case batches; no CPU fallback |
 | Von | Native option-marker backend and calibration |
@@ -66,15 +65,16 @@ Primary sources: [CLM model card](https://huggingface.co/Contrastive-LM/CLM-v0.1
 
 ## Input fidelity and throughput
 
-For standalone Bekko exports, see [Bekko v0 setup](README.md#bekko-standalone-v0).
-The adapter preserves native rendering and candidate order, checks lengths before
-native tokenization, and records the exported code and weight hashes. This adds a
-preflight tokenization pass. Native attention uses dense masks and gathers shared
+For Bekko Hub models, see [Bekko setup](README.md#bekko).
+The adapter preserves native rendering and candidate order, delegates input
+budgeting and truncation to the current native runtime, and records the policy
+and exported code/weight hashes. Native attention uses dense masks and gathers shared
 prefix keys/values for candidate paths; padding and long contexts can therefore
 dominate despite a linear token budget. Benchmark batching and optional compilation
 on the intended hardware before selecting throughput settings.
 
-Local adapters reject inputs exceeding their explicit budgets. The full-input Laya
+Except for Bekko v0's documented native truncation, local adapters reject inputs
+exceeding their explicit budgets. The full-input Laya
 renderer retains instructions, candidate descriptions and state in the native token
 layout; it removes the upstream renderer's 48-token candidate cap and field slicing.
 This is an extended-input condition when it exceeds the checkpoint's training

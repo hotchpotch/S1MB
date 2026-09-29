@@ -236,7 +236,7 @@ def test_ichi_question_groups_pack_across_cases_without_splitting_decisions(limi
 def test_bekko_native_input_preserves_structure_and_excludes_supervision():
     import json
 
-    from s1mb.adapters.bekko import native_input
+    from s1mb.adapters.bekko_v0 import native_input
 
     case = example("noul")
     case.questions[0].instructions_json = '{"judge":["defect","denial"]}'

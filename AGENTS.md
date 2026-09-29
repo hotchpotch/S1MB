@@ -42,7 +42,9 @@ categories consistent with it. Read current `input` and `targets` by stable ID;
 preserve declared criterion order, authored Noul definitions, structured values,
 soft targets and numeric Score levels. Ranking distributions are not Score labels.
 Keep targets, provenance and identifiers out of model text. Use dataset-default
-instructions. Check input lengths and reject overflow instead of silent truncation.
+instructions. Check input lengths and reject overflow instead of silent truncation,
+except Bekko v0 evaluations explicitly use native adaptive budgeting and record
+its truncation policy in model metadata.
 
 On the maintainers' shared workspace, use physical GPU 1 only
 (`CUDA_VISIBLE_DEVICES=1`), inspect free memory, and run smoke checks first.

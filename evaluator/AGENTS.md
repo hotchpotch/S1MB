@@ -24,7 +24,11 @@ while reporting a successful refresh.
 Adapters implement the common interface under `src/s1mb/adapters/`. Use only the
 current compact dataset schema and native model input conventions. Bekko defaults
 to batched transfers and a 64,000-token microbatch budget; users can lower the
-budget for available memory. Preserve overflow rejection and candidate alignment.
+budget for available memory. Preserve candidate alignment. Bekko v0 uses the Hub's remote
+`BekkoSentenceTransformer.predict()` API with code and weights pinned to the same
+SHA. Do not maintain a local Bekko inference backend. It uses
+`adaptive-v1` input budgeting with documented truncation instead of overflow
+rejection; other adapters retain their declared overflow policies.
 
 Standard output is `data/results/<run-id>/`. Keep downloaded data, results, Hub
 snapshots, revision caches, audits, and explicit `output/` directories ignored.

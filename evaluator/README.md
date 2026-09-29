@@ -75,35 +75,27 @@ without `--limit` and select a new run ID.
 
 ### Bekko
 
-Use an environment containing the checkpoint's supported Bekko package,
-Sentence Transformers, PyTorch and FlashAttention dependencies. Point `--source`
-to the upstream checkout and `--model` to the checkpoint directory.
+Use `--adapter bekko-v0` with a Hugging Face model ID. Install the `bekko-v0`
+extra; no local Bekko checkout or inference implementation is required. The
+model repository supplies the reviewed remote code.
+
+The adapter dynamically loads `inference_v0.BekkoSentenceTransformer` and calls
+`model.predict(native_inputs)` directly. Hub models resolve to one commit SHA
+before loading; both remote code and weights use that SHA. `--revision` selects
+a Hub revision. Results record the repository, resolved SHA and file hashes.
 
 ```sh
-CUDA_VISIBLE_DEVICES=1 python -m s1mb run \
-  --adapter bekko --source /path/to/bekko-system-one --model /path/to/model \
-  --device cuda --query-length 16384 --document-length 2048 \
-  --microbatch-tokens 64000 --category smoke-v1 --limit 2 --run-id bekko-smoke
+CUDA_VISIBLE_DEVICES=1 uv run --extra bekko-v0 s1mb run \
+  --adapter bekko-v0 --model hotchpotch/bekko-system-one-v0-17m \
+  --device cuda --category smoke-v1 --limit 2 --run-id bekko-hub-smoke-001
 ```
 
-Bekko uses its current native training renderer, optimized inference, batched
-probability transfers, and batched input-length validation. The default token
-budget is 64,000; lower it when GPU memory is limited. Complete decisions stay
-together in a microbatch. Explicit branch limits reject overflow rather than
-silently truncating. Effective settings are recorded in every result.
-
-### Bekko standalone v0
-
-Use `--adapter bekko-v0` with a local checkpoint exported by the current
-`bekko_system_one.export_v0`. Run the export in the upstream training environment;
-the export directory must contain `inference_v0.py` with
-`BekkoSentenceTransformer`. Older exports without this wrapper must be re-exported.
-S1MB loads the checkpoint's Python code, so use a reviewed export.
+For an explicit CPU diagnostic:
 
 ```sh
 uv sync --locked --extra bekko-v0
 uv run --extra bekko-v0 s1mb run \
-  --adapter bekko-v0 --model /path/to/exported-checkpoint --device cpu \
+  --adapter bekko-v0 --model hotchpotch/bekko-system-one-v0-17m --device cpu \
   --category smoke-v1 --limit 1 --run-id bekko-v0-cpu-smoke-001
 uv run s1mb validate data/results/bekko-v0-cpu-smoke-001
 ```
@@ -118,8 +110,15 @@ For GPU evaluation, inspect free memory and run a fresh smoke first with
 select `--category english-v1` without `--limit`. CUDA uses native BF16 autocast;
 there is no automatic CPU fallback.
 
-Input limits default to the exported configuration; `--query-length` and
-`--document-length` override them with overflow rejection. `--case-batch-size`
+Bekko v0 requires remote code with `adaptive-v1` input budgeting. Candidates
+are capped at 3,800 tokens by default; the query and each candidate share the
+backbone's position budget (7,999 for the v0 17M checkpoint), including special
+tokens. Each branch reserves half; unused capacity transfers to the other branch,
+with odd tokens going to candidates. `--context-limit` overrides the total input
+budget up to the backbone capacity. Overlong inputs use native balanced-query/right-candidate truncation
+instead of failing evaluation. This is an explicit evaluation condition recorded
+as `native-adaptive-v1-truncate` in result metadata. `--query-length` and
+`--document-length` can lower the respective caps. `--case-batch-size`
 defaults to 128 and `--microbatch-tokens` to 64000. Complete decisions stay together,
 so a single oversized decision can exceed the token budget. Length sorting reduces
 padding but a large budget can still combine dissimilar lengths and increase

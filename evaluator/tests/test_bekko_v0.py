@@ -6,14 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from s1mb.adapters.bekko_v0 import BekkoV0Adapter, validate_groups
+from s1mb.adapters.bekko_v0 import BekkoV0Adapter
 from s1mb.data import InferenceCase
-
-
-class Tokenizer:
-    def __call__(self, texts, **kwargs):
-        assert kwargs.get("truncation") is False
-        return {"input_ids": [text.split() for text in texts]}
 
 
 def case(name="case", task="choice"):
@@ -48,10 +42,14 @@ def adapter(tmp_path, monkeypatch):
         tasks=["choice", "noul", "score"],
         query_length=32,
         document_length=8,
+        context_length=128,
+        encoder=SimpleNamespace(
+            backbone=SimpleNamespace(config=SimpleNamespace(max_position_embeddings=128))
+        ),
         prefix_layout="instruction_state",
         query_truncation="right",
         task_token_ids={},
-        tokenizer=Tokenizer(),
+        budget_policy="adaptive-v1",
         settings={"query_length": 32},
     )
 
@@ -62,40 +60,40 @@ def adapter(tmp_path, monkeypatch):
         def __getitem__(self, index):
             return runtime
 
-        def predict_groups(self, groups, **kwargs):
-            if not groups:
+        def predict(self, requests, **kwargs):
+            if not requests:
                 return []
-            calls.append((groups, kwargs))
-            return [SimpleNamespace(tolist=lambda: [0.25, 0.75]) for _ in groups]
+            calls.append((requests, kwargs))
+            return [
+                {
+                    d["id"]: {
+                        "probabilities": {
+                            c["id"]: p for c, p in zip(d["criteria"], [0.25, 0.75], strict=True)
+                        }
+                    }
+                    for d in request["decisions"]
+                }
+                for request in requests
+            ]
 
-    def render(value, **kwargs):
-        assert set(value) == {"state_json", "decisions"}
-        return [
-            SimpleNamespace(
-                query=value["state_json"],
-                candidates=["one two" for _ in d["criteria"]],
-                task=d["type"],
-                metadata=SimpleNamespace(candidate_ids=tuple(c["id"] for c in d["criteria"])),
-            )
-            for d in value["decisions"]
-        ]
-
-    monkeypatch.setattr(importlib.import_module(__name__), "input_groups", render, raising=False)
-    monkeypatch.setattr(
-        "s1mb.adapters.bekko_v0.load_runtime",
-        lambda p: SimpleNamespace(
-            BekkoSentenceTransformer=lambda *a, **k: Model(), input_groups=render
-        ),
-    )
     original_import = importlib.import_module
     monkeypatch.setattr(
         "s1mb.adapters.bekko_v0.importlib.import_module",
         lambda name: (
-            SimpleNamespace(get_num_threads=lambda: 4) if name == "torch" else original_import(name)
+            SimpleNamespace(get_num_threads=lambda: 4)
+            if name == "torch"
+            else SimpleNamespace(
+                get_class_from_dynamic_module=lambda *a, **k: lambda *a, **k: Model()
+            )
+            if name == "transformers.dynamic_module_utils"
+            else original_import(name)
         ),
     )
     monkeypatch.setattr("s1mb.adapters.bekko_v0.parameter_metadata", lambda model: {})
-    value = BekkoV0Adapter(str(tmp_path), "cpu", cpu_smoke=True, case_batch_size=2)
+    monkeypatch.setattr(
+        "s1mb.adapters.bekko_v0.resolve_checkpoint", lambda *a: (tmp_path, "owner/model", "a" * 40)
+    )
+    value = BekkoV0Adapter("owner/model", "cpu", cpu_smoke=True, case_batch_size=2)
     return value, calls
 
 
@@ -116,35 +114,15 @@ def test_portable_batch_preserves_case_task_candidate_order(adapter):
     value.close()  # CPU cleanup must never access CUDA.
 
 
-def test_portable_overflow_rejected_before_prediction(adapter):
+def test_long_input_delegates_budgeting_to_native_runtime(adapter):
     value, calls = adapter
+    value.query_length = 8
     value.document_length = 2
-    with pytest.raises(ValueError, match="refusing truncation"):
-        value.predict(case())
-    assert calls == []
-
-
-def test_task_marker_reserves_an_extra_token():
-    runtime = SimpleNamespace(
-        query_truncation="right", task_token_ids={"choice": 10}, tokenizer=Tokenizer()
-    )
-    group = SimpleNamespace(query="short", candidates=["one two three"], task="choice")
-    with pytest.raises(ValueError, match="refusing truncation"):
-        validate_groups(runtime, [group], 8, 4)
-    group.task = "score"
-    validate_groups(runtime, [group], 8, 4)
-
-
-def test_balanced_preflight_includes_field_boundaries():
-    runtime = SimpleNamespace(query_truncation="balanced", task_token_ids={}, tokenizer=Tokenizer())
-    group = SimpleNamespace(
-        task="choice",
-        candidates=["short"],
-        query_parts=SimpleNamespace(system="", instruction="one two", context="three four"),
-    )
-    with pytest.raises(ValueError, match="Balanced query"):
-        validate_groups(runtime, [group], 7, 8)
-    validate_groups(runtime, [group], 8, 8)
+    value.predict(case("long input " * 100))
+    assert len(calls) == 1
+    assert calls[0][1]["query_length"] == 8
+    assert calls[0][1]["document_length"] == 2
+    assert calls[0][1]["context_length"] == 128
 
 
 def test_cpu_requires_explicit_smoke():
@@ -161,3 +139,22 @@ def test_cli_rejects_cpu_full_evaluation(monkeypatch, capsys):
     with pytest.raises(SystemExit):
         main()
     assert "CPU requires" in capsys.readouterr().err
+
+
+def test_hub_resolution_pins_snapshot_to_resolved_sha(tmp_path, monkeypatch):
+    from s1mb.adapters.bekko_v0 import resolve_checkpoint
+
+    calls = []
+    monkeypatch.setattr(
+        "huggingface_hub.HfApi",
+        lambda: SimpleNamespace(model_info=lambda repo, revision: SimpleNamespace(sha="a" * 40)),
+    )
+    monkeypatch.setattr(
+        "huggingface_hub.snapshot_download",
+        lambda repo, revision: calls.append((repo, revision)) or str(tmp_path),
+    )
+    path, model_id, sha = resolve_checkpoint("owner/model", "main")
+    assert (path, model_id, sha) == (tmp_path, "owner/model", "a" * 40)
+    assert calls == [("owner/model", "a" * 40)]
+    with pytest.raises(ValueError, match="Hugging Face model ID"):
+        resolve_checkpoint(str(tmp_path), "main")
