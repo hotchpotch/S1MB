@@ -3,7 +3,7 @@
 import { ColumnHelp } from "./ColumnHelp";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeftRight, ArrowUpRight, BarChart3, Blocks, Check, CircleCheck, GitFork, ListChecks, Trophy, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { ArrowLeftRight, ArrowUpRight, ArrowDown, ArrowUp, ArrowUpDown, BarChart3, Blocks, Check, CircleCheck, GitFork, ListChecks, Trophy, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { ModelWebsiteLink } from "./ModelWebsiteLink";
 import { ParameterCounts, ParameterCountsHeader } from "./ParameterCounts";
 import { Dialog } from "radix-ui";
@@ -43,6 +43,7 @@ import {
   type ResultSummary,
 } from "../lib/types";
 import {
+  metricRanks,
   benchmarkName,
   categoryRuns,
   compareRuns,
@@ -54,11 +55,10 @@ import {
   type Run,
 } from "../lib/comparison";
 import { cn } from "../lib/utils";
-import { moveComparison } from "../lib/radar";
-import { ComparisonRadar } from "./ComparisonRadar";
 import { ModelName } from "./ModelName";
 import { GeneralizationTable } from "./GeneralizationTable";
 
+type LeaderboardSort = 'overall' | Task | `general-${Task}`;
 type View = "leaderboard" | "benchmarks" | "compare";
 const adjustedScore = (value: number | null | undefined) => value == null ? '—' : (value * 100).toFixed(2);
 const percent = (value: number | null | undefined) => value == null ? '—' : `${(value * 100).toFixed(2)}%`;
@@ -304,7 +304,7 @@ export function ComparisonTables({
               </span>
             </div>
             <div className="rounded-lg border bg-card overflow-hidden">
-              <Table aria-label={`${title(group.task)} benchmark comparison`} containerClassName="max-h-[65vh] focus-visible:outline-2 focus-visible:outline-ring" containerLabel={`${title(group.task)} comparison scroll area`} className="table-fixed" style={{ minWidth: 192 + comparison.runs.length * 160 }}>
+              <Table aria-label={`${title(group.task)} benchmark comparison`} containerClassName="max-h-[65vh] focus-visible:outline-2 focus-visible:outline-ring" containerLabel={`${title(group.task)} comparison scroll area`} className="table-fixed" style={{ minWidth: 192 + comparison.runs.length * 128 }}>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="sticky left-0 top-0 z-30 bg-card w-[128px] sm:w-[220px] whitespace-normal">
@@ -314,7 +314,7 @@ export function ComparisonTables({
                     {comparison.runs.map((run) => (
                       <TableHead
                         key={run.id}
-                        className="sticky top-0 z-20 bg-card w-[160px] sm:w-[240px] py-4 px-4 align-top whitespace-normal"
+                        className="sticky top-0 z-20 bg-card py-4 px-3 align-top whitespace-normal [overflow-wrap:anywhere]"
                       >
                         <ModelName model={run.model} />
                       </TableHead>
@@ -404,6 +404,8 @@ export function Dashboard({
   ]);
   const [includeIncomplete, setIncomplete] = useState(false);
   const [query, setQuery] = useState("");
+  const [leaderboardSort, setLeaderboardSort] = useState<LeaderboardSort>('overall');
+  const [leaderboardAscending, setLeaderboardAscending] = useState(false);
   const [benchmarkMetric, setBenchmarkMetric] = useState('baseline_adjusted_score');
   const [benchmarkId, setBenchmark] = useState(initialBenchmark ?? "");
   const category =
@@ -448,6 +450,23 @@ export function Dashboard({
   const allRows = rawRows.map(row => ({ ...row, score: overallIndex(snapshot, category, row.results) }))
     .sort((a, b) => Number(a.demo) - Number(b.demo) || Number(a.score === null) - Number(b.score === null) || (b.score ?? 0) - (a.score ?? 0) || a.runId.localeCompare(b.runId));
   const rows = allRows.filter(row => row.score !== null && hasCompleteCoverage(category, row.results));
+  const leaderboardValue = (row: typeof rows[number]) => leaderboardSort === 'overall' ? row.score
+    : diagnosticMean(snapshot, leaderboardSort.startsWith('general-') ? generalizationCategory(snapshot, category) : category,
+      leaderboardSort.replace('general-', '') as Task, row.results, 'baseline_adjusted_score');
+  const leaderboardRanks = metricRanks(rows.map(row => ({ id: row.runId, value: leaderboardValue(row) })));
+  rows.sort((a, b) => {
+    const av = leaderboardValue(a), bv = leaderboardValue(b);
+    return Number(av == null) - Number(bv == null) || (av != null && bv != null ? (av - bv) * (leaderboardAscending ? 1 : -1) : 0) || a.runId.localeCompare(b.runId);
+  });
+  function sortLeaderboard(column: LeaderboardSort) {
+    setLeaderboardAscending(column === leaderboardSort ? !leaderboardAscending : false);
+    setLeaderboardSort(column);
+  }
+  const sortIcon = (column: LeaderboardSort) => {
+    const Icon = column !== leaderboardSort ? ArrowUpDown : leaderboardAscending ? ArrowUp : ArrowDown;
+    return <Icon aria-hidden="true" className={cn('inline-block ml-0.5 size-3 shrink-0', column !== leaderboardSort ? 'opacity-40' : 'text-primary')} />;
+  };
+  const sortDirection = (column: LeaderboardSort) => column === leaderboardSort ? leaderboardAscending ? 'ascending' as const : 'descending' as const : 'none' as const;
   const filteredBenchmarks = benchmarks
     .filter(
       (b) =>
@@ -473,6 +492,9 @@ export function Dashboard({
   const metricColumns = [{ name: 'baseline_adjusted_score', label: 'Adjusted ↑' }, ...BENCHMARK_METRICS[task]];
   const sortLabel = metricColumns.find(m => m.name === benchmarkMetric)?.label ?? 'Adjusted ↑';
   const metricDirection = ['binary_brier', 'normalized_expected_score_mae', 'normalized_score_rmse'].includes(benchmarkMetric) ? 'ascending' : 'descending';
+  const benchmarkRanks = metricRanks(individualCells.map(cell => ({ id: cell.runId,
+    value: cell.result?.status === 'complete' && cell.result.provenance === 'measured' ? cell.result.metrics[benchmarkMetric] ?? null : null,
+  })), metricDirection === 'ascending');
   const bestMetric = individualCells.find(c => c.result?.status === 'complete' && c.result.provenance === 'measured' && c.result.metrics[benchmarkMetric] != null)?.result?.metrics[benchmarkMetric];
   function toggle(id: string) {
     setSelected((ids) =>
@@ -503,24 +525,15 @@ export function Dashboard({
     );
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12">
-      {view !== 'leaderboard' && <header className="min-h-16 py-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-b">
-        <a href="/" className="text-2xl font-bold tracking-tight">
-          S1MB<span className="text-primary">.</span>
-        </a>
-        <span className="hidden sm:inline text-xs tracking-widest text-muted-foreground">
-          SYSTEM ONE MOSAIC BENCHMARK
-        </span>
-        <span className="sm:ml-auto text-xs text-muted-foreground">{benchmarks.length} benchmarks · {runs.length} runs</span>
-      </header>}
-      <main className={cn("pb-6 space-y-6", view !== "leaderboard" && "pt-6")}>
-        {view === 'leaderboard' ? <section aria-label="About S1MB" className="mosaic-hero -mx-4 sm:-mx-8 lg:-mx-12 border-b bg-background text-foreground px-4 sm:px-8 lg:px-12 py-8 sm:py-10">
+      <main className="pb-6 space-y-6">
+        <section aria-label="About S1MB" className="mosaic-hero -mx-4 sm:-mx-8 lg:-mx-12 border-b bg-background text-foreground px-4 sm:px-8 lg:px-12 py-8 sm:py-10">
           <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr] lg:items-end lg:gap-12">
             <div>
               <a href="/" aria-label="S1MB home" className="mb-6 inline-block text-2xl font-bold tracking-tight">S1MB<span className="text-primary">.</span></a>
               <h1 className="text-[clamp(2.8rem,5.1vw,4.6rem)] font-semibold leading-[0.98] tracking-[-0.06em]">System One<br /><span className="text-primary">Mosaic</span> Benchmark</h1>
             </div>
             <div className="w-full max-w-lg space-y-5 lg:justify-self-end lg:pb-1">
-              <p className="max-w-sm text-xl sm:text-2xl font-medium leading-snug tracking-tight text-foreground/90">Compare models across<br /><span className="text-primary">{benchmarks.length} specialized benchmarks.</span></p>
+              <p className="text-[clamp(1.6rem,2.5vw,2.25rem)] font-semibold leading-[1.08] tracking-[-0.06em] text-foreground">Compare models across<br /><span className="text-primary">{benchmarks.length} specialized benchmarks.</span></p>
               <div className="grid grid-cols-3 gap-3 sm:gap-5">
                 {([
                   { task: 'choice', label: 'Choice', description: 'Select an option', Icon: ListChecks },
@@ -537,7 +550,7 @@ export function Dashboard({
               </div>
             </div>
           </div>
-        </section> : <h1 className="sr-only">System One evaluations</h1>}
+        </section>
         {category.description.includes('Synthetic') && <Badge variant="secondary">Synthetic preview · Not measured</Badge>}
         <Tabs
           value={view}
@@ -601,21 +614,21 @@ export function Dashboard({
               <Table aria-label="Overall leaderboard" className="table-fixed min-w-[760px] text-xs [&_th]:px-0.5 sm:[&_th]:px-1 [&_th]:whitespace-normal [&_th]:break-words [&_td]:px-0.5 sm:[&_td]:px-1 [&_td]:py-2 [&_tr>:first-child]:pl-3 sm:[&_tr>:first-child]:pl-4 [&_tr>:last-child]:pr-3 sm:[&_tr>:last-child]:pr-4 [&_button]:text-xs">
                 <TableHeader><TableRow>
                   <TableHead className="w-9 sm:w-11"><span className="sr-only">Compare</span></TableHead>
-                  <TableHead className="w-5 sm:w-8"><ColumnHelp label="Rank" description="Rank by overall baseline-adjusted score, highest first. Only complete measured results are ranked.">#</ColumnHelp></TableHead><TableHead className="w-[22%]"><ColumnHelp description="Evaluated model. Select its name to view the model, settings and measurement details.">Model</ColumnHelp></TableHead>
-                  <TableHead className="text-right"><ColumnHelp description="Equal-weight average of the Noul, Choice and Score task scores on a 0–100 scale. Each benchmark is baseline-adjusted and clipped before averaging. Complete coverage is required; higher is better.">Overall</ColumnHelp></TableHead>
-                  {DISPLAY_TASKS.map(t => <TableHead key={t} data-task={t} className="task-accent text-right"><ColumnHelp description={`Mean baseline-adjusted score across all ${title(t)} benchmarks, including the general subset. 0–100; higher is better. Complete task coverage is required.`}>{title(t)}</ColumnHelp></TableHead>)}
-                  {DISPLAY_TASKS.map(t => <TableHead key={`general-${t}`} data-task={t} className="task-accent text-right"><ColumnHelp description={`Mean baseline-adjusted score for the Diverse and Contextual ${title(t)} benchmarks. Already included in the task score, with no additional ranking weight. This subset does not establish unseen-task generalization.`}><span className="block text-[9px] sm:text-[10px] text-muted-foreground">General</span>{title(t)}</ColumnHelp></TableHead>)}
+                  <TableHead className="w-5 sm:w-8"><ColumnHelp label="Rank" description="Rank by the selected score column, highest first. Ties share a rank; reversing the order preserves ranks. Only complete measured results are ranked.">#</ColumnHelp></TableHead><TableHead className="w-[22%]"><ColumnHelp description="Evaluated model. Select its name to view model information and benchmark results.">Model</ColumnHelp></TableHead>
+                  <TableHead className="text-right" aria-sort={sortDirection('overall')}><ColumnHelp onClick={() => sortLeaderboard('overall')} description="Equal-weight average of the Noul, Choice and Score task scores on a 0–100 scale. Each benchmark is baseline-adjusted and clipped before averaging. Complete coverage is required; higher is better.">Overall{sortIcon('overall')}</ColumnHelp></TableHead>
+                  {DISPLAY_TASKS.map(t => <TableHead key={t} data-task={t} className="task-accent text-right" aria-sort={sortDirection(t)}><ColumnHelp onClick={() => sortLeaderboard(t)} description={`Mean baseline-adjusted score across all ${title(t)} benchmarks, including the general subset. 0–100; higher is better. Complete task coverage is required.`}>{title(t)}{sortIcon(t)}</ColumnHelp></TableHead>)}
+                  {DISPLAY_TASKS.map(t => <TableHead key={`general-${t}`} data-task={t} className="task-accent text-right" aria-sort={sortDirection(`general-${t}`)}><ColumnHelp onClick={() => sortLeaderboard(`general-${t}`)} description={`Mean baseline-adjusted score for the Diverse and Contextual ${title(t)} benchmarks. Already included in the task score, with no additional ranking weight. This subset does not establish unseen-task generalization.`}><span className="block text-[9px] sm:text-[10px] text-muted-foreground">General</span>{title(t)}{sortIcon(`general-${t}`)}</ColumnHelp></TableHead>)}
                   <TableHead className="hidden sm:table-cell text-right w-14"><ColumnHelp label="Coverage" description="Number of completed benchmarks in this category. Every benchmark must be complete for a model to appear on the leaderboard.">Cov</ColumnHelp></TableHead>
                   <TableHead className="w-14 sm:w-20 text-right"><ParameterCountsHeader /></TableHead>
                 </TableRow></TableHeader>
-                <TableBody>{rows.map((row,i) => <TableRow key={row.runId} className="cursor-pointer data-[state=selected]:bg-primary/10" data-state={selectedIds.includes(row.runId) ? 'selected' : undefined}
+                <TableBody>{rows.map((row) => <TableRow key={row.runId} className="cursor-pointer data-[state=selected]:bg-primary/10" data-state={selectedIds.includes(row.runId) ? 'selected' : undefined}
                   onClick={event => {
                     if (event.defaultPrevented || !(event.target instanceof Element)) return;
                     if (event.target.closest('a, button, input, select, textarea, label, summary, [role="button"], [role="checkbox"], [role="link"], [contenteditable="true"]')) return;
                     toggle(row.runId);
                   }}>
                   <TableCell><CheckRun id={row.runId} checked={selectedIds.includes(row.runId)} onToggle={toggle} /></TableCell>
-                  <TableCell className="font-mono text-muted-foreground">{row.score !== null && !row.demo ? i + 1 : '—'}</TableCell>
+                  <TableCell className="font-mono text-muted-foreground">{leaderboardRanks.get(row.runId) ?? '—'}</TableCell>
                   <TableCell className="whitespace-normal"><ModelLabel model={row.model} runId={row.runId} distinguish={repeatedName(runs, row.model)} onClick={() => setRun(row.runId)} />{row.score === null && <span className="mt-1 block text-xs text-muted-foreground">Aggregate unavailable · {row.results.filter(r => r.status === 'complete').length}/{category.benchmarks.length} complete</span>}{row.demo && <Badge variant="secondary">Demo</Badge>}</TableCell>
                   <TableCell className="text-right">
                     <span className="font-mono font-semibold text-primary">{adjustedScore(row.score)}</span>
@@ -696,6 +709,7 @@ export function Dashboard({
                         <TableHead className="w-12">
                           <span className="sr-only">Compare</span>
                         </TableHead>
+                        <TableHead className="w-12">#</TableHead>
                         <TableHead>Model / run</TableHead>
                         {metricColumns.map(m => <TableHead key={m.name} className="text-right" aria-sort={benchmarkMetric === m.name ? metricDirection : 'none'}>
                           <button className={cn('rounded px-1 py-2 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring', benchmarkMetric === m.name && 'text-primary font-bold underline')} onClick={() => setBenchmarkMetric(m.name)} aria-label={`Rank by ${m.label}`}>{m.label}</button>
@@ -722,6 +736,7 @@ export function Dashboard({
                                 onToggle={toggle}
                               />
                             </TableCell>
+                            <TableCell className="font-mono text-muted-foreground">{benchmarkRanks.get(cell.runId) ?? '—'}</TableCell>
                             <TableCell className="w-72 min-w-56 max-w-80 py-2 pr-5">
                               <ModelLabel
                                 model={r.model}
@@ -809,9 +824,6 @@ export function Dashboard({
                 </p>
               )}
             </details>
-            <ComparisonRadar snapshot={snapshot} category={category} selectedIds={selectedIds}
-              onMove={(id, direction) => setSelected(ids => moveComparison(ids.filter(value => runs.some(run => run.id === value)), id, direction))}
-              onRemove={toggle} />
             <ComparisonTables
               snapshot={snapshot}
               categoryId={category.id}
@@ -883,11 +895,12 @@ function RunDetails({
       <Dialog.Title className="sr-only">Run details: {modelName(run.model)}</Dialog.Title>
       <Dialog.Description className="sr-only">Model information and benchmark results.</Dialog.Description>
       <div className="flex justify-between gap-3">
-        <div>
+        <div className="min-w-0 space-y-2">
           <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
             Run details · {run.demo ? "Demo" : "Self-reported"}
           </p>
-          <ModelLabel model={run.model} runId={run.id} detailed />
+          <h2 className="text-xl font-semibold tracking-tight [overflow-wrap:anywhere]">{modelName(run.model)}</h2>
+          <p className="text-xs text-muted-foreground">{instructionLabel(run.model)}</p>
         </div>
         <Button
           variant="ghost"
@@ -898,20 +911,17 @@ function RunDetails({
           <X className="size-4" />
         </Button>
       </div>
-      <details className="text-xs text-muted-foreground">
-        <summary>Model identity</summary>
-        <dl className="mt-2 space-y-1 break-all"><div>Model: {run.model.id}</div><div>Adapter: {run.model.adapter}</div><div>Total params: {run.model.total_params?.toLocaleString('en-US') ?? 'Unknown'}</div><div>Active params: {run.model.active_params?.toLocaleString('en-US') ?? 'Unknown'}</div><div>AP definition: parameters excluding lookup-only embeddings; shared output weights are retained.</div></dl>
-      </details>
       {(run.model.url || run.model.hf_url) && <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
         {run.model.url && run.model.url !== run.model.hf_url && <ModelWebsiteLink url={run.model.url} />}
         {run.model.hf_url && <ModelWebsiteLink url={run.model.hf_url} />}
       </div>}
-      <div className="flex flex-wrap gap-3">
-        <Input aria-label="Filter model benchmarks" placeholder="Find a benchmark…" value={filter} onChange={event => setFilter(event.target.value)} className="sm:max-w-xs" />
+      <section aria-label="Benchmark results" className="space-y-3 border-t pt-5">
+      <div className="flex items-baseline justify-between gap-3"><h3 className="font-semibold">Benchmark results</h3><span className="text-xs text-muted-foreground">{visible.length} / {benchmarks.length} benchmarks</span></div>
+      <div className="flex flex-wrap gap-2">
+        <Input aria-label="Filter model benchmarks" placeholder="Find a benchmark…" value={filter} onChange={event => setFilter(event.target.value)} className="min-w-0 flex-1 basis-44" />
         <Select value={task} onValueChange={setTask}><SelectTrigger aria-label="Model detail task" className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All tasks</SelectItem>{TASKS.map(t => <SelectItem key={t} value={t}>{title(t)}</SelectItem>)}</SelectContent></Select>
-        <span className="self-center text-xs text-muted-foreground">{visible.length} benchmarks</span>
       </div>
-      <Table aria-label="Run benchmark details" className="[&_td]:align-top [&_td]:py-3">
+      <div className="rounded-lg border overflow-hidden"><Table aria-label="Run benchmark details" containerClassName="max-h-[50vh]" containerLabel="Benchmark results scroll area" className="[&_td]:align-top [&_td]:py-3 [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-card">
         <TableHeader>
           <TableRow>
             <TableHead>Benchmark</TableHead>
@@ -929,19 +939,30 @@ function RunDetails({
                   {b.id}
                 </p>
               </TableCell>
-              <TableCell className="text-xs leading-5">
-                {title(b.task)} {METRICS[b.task].direction === "up" ? "↑" : "↓"}
+              <TableCell className="text-xs leading-5 task-accent" data-task={b.task}>
+                {title(b.task)}
               </TableCell>
               <TableCell className="text-right text-xs leading-5 font-mono font-semibold tabular-nums">{percent(run.results.find(r => r.benchmark.id === b.id)?.metrics.baseline_adjusted_score)}</TableCell>
               <TableCell>
                 <ScoreValue result={run.results.find(r => r.benchmark.id === b.id)} compact />
-                <p className="mt-1 text-xs leading-4 text-muted-foreground">{METRICS[b.task].label}</p>
+                <p className="mt-1 text-xs leading-4 text-muted-foreground">{METRICS[b.task].label} {METRICS[b.task].direction === 'up' ? '↑' : '↓'}</p>
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
-      </Table>
+      </Table></div>
       {!visible.length && <p className="text-sm text-muted-foreground">No matching benchmarks.</p>}
+      </section>
+      <details className="rounded-lg border bg-muted/20 p-4 text-sm">
+        <summary className="font-medium">Evaluation details</summary>
+        <div className="mt-4 space-y-4">
+          <div className="text-xs text-muted-foreground"><span className="font-medium">Run ID</span><p className="mt-1 font-mono break-all">{run.id}</p></div>
+      <details className="text-xs text-muted-foreground">
+        <summary>Model identity</summary>
+        <dl className="mt-2 space-y-1 break-all"><div>Model: {run.model.id}</div><div>Adapter: {run.model.adapter}</div><div>Total params: {run.model.total_params?.toLocaleString('en-US') ?? 'Unknown'}</div><div>Active params: {run.model.active_params?.toLocaleString('en-US') ?? 'Unknown'}</div><div>AP definition: parameters excluding lookup-only embeddings; shared output weights are retained.</div></dl>
+      </details>
+        </div>
+      </details>
       </Dialog.Content>
     </Dialog.Portal>
     </Dialog.Root>

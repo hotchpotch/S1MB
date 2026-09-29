@@ -8,8 +8,8 @@ Evaluation results belong in the Hugging Face results dataset. Changes to adapte
 scoring code, or documentation belong in a separate source-code PR. Link that PR
 when a submission depends on code that has not been merged yet.
 
-`ORG/RESULTS` below is a placeholder, not a provisioned repository. Use the results
-repository designated by the leaderboard maintainer; do not upload to the
+The results repository is `hotchpotch/s1mb-result`. It is public;
+a Hugging Face account is required to submit PRs. Do not upload results to the
 benchmark input dataset configured in `evaluator/dataset-source.json`.
 
 All Python/Hub CLI commands below run from `evaluator/` unless stated otherwise.
@@ -24,6 +24,8 @@ All Python/Hub CLI commands below run from `evaluator/` unless stated otherwise.
 - Use dataset-default instructions and the model's supported adapter. Preserve
   authored criteria, structured input, numeric Score levels, and soft targets.
   Reject input overflow; do not silently truncate or drop difficult examples.
+  Bekko v0 uses its native adaptive token budgeting instead; retain the recorded
+  `adaptive-v1` policy and disclose this behavior in the submission.
 - Record the evaluated model/checkpoint, source revision, effective settings, and
   evaluator version. Every result must contain the evaluation dataset repo ID
   and exact commit SHA. Do not manually invent or replace measurement provenance.
@@ -144,7 +146,7 @@ Prepare the PR description using the template below. Then upload only the model
 folder, excluding the export directory's local lock files:
 
 ```sh
-uv run hf upload ORG/RESULTS \
+uv run hf upload hotchpotch/s1mb-result \
   ../tmp/results-submission/example__model_v1 example__model_v1 \
   --repo-type dataset --create-pr \
   --commit-message 'Add Example Model v1 results'
@@ -160,7 +162,7 @@ To update the same PR after review, use its existing ref. Replace `12` with its
 PR number; do not pass `--create-pr` again:
 
 ```sh
-uv run hf upload ORG/RESULTS \
+uv run hf upload hotchpotch/s1mb-result \
   ../tmp/results-submission/example__model_v1 example__model_v1 \
   --repo-type dataset --revision refs/pr/12 \
   --commit-message 'Update Example Model v1 results'
@@ -233,7 +235,7 @@ Do not submit credentials, raw input text, checkpoints, caches, or reports.
 ## Synchronize the leaderboard
 
 ```sh
-uv run s1mb sync-results --repo-id ORG/RESULTS
+uv run s1mb sync-results --repo-id hotchpotch/s1mb-result
 ```
 
 The command resolves `main` to one exact commit, downloads model metadata and
@@ -247,7 +249,7 @@ is not replaced by synchronization.
 To review an unmerged PR, use a separate destination:
 
 ```sh
-uv run s1mb sync-results --repo-id ORG/RESULTS \
+uv run s1mb sync-results --repo-id hotchpotch/s1mb-result \
   --revision refs/pr/12 --output ../tmp/results-pr-12
 ```
 

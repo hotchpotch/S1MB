@@ -67,6 +67,7 @@ class BekkoV0Adapter:
         case_batch_size: int = 128,
         compile_model: bool = False,
         cpu_smoke: bool = False,
+        attn_implementation: str = "auto",
     ):
         if device != "cpu" and device != "cuda" and not device.startswith("cuda:"):
             raise ValueError("Bekko v0 requires an explicit CPU smoke or CUDA device")
@@ -90,6 +91,7 @@ class BekkoV0Adapter:
             revision=self.hub_revision,
             device=device,
             trust_remote_code=True,
+            attn_implementation=attn_implementation,
             local_files_only=True,
         ).eval()
         self.runtime = self.model[0]
@@ -195,7 +197,7 @@ class BekkoV0Adapter:
                 "device": self.device,
                 "cpu_smoke": self.cpu_smoke,
                 "inference": "inference_v0",
-                "attention": "sdpa",
+                "attention": self.runtime.attn_implementation,
                 "dtype": "float32" if self.device == "cpu" else "bfloat16-autocast",
                 "compile": self.compile_model,
                 "case_batch_size": self.case_batch_size,

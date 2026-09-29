@@ -40,6 +40,7 @@ def adapter(tmp_path, monkeypatch):
 
     runtime = Runtime(
         tasks=["choice", "noul", "score"],
+        attn_implementation="sdpa",
         query_length=32,
         document_length=8,
         context_length=128,
@@ -76,6 +77,10 @@ def adapter(tmp_path, monkeypatch):
                 for request in requests
             ]
 
+    def load_model(*args, **kwargs):
+        assert kwargs["attn_implementation"] == "auto"
+        return Model()
+
     original_import = importlib.import_module
     monkeypatch.setattr(
         "s1mb.adapters.bekko_v0.importlib.import_module",
@@ -83,7 +88,7 @@ def adapter(tmp_path, monkeypatch):
             SimpleNamespace(get_num_threads=lambda: 4)
             if name == "torch"
             else SimpleNamespace(
-                get_class_from_dynamic_module=lambda *a, **k: lambda *a, **k: Model()
+                get_class_from_dynamic_module=lambda *a, **k: load_model
             )
             if name == "transformers.dynamic_module_utils"
             else original_import(name)
@@ -158,3 +163,10 @@ def test_hub_resolution_pins_snapshot_to_resolved_sha(tmp_path, monkeypatch):
     assert calls == [("owner/model", "a" * 40)]
     with pytest.raises(ValueError, match="Hugging Face model ID"):
         resolve_checkpoint(str(tmp_path), "main")
+
+
+def test_metadata_records_selected_attention_backend(adapter, monkeypatch):
+    value, _ = adapter
+    monkeypatch.setattr("s1mb.adapters.bekko_v0.importlib.metadata.version", lambda name: "test")
+    value.runtime.attn_implementation = "flash_attention_2"
+    assert value.metadata().settings["attention"] == "flash_attention_2"

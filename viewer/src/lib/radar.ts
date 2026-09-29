@@ -2,7 +2,7 @@ import { categoryRuns, modelName } from './comparison';
 import { diagnosticMean, DISPLAY_TASKS, generalizationCategory, type Category, type Snapshot } from './types';
 
 export const RADAR_AXES = ['Noul', 'Choice', 'Score', 'General Noul', 'General Choice', 'General Score'];
-const palette = ['#2563eb', '#db2777', '#059669', '#d97706', '#7c3aed', '#0891b2', '#be123c', '#4d7c0f'];
+const palette = ['#287456', '#80529a', '#3069a1', '#b66a2b', '#a94c64', '#327e88', '#6556a4', '#717d30'];
 
 /** Keep model colors independent of selection order; never substitute zero for missing coverage. */
 export function radarProfiles(snapshot: Snapshot, category: Category, selectedIds: string[]) {
