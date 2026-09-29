@@ -139,5 +139,12 @@
     "commit": "1dde7782382c9f49d627153759b8d1deab426ce0",
     "model": "togethercomputer/Tev1-4B-experimental",
     "revision": "0b7becf017daa0e5eb222f8ce7483c8c8259c52f"
+  },
+  {
+    "adapter": "alex-openjev",
+    "repository": "https://huggingface.co/AlexWortega/openjev",
+    "model": "AlexWortega/openjev",
+    "revision": "26de23c44b67586b4bea31c0ef2e016e3068ae66",
+    "subfolder": "qwen3.5-0.8b-nli-v2s-long"
   }
 ]
