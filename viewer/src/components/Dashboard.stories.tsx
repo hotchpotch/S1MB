@@ -258,3 +258,49 @@ export const HubResults: Story = {
 export const HubRefreshFailed: Story = {
   args: { snapshot: { ...HubResults.args!.snapshot!, resultsSource: { ...HubResults.args!.snapshot!.resultsSource!, refreshFailed: true } } },
 };
+
+// Six-axis sharing fixtures are entirely synthetic, including their measured-format rows.
+const radarBenchmarks = ['specialized', 'generalization'].flatMap(group => benchmarks.map(b => ({
+  ...b, id: `${group}-${b.task}`, dataset: `datasets/s1mb-${group}-example-${b.task}`,
+})));
+const radarFixture: Snapshot = {
+  ...fixture,
+  benchmarks: radarBenchmarks,
+  categories: [{ ...fixture.categories[0], name: 'Six-axis demo · Synthetic', benchmarks: radarBenchmarks.map(b => b.id) }],
+  scoring: Object.fromEntries(radarBenchmarks.map(b => [b.id, { eligible: true, reason: null }])),
+  results: ['Synthetic Model A', 'Synthetic Model B', 'Synthetic Model C'].flatMap((name, model) => radarBenchmarks.map((b, index) => ({
+    ...fixture.results[0], benchmark: b, run_id: `synthetic-radar-${model}`, provenance: 'measured' as const,
+    model: { ...fixture.results[0].model, id: name, adapter: 'storybook-fixture', hf_url: `https://huggingface.co/example/synthetic-${model}` },
+    metrics: { baseline_adjusted_score: [[0.85, 0.65, 0.5, 0.55, 0.4, 0.6], [0.55, 0.8, 0.7, 0.4, 0.75, 0.5], [0.45, 0.6, 0.9, 0.8, 0.6, 0.7]][model][index] },
+  }))),
+};
+export const ShareableComparison: Story = { args: {
+  snapshot: radarFixture, initialView: 'compare', initialCompare: ['synthetic-radar-0', 'synthetic-radar-1', 'synthetic-radar-2'],
+} };
+export const IncompleteRadar: Story = { args: {
+  ...ShareableComparison.args,
+  snapshot: { ...radarFixture, results: radarFixture.results.filter(r => r.run_id !== 'synthetic-radar-1' || r.benchmark.task !== 'noul') },
+} };
+
+export const CompleteLeaderboardOnly: Story = { args: {
+  snapshot: { ...radarFixture, results: radarFixture.results.map(r => r.run_id === 'synthetic-radar-1' && r.benchmark.task === 'noul' ? { ...r, status: 'partial' as const } : r) },
+} };
+export const NoCompleteLeaderboard: Story = { args: {
+  snapshot: { ...radarFixture, results: radarFixture.results.map(r => ({ ...r, status: 'partial' as const })) },
+} };
+
+const generalizationBenchmarks = ['diverse', 'contextual'].flatMap(family => benchmarks.map(b => ({
+  ...b, id: `${family}-${b.task}`, dataset: `datasets/s1mb-generalization-${family}-${b.task}`,
+})));
+const generalizationFixture: Snapshot = {
+  ...radarFixture,
+  benchmarks: generalizationBenchmarks,
+  categories: [{ ...radarFixture.categories[0], benchmarks: generalizationBenchmarks.map(b => b.id) }],
+  scoring: Object.fromEntries(generalizationBenchmarks.map(b => [b.id, { eligible: true, reason: null }])),
+  results: ['Synthetic Zero', 'Synthetic Complete', 'Synthetic Partial'].flatMap((name, model) => generalizationBenchmarks.map((b, i) => ({
+    ...radarFixture.results[0], benchmark: b, run_id: `synthetic-general-${model}`, model: { ...radarFixture.results[0].model, id: name },
+    status: model === 2 && i === 0 ? 'partial' as const : 'complete' as const,
+    metrics: { baseline_adjusted_score: model === 0 ? 0 : (i + 1) / 10 },
+  }))),
+};
+export const GeneralizationSix: Story = { args: { snapshot: generalizationFixture, initialView: 'benchmarks', initialTask: 'generalization' } };

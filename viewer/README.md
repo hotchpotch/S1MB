@@ -42,6 +42,43 @@ Overview task scores and the overall index use a higher-is-better 0–100 adjust
 scale. Details retain primary metric directions. Only complete category coverage
 qualifies for aggregate rankings. See [scoring definitions](../evaluator/SCORING.md).
 
+## Generalization benchmarks
+
+Under **Benchmarks → Generalization 6**, compare all six Diverse/Contextual
+Noul, Choice and Score benchmarks in one table. The first numeric column is the
+equal-weight mean of all six adjusted scores; it is unavailable if any required
+score is missing, incomplete or undefined. Zero is a valid score and stays in
+the average. The table explains why at/below-baseline scores become zero, why
+zero is not zero accuracy, and how to inspect the original metrics. This section
+is separate from the leaderboard, which retains its three General task columns.
+
+## Share a comparison
+
+The leaderboard shows only fully evaluated measured models with complete scores.
+Partial results remain accessible in Compare and benchmark details.
+
+Select models and open **Compare**. The six-axis profile shows Noul, Choice,
+Score, and the same three tasks within the general-purpose subset. All axes use
+the existing baseline-adjusted 0–100 scores. Missing coverage stays unavailable;
+it is never plotted as zero or used to complete a polygon.
+
+The model picker is a list of names linked to their model pages, with completed
+benchmark counts. Selected models and their six scores appear to the left of a
+compact landscape image: a radar on its left and model scores on its right.
+Run IDs remain internal to selection URLs and are omitted from this comparison.
+
+Use the up/down buttons beside selected models to change the chart legend and
+comparison table order. Colors stay attached to models when reordered. **Copy
+comparison link** preserves that order in the URL; on browsers without clipboard
+access, copy the displayed URL manually. Shared links show the viewer's current
+results, while downloaded images capture the scores at export time.
+
+**Download PNG** saves the displayed profile at twice its native resolution,
+including model names, numeric scores, scale notes and Hub source
+provenance when available. Export runs entirely in the browser without uploading
+data or requiring a screenshot service. The preview scrolls horizontally on
+narrow screens; its exported image always includes the complete card.
+
 ## Development
 
 ```sh

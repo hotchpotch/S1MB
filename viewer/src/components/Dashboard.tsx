@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeftRight, ArrowUpRight, Check, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { ArrowLeftRight, ArrowUpRight, BarChart3, Blocks, Check, CircleCheck, ListChecks, Trophy, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { ParameterCounts, ParameterCountsHeader } from "./ParameterCounts";
 import { Dialog } from "radix-ui";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -42,6 +43,7 @@ import {
   benchmarkName,
   categoryRuns,
   compareRuns,
+  hasCompleteCoverage,
   compareResultMetric,
   comparisonSpread,
   comparisonDelta,
@@ -49,6 +51,10 @@ import {
   type Run,
 } from "../lib/comparison";
 import { cn } from "../lib/utils";
+import { moveComparison } from "../lib/radar";
+import { ComparisonRadar } from "./ComparisonRadar";
+import { ModelName } from "./ModelName";
+import { GeneralizationTable } from "./GeneralizationTable";
 
 type View = "leaderboard" | "benchmarks" | "compare";
 const adjustedScore = (value: number | null | undefined) => value == null ? '—' : (value * 100).toFixed(2);
@@ -170,12 +176,6 @@ function metricValue(name: string, value: number | null | undefined) {
   if (value == null) return '—';
   return ['baseline_adjusted_score', 'target_mass_at_prediction', 'f1', 'precision', 'positive_recall', 'balanced_accuracy'].includes(name) ? percent(value) : value.toFixed(4);
 }
-function ProfileScore({ value }: { value: number | null }) {
-  return <div className="min-w-0 text-right">
-    <span className="font-mono tabular-nums font-semibold">{percent(value)}</span>
-    {value !== null && <div className="mt-1 h-1 rounded-full overflow-hidden bg-muted" aria-hidden="true"><div className="h-full bg-primary" style={{ width: `${value * 100}%` }} /></div>}
-  </div>;
-}
 function ScoreValue({
   result,
   best = false,
@@ -242,13 +242,11 @@ export function ComparisonTables({
   categoryId,
   selectedIds,
   onBenchmarkSelect,
-  onRemove,
 }: {
   snapshot: Snapshot;
   categoryId: string;
   selectedIds: string[];
   onBenchmarkSelect?: (id: string, task: Task) => void;
-  onRemove?: (id: string) => void;
 }) {
   const [filter, setFilter] = useState('');
   const [sort, setSort] = useState('gap');
@@ -258,7 +256,6 @@ export function ComparisonTables({
   const category = snapshot.categories.find((c) => c.id === categoryId);
   if (!category) return null;
   const comparison = compareRuns(snapshot, category, selectedIds, adjusted);
-  const availableRuns = categoryRuns(snapshot, category);
   const reference = comparison.runs.find(r => r.id === referenceId) ?? comparison.runs[0];
   const groups = comparison.groups.map(group => ({ ...group, rows: group.rows.filter(row => `${row.benchmark.id} ${benchmarkName(row.benchmark)}`.toLowerCase().includes(filter.trim().toLowerCase())).sort((a, b) => sort === 'gap' ? (comparisonSpread(b) ?? -1) - (comparisonSpread(a) ?? -1) || a.benchmark.id.localeCompare(b.benchmark.id) : a.benchmark.id.localeCompare(b.benchmark.id)) }));
   const shown = groups.reduce((sum, group) => sum + group.rows.length, 0);
@@ -271,26 +268,6 @@ export function ComparisonTables({
     );
   return (
     <div className="space-y-5" aria-label="Selected run comparison">
-      <div className="sm:hidden space-y-3" aria-label="Comparison summary cards">
-        {comparison.runs.map(run => <article key={run.id} className="rounded-lg border bg-card p-3 space-y-3">
-          <div className="flex items-start gap-2"><ModelLabel model={run.model} runId={run.id} distinguish={repeatedName(availableRuns, run.model)} />{onRemove && <Button variant="ghost" size="icon" aria-label={`Remove ${run.id}`} onClick={() => onRemove(run.id)}><X className="size-4" /></Button>}</div>
-          <dl className="grid grid-cols-4 gap-2">
-            {[{ label: 'Overall', value: overallIndex(snapshot, category, run.results) }, ...TASKS.map(t => ({ label: title(t), value: diagnosticMean(snapshot, category, t, run.results, 'baseline_adjusted_score') }))].map(item => <div key={item.label}><dt className="text-xs text-muted-foreground mb-1">{item.label}</dt><dd><ProfileScore value={item.value} /></dd></div>)}
-          </dl>
-        </article>)}
-        <p className="text-xs text-muted-foreground">Adjusted scores · Fixed 0–100% scale</p>
-      </div>
-      <div className="hidden sm:block rounded-lg border bg-card overflow-hidden">
-        <Table aria-label="Comparison summary" className="min-w-[750px] table-fixed">
-          <TableHeader><TableRow><TableHead className="w-[36%]">Selected model</TableHead><TableHead className="text-right">Overall ↑</TableHead>{TASKS.map(t => <TableHead key={t} className="text-right">{title(t)} ↑</TableHead>)}</TableRow></TableHeader>
-          <TableBody>{comparison.runs.map(run => <TableRow key={run.id}>
-            <TableCell className="py-3 pr-5"><div className="flex items-start gap-2"><ModelLabel model={run.model} runId={run.id} distinguish={repeatedName(availableRuns, run.model)} />{onRemove && <Button variant="ghost" size="icon" aria-label={`Remove ${run.id}`} onClick={() => onRemove(run.id)}><X className="size-3" /></Button>}</div></TableCell>
-            <TableCell><ProfileScore value={overallIndex(snapshot, category, run.results)} /></TableCell>
-            {TASKS.map(t => <TableCell key={t}><ProfileScore value={diagnosticMean(snapshot, category, t, run.results, 'baseline_adjusted_score')} /></TableCell>)}
-          </TableRow>)}</TableBody>
-          <caption className="caption-bottom p-3 text-left text-xs text-muted-foreground">Adjusted scores · Fixed 0–100% scale · — means incomplete or unavailable</caption>
-        </Table>
-      </div>
       <div className="space-y-3">
         {comparison.runs.length > 1 && <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-sm"><Checkbox checked={showDelta} onCheckedChange={v => setShowDelta(v === true)} />Show difference from reference</label>
@@ -336,8 +313,7 @@ export function ComparisonTables({
                         key={run.id}
                         className="sticky top-0 z-20 bg-card w-[160px] sm:w-[240px] py-4 px-4 align-top whitespace-normal"
                       >
-                        <span title={run.id} className="font-semibold text-foreground [overflow-wrap:anywhere]">{modelName(run.model)}</span>
-                        {repeatedName(availableRuns, run.model) && <p className="mt-1 font-mono text-[10px] font-normal break-all">{run.id}</p>}
+                        <ModelName model={run.model} />
                       </TableHead>
                     ))}
                   </TableRow>
@@ -413,6 +389,7 @@ export function Dashboard({
   const [task, setTask] = useState<Task>(
     TASKS.includes(initialTask as Task) ? (initialTask as Task) : "choice",
   );
+  const [generalizationView, setGeneralizationView] = useState(initialTask === 'generalization');
   const [runId, setRun] = useState(initialRun ?? "");
   const [view, setView] = useState<View>(
     ["leaderboard", "benchmarks", "compare"].includes(initialView ?? "")
@@ -442,13 +419,13 @@ export function Dashboard({
     ])
       params.delete(key);
     params.set("category", category.id);
-    params.set("task", task);
+    params.set("task", generalizationView ? "generalization" : task);
     params.set("view", view);
     if (runId) params.set("run", runId);
     if (benchmarkId) params.set("benchmark", benchmarkId);
     for (const id of selectedIds) params.append("compare", id);
     window.history.replaceState(null, "", `?${params}`);
-  }, [category, task, view, runId, selectedIds, benchmarkId]);
+  }, [category, task, generalizationView, view, runId, selectedIds, benchmarkId]);
   if (!category)
     return (
       <main className="max-w-6xl mx-auto p-8">
@@ -461,20 +438,13 @@ export function Dashboard({
   const benchmarks = snapshot.benchmarks.filter((b) =>
     category.benchmarks.includes(b.id),
   );
-  const generalizationColumns = ['diverse', 'contextual'].flatMap(family =>
-    DISPLAY_TASKS.flatMap(t => {
-      const benchmark = benchmarks.find(b => b.dataset === `datasets/s1mb-generalization-${family}-${t}`);
-      return benchmark ? [{ family, task: t, benchmark }] : [];
-    }),
-  );
   const runs = categoryRuns(snapshot, category);
   const selectedRuns = selectedIds.flatMap(id => { const run = runs.find(r => r.id === id); return run ? [run] : []; });
   const active = runs.find((r) => r.id === runId);
   const rawRows = leaderboard(snapshot, category, task);
   const allRows = rawRows.map(row => ({ ...row, score: overallIndex(snapshot, category, row.results) }))
     .sort((a, b) => Number(a.demo) - Number(b.demo) || Number(a.score === null) - Number(b.score === null) || (b.score ?? 0) - (a.score ?? 0) || a.runId.localeCompare(b.runId));
-  const ranked = allRows.filter((r) => r.score !== null && !r.demo);
-  const rows = includeIncomplete || !ranked.length ? allRows : ranked;
+  const rows = allRows.filter(row => row.score !== null && hasCompleteCoverage(category, row.results));
   const filteredBenchmarks = benchmarks
     .filter(
       (b) =>
@@ -507,6 +477,8 @@ export function Dashboard({
     );
   }
   function chooseTask(value: string) {
+    setGeneralizationView(value === 'generalization');
+    if (value === 'generalization') { setBenchmark(''); setQuery(''); return; }
     setTask(value as Task);
     setBenchmarkMetric('baseline_adjusted_score');
     setBenchmark("");
@@ -528,7 +500,7 @@ export function Dashboard({
     );
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12">
-      <header className="min-h-16 py-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-b">
+      {view !== 'leaderboard' && <header className="min-h-16 py-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-b">
         <a href="/" className="text-2xl font-bold tracking-tight">
           S1MB<span className="text-primary">.</span>
         </a>
@@ -536,9 +508,24 @@ export function Dashboard({
           SYSTEM ONE MOSAIC BENCHMARK
         </span>
         <span className="sm:ml-auto text-xs text-muted-foreground">{benchmarks.length} benchmarks · {runs.length} runs</span>
-      </header>
-      <main className="py-6 space-y-6">
-        <h1 className="sr-only">System One evaluations</h1>
+      </header>}
+      <main className={cn("pb-6 space-y-6", view !== "leaderboard" && "pt-6")}>
+        {view === 'leaderboard' ? <section aria-label="About S1MB" className="-mx-4 sm:-mx-8 lg:-mx-12 border-b bg-background text-foreground px-4 sm:px-8 lg:px-12 py-8 sm:py-10">
+          <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr] lg:items-end lg:gap-12">
+            <div>
+              <a href="/" aria-label="S1MB home" className="mb-6 inline-block text-2xl font-bold tracking-tight">S1MB<span className="text-primary">.</span></a>
+              <h1 className="text-[clamp(2.8rem,5.1vw,4.6rem)] font-semibold leading-[0.98] tracking-[-0.06em]">System One<br />Mosaic Benchmark</h1>
+            </div>
+            <div className="space-y-6 lg:pb-1">
+              <p className="max-w-lg text-lg sm:text-xl leading-relaxed tracking-[-0.02em]">Choose an option. Judge a statement. Assign a score.<br className="hidden sm:block" /> Explore how models perform across a mosaic of specialized decision tasks.</p>
+              <div className="flex flex-wrap gap-x-5 gap-y-3 text-xs font-medium text-muted-foreground">
+                <span className="inline-flex items-center gap-2"><ListChecks aria-hidden="true" className="size-4" strokeWidth={1.5} />{benchmarks.length} benchmarks</span>
+                <span className="inline-flex items-center gap-2"><CircleCheck aria-hidden="true" className="size-4" strokeWidth={1.5} />3 decision tasks</span>
+                <span className="inline-flex items-center gap-2"><BarChart3 aria-hidden="true" className="size-4" strokeWidth={1.5} />Baseline-adjusted scores</span>
+              </div>
+            </div>
+          </div>
+        </section> : <h1 className="sr-only">System One evaluations</h1>}
         {category.description.includes('Synthetic') && <Badge variant="secondary">Synthetic preview · Not measured</Badge>}
         <Tabs
           value={view}
@@ -548,8 +535,8 @@ export function Dashboard({
           }}
         >
           <TabsList variant="line" className="w-full sm:w-auto justify-start">
-            <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
-            <TabsTrigger value="benchmarks">Benchmarks</TabsTrigger>
+            <TabsTrigger value="leaderboard"><Trophy aria-hidden="true" className="size-4" />Leaderboard</TabsTrigger>
+            <TabsTrigger value="benchmarks"><Blocks aria-hidden="true" className="size-4" />Benchmarks</TabsTrigger>
             <TabsTrigger value="compare">
               <ArrowLeftRight className="size-4" /> Compare
               {selectedRuns.length > 0 && (
@@ -562,7 +549,7 @@ export function Dashboard({
         </Tabs>
         {view === "benchmarks" && (
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <Tabs value={task} onValueChange={chooseTask}>
+            <Tabs value={generalizationView ? "generalization" : task} onValueChange={chooseTask}>
               <TabsList variant="line">
                 {TASKS.map((t) => (
                   <TabsTrigger key={t} value={t}>
@@ -572,6 +559,7 @@ export function Dashboard({
                     </span>
                   </TabsTrigger>
                 ))}
+                <TabsTrigger value="generalization">Generalization <span className="text-muted-foreground text-xs">6</span></TabsTrigger>
               </TabsList>
             </Tabs>
             <Button
@@ -597,20 +585,23 @@ export function Dashboard({
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">Noul, Choice and Score include all benchmarks. General columns show the diverse/contextual subset; they receive no additional ranking weight.</p>
-            {allRows.some(r => r.score === null || r.demo) && <label className="flex items-center gap-2 text-xs">
-              <Checkbox checked={includeIncomplete} onCheckedChange={v => setIncomplete(v === true)} />Show incomplete & demo runs
-            </label>}
             {rows.length ? <div className="rounded-lg border bg-card overflow-hidden">
-              <Table aria-label="Overall leaderboard" className="table-fixed text-[9px] sm:text-xs [&_th]:px-0.5 sm:[&_th]:px-1 [&_th]:whitespace-normal [&_th]:break-words [&_td]:px-0.5 sm:[&_td]:px-1 [&_td]:py-2 [&_button]:text-[10px] sm:[&_button]:text-xs">
+              <Table aria-label="Overall leaderboard" className="table-fixed text-[9px] sm:text-xs [&_th]:px-0.5 sm:[&_th]:px-1 [&_th]:whitespace-normal [&_th]:break-words [&_td]:px-0.5 sm:[&_td]:px-1 [&_td]:py-2 [&_tr>:first-child]:pl-3 sm:[&_tr>:first-child]:pl-4 [&_tr>:last-child]:pr-3 sm:[&_tr>:last-child]:pr-4 [&_button]:text-[10px] sm:[&_button]:text-xs">
                 <TableHeader><TableRow>
-                  <TableHead className="w-6 sm:w-7"><span className="sr-only">Compare</span></TableHead>
-                  <TableHead className="w-5 sm:w-8"><span className="sm:hidden" aria-label="Rank">#</span><span className="hidden sm:inline">Rank</span></TableHead><TableHead className="w-[16%] sm:w-[22%]">Model</TableHead>
+                  <TableHead className="w-9 sm:w-11"><span className="sr-only">Compare</span></TableHead>
+                  <TableHead className="w-5 sm:w-8"><span aria-label="Rank">#</span></TableHead><TableHead className="w-[16%] sm:w-[22%]">Model</TableHead>
                   <TableHead className="text-right">Overall</TableHead>
                   {DISPLAY_TASKS.map(t => <TableHead key={t} className="text-right">{title(t)}</TableHead>)}
                   {DISPLAY_TASKS.map(t => <TableHead key={`general-${t}`} className="text-right"><span className="block text-[9px] sm:text-[10px] text-muted-foreground">General</span>{title(t)}</TableHead>)}
-                  <TableHead className="hidden sm:table-cell text-right w-14">Coverage</TableHead>
+                  <TableHead className="hidden sm:table-cell text-right w-14">Cov</TableHead>
+                  <TableHead className="w-14 sm:w-20 text-right"><ParameterCountsHeader /></TableHead>
                 </TableRow></TableHeader>
-                <TableBody>{rows.map((row,i) => <TableRow key={row.runId} data-state={selectedIds.includes(row.runId) ? 'selected' : undefined}>
+                <TableBody>{rows.map((row,i) => <TableRow key={row.runId} className="cursor-pointer" data-state={selectedIds.includes(row.runId) ? 'selected' : undefined}
+                  onClick={event => {
+                    if (event.defaultPrevented || !(event.target instanceof Element)) return;
+                    if (event.target.closest('a, button, input, select, textarea, label, summary, [role="button"], [role="checkbox"], [role="link"], [contenteditable="true"]')) return;
+                    toggle(row.runId);
+                  }}>
                   <TableCell><CheckRun id={row.runId} checked={selectedIds.includes(row.runId)} onToggle={toggle} /></TableCell>
                   <TableCell className="font-mono text-muted-foreground">{row.score !== null && !row.demo ? i + 1 : '—'}</TableCell>
                   <TableCell className="whitespace-normal"><ModelLabel model={row.model} runId={row.runId} distinguish={repeatedName(runs, row.model)} onClick={() => setRun(row.runId)} />{row.score === null && <span className="mt-1 block text-xs text-muted-foreground">Aggregate unavailable · {row.results.filter(r => r.status === 'complete').length}/{category.benchmarks.length} complete</span>}{row.demo && <Badge variant="secondary">Demo</Badge>}</TableCell>
@@ -619,34 +610,11 @@ export function Dashboard({
                   </TableCell>
                   {DISPLAY_TASKS.map(t => <TableCell key={t} className="text-right font-mono">{adjustedScore(diagnosticMean(snapshot, category, t, row.results, 'baseline_adjusted_score'))}</TableCell>)}
                   {DISPLAY_TASKS.map(t => <TableCell key={`general-${t}`} className="text-right font-mono">{adjustedScore(diagnosticMean(snapshot, generalizationCategory(snapshot, category), t, row.results, 'baseline_adjusted_score'))}</TableCell>)}
-                  <TableCell className="hidden sm:table-cell text-right text-xs text-muted-foreground">{row.results.filter(r => r.status === 'complete').length}/{category.benchmarks.length}{row.demo && ' · Demo'}</TableCell>
+                  <TableCell className="hidden sm:table-cell text-right text-xs text-muted-foreground">{row.results.filter(r => r.status === 'complete').length}{row.demo && ' · Demo'}</TableCell>
+                  <TableCell><ParameterCounts model={row.model} /></TableCell>
                 </TableRow>)}</TableBody>
               </Table>
-            </div> : <Empty title="No results yet" description="Measured model results will appear here." />}
-            {generalizationColumns.length > 0 && rows.length > 0 && <section aria-label="Generalization benchmark comparison" className="space-y-3 pt-4">
-              <h3 className="text-lg font-semibold">Generalization · {generalizationColumns.length} benchmarks</h3>
-              <p className="text-xs text-muted-foreground">Adjusted score · 0–100 · Higher is better. 0 means at or below baseline, not zero correct answers. These benchmarks do not establish generalization to unseen tasks or distributions.</p>
-              <div className="rounded-lg border bg-card overflow-hidden">
-                <Table aria-label="Generalization scores" className="min-w-[700px]">
-                  <TableHeader><TableRow>
-                    <TableHead>Model</TableHead>
-                    {generalizationColumns.map(({ family, task, benchmark }) => <TableHead key={benchmark.id} className="text-right">
-                      <span className="block text-xs text-muted-foreground">{title(family)}</span>{title(task)}
-                    </TableHead>)}
-                  </TableRow></TableHeader>
-                  <TableBody>{rows.map(row => <TableRow key={row.runId}>
-                    <TableCell className="whitespace-normal"><ModelLabel model={row.model} runId={row.runId} distinguish={repeatedName(runs, row.model)} onClick={() => setRun(row.runId)} />{row.demo && <Badge variant="secondary">Demo</Badge>}</TableCell>
-                    {generalizationColumns.map(({ task, benchmark }) => {
-                      const value = diagnosticMean(snapshot, { ...category, benchmarks: [benchmark.id] }, task, row.results, 'baseline_adjusted_score');
-                      return <TableCell key={benchmark.id} className="text-right font-mono">
-                        <button className="underline decoration-muted-foreground/40 underline-offset-4 hover:decoration-current" aria-label={`${modelName(row.model)} · ${benchmark.id}: ${adjustedScore(value)}`} onClick={() => { chooseTask(task); setQuery(''); setBenchmark(benchmark.id); setView('benchmarks'); }}>{adjustedScore(value)}</button>
-                      </TableCell>;
-                    })}
-                  </TableRow>)}</TableBody>
-                </Table>
-              </div>
-              <p className="text-xs text-muted-foreground">Select a score for benchmark details. — means unavailable. The General columns above average Diverse and Contextual within each task.</p>
-            </section>}
+            </div> : <Empty title="No complete models yet" description="Only measured models with every benchmark complete appear on the leaderboard. Use Compare to inspect partial results." />}
             <details className="text-xs text-muted-foreground py-2">
               <summary>How scores are calculated</summary>
               <div className="mt-3 space-y-2 leading-relaxed">
@@ -657,7 +625,9 @@ export function Dashboard({
             </details>
           </section>
         )}
-        {view === "benchmarks" && (
+        {view === "benchmarks" && generalizationView && <GeneralizationTable snapshot={snapshot} category={category} selectedIds={selectedIds} onToggle={toggle}
+          onBenchmarkSelect={(id, selectedTask) => { chooseTask(selectedTask); setBenchmark(id); }} />}
+        {view === "benchmarks" && !generalizationView && (
           <section aria-label="Benchmark results" className="space-y-5">
             <div className="grid sm:grid-cols-[1fr_2fr_auto] items-center gap-3">
               <Input
@@ -778,7 +748,7 @@ export function Dashboard({
           <section aria-label="Compare runs" className="space-y-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h2 className="text-xl font-semibold">Compare selected runs</h2>
+                <h2 className="text-xl font-semibold">Compare models</h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   Choose exactly which results to put side by side across all
                   tasks.
@@ -800,8 +770,8 @@ export function Dashboard({
                   <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
                   <Input
                     className="pl-9"
-                    aria-label="Search runs"
-                    placeholder="Search models, instructions or run IDs…"
+                    aria-label="Search models"
+                    placeholder="Search models…"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                   />
@@ -814,51 +784,28 @@ export function Dashboard({
                   Show incomplete & demo runs
                 </label>
               </div>
-              <div
-                className="max-h-64 overflow-y-auto grid md:grid-cols-2 lg:grid-cols-3 gap-2"
-                aria-label="Run selection"
-              >
-                {visibleRuns.map((run) => (
-                  <label
-                    key={run.id}
-                    className={cn(
-                      "flex items-start gap-3 rounded-md border p-3 cursor-pointer",
-                      selectedIds.includes(run.id) &&
-                        "border-primary/50 bg-accent/50",
-                    )}
-                  >
-                    <Checkbox
-                      className="mt-1 shrink-0"
-                      aria-label={`Select ${run.id}`}
-                      checked={selectedIds.includes(run.id)}
-                      onCheckedChange={() => toggle(run.id)}
-                    />
-                    <div className="min-w-0">
-                      <ModelLabel model={run.model} runId={run.id} />
-                      <p className="text-[11px] text-muted-foreground mt-2">
-                        {
-                          run.results.filter((r) => r.status === "complete")
-                            .length
-                        }
-                        /{benchmarks.length} complete benchmarks
-                        {run.demo ? " · Demo" : ""}
-                      </p>
-                    </div>
-                  </label>
-                ))}
-              </div>
+              <Table aria-label="Choose models" containerClassName="max-h-72">
+                <TableHeader><TableRow><TableHead className="w-10"><span className="sr-only">Select</span></TableHead><TableHead>Model</TableHead><TableHead className="text-right">Complete benchmarks</TableHead></TableRow></TableHeader>
+                <TableBody>{visibleRuns.map(run => <TableRow key={run.id} data-state={selectedIds.includes(run.id) ? 'selected' : undefined}>
+                  <TableCell><Checkbox aria-label={`Select ${modelName(run.model)}`} checked={selectedIds.includes(run.id)} onCheckedChange={() => toggle(run.id)} /></TableCell>
+                  <TableCell className="whitespace-normal"><ModelName model={run.model} /></TableCell>
+                  <TableCell className="text-right text-xs text-muted-foreground">{run.results.filter(r => r.status === 'complete').length}/{benchmarks.length}{run.demo ? ' · Demo' : ''}</TableCell>
+                </TableRow>)}</TableBody>
+              </Table>
               {!visibleRuns.length && (
                 <p className="text-sm text-muted-foreground">
                   No matching runs.
                 </p>
               )}
             </details>
+            <ComparisonRadar snapshot={snapshot} category={category} selectedIds={selectedIds}
+              onMove={(id, direction) => setSelected(ids => moveComparison(ids.filter(value => runs.some(run => run.id === value)), id, direction))}
+              onRemove={toggle} />
             <ComparisonTables
               snapshot={snapshot}
               categoryId={category.id}
               selectedIds={selectedIds}
-              onRemove={toggle}
-              onBenchmarkSelect={(id, selectedTask) => { setTask(selectedTask); setBenchmark(id); setBenchmarkMetric('baseline_adjusted_score'); setQuery(''); setRun(''); setView('benchmarks'); window.scrollTo({ top: 0 }); }}
+              onBenchmarkSelect={(id, selectedTask) => { chooseTask(selectedTask); setBenchmark(id); setBenchmarkMetric('baseline_adjusted_score'); setQuery(''); setRun(''); setView('benchmarks'); window.scrollTo({ top: 0 }); }}
             />
           </section>
         )}

@@ -132,3 +132,9 @@ export function comparisonDelta(cell: ComparisonRow["cells"][number], reference:
   if (!valid(cell) || !valid(reference)) return null;
   return (cell.value! - reference!.value!) * (higherIsBetter ? 1 : -1);
 }
+
+/** Leaderboards require every active benchmark to be complete and measured. */
+export function hasCompleteCoverage(category: Category, results: ResultSummary[]): boolean {
+  return category.benchmarks.length > 0 && category.benchmarks.every(id =>
+    results.some(result => result.benchmark.id === id && result.status === 'complete' && result.provenance === 'measured'));
+}

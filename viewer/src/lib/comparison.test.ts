@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { compareRuns, modelName, compareResultMetric, comparisonSpread, comparisonDelta } from "./comparison";
+import { compareRuns, modelName, hasCompleteCoverage, compareResultMetric, comparisonSpread, comparisonDelta } from "./comparison";
 import { METRICS, TASKS, type Snapshot, type ResultSummary } from "./types";
 const benchmarks = TASKS.map((task) => ({
   id: `${task}-test`,
@@ -168,4 +168,15 @@ test("Comparison deltas preserve direction and reject incomplete references", ()
   assert.ok(Math.abs(comparisonDelta(rows.cells[0], rows.cells[1], true)! + 0.2) < 1e-9);
   assert.equal(comparisonDelta(rows.cells[0], undefined, true), null);
   assert.equal(comparisonDelta(rows.cells[0], { ...rows.cells[1], result: { ...rows.cells[1].result!, status: "partial" } }, true), null);
+});
+
+
+test('leaderboard coverage requires all active benchmarks, including when no model is complete', () => {
+  const complete = benchmarks.map(b => result('complete', b, 0.5));
+  assert.equal(hasCompleteCoverage(category, complete), true);
+  assert.equal(hasCompleteCoverage(category, complete.slice(1)), false);
+  assert.equal(hasCompleteCoverage(category, []), false);
+  assert.equal(hasCompleteCoverage(category, complete.map((r, i) => i ? r : { ...r, status: 'partial' })), false);
+  assert.equal(hasCompleteCoverage(category, complete.map(r => ({ ...r, provenance: 'demo' }))), false);
+  assert.equal(hasCompleteCoverage({ ...category, benchmarks: [] }, complete), false);
 });
