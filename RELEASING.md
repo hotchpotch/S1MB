@@ -3,12 +3,15 @@
 1. Run the checks in CONTRIBUTING.md, including the public configuration without
    downloaded datasets. Build the Python distributions and viewer.
 2. Inspect the release file list. Do not include `evaluator/data/datasets`,
-   `evaluator/data/results` (except `.gitkeep`), `evaluator/audits`, checkpoints,
-   local reports, `.env`, or tool output. Synthetic test fixtures are source assets.
+   `evaluator/data/results` (except `.gitkeep`), `evaluator/data/hub-results`,
+   `evaluator/data/.hub-results*`, `evaluator/data/result-datasets`,
+   `evaluator/audits`, `output`, `evaluator/output`, `tmp`, checkpoints,
+   local reports, `.env`, or tool output. Synthetic test fixtures and benchmark
+   definitions are source assets. Ignore rules do not exclude already tracked files.
 3. Review dependency and bundled third-party licenses. Project code is MIT;
    dataset and model distribution permissions remain separate.
 4. Document the dataset access requirement accurately. The configured Hugging Face
-   repository currently requires authorization; a code release does not make it public.
+   repository may require authorization; a code release does not grant access.
 5. Create a source archive from the reviewed commit:
 
    ```sh

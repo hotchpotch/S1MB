@@ -10,7 +10,7 @@ from .upstream import UpstreamAdapter, candidate_batches, state_text
 
 
 class AlexOpenJevAdapter(UpstreamAdapter):
-    case_batch_size = 16
+    case_batch_size = 1
 
     def __init__(self, model, revision, source, device, context_limit=32768, subfolder=None):
         self.setup("alex-openjev", model, revision, source, device, subfolder)
@@ -51,6 +51,19 @@ class AlexOpenJevAdapter(UpstreamAdapter):
         return self.predict_batch([case])[0]
 
     def predict_batch(self, cases):
+        if len(cases) > 1:
+            return [self.predict(case) for case in cases]
+        if len(cases[0].questions) > 1:
+            case = cases[0]
+            return [
+                [
+                    prediction
+                    for question in case.questions
+                    for prediction in self.predict(
+                        case.model_copy(update={"questions": [question]})
+                    )
+                ]
+            ]
         texts, refs = [], []
         for index, case in enumerate(cases):
             state = state_text(case.state)
@@ -87,7 +100,7 @@ class AlexOpenJevAdapter(UpstreamAdapter):
         tokens = self.tokenizer(texts, truncation=False)["input_ids"]
         if max(map(len, tokens)) > self.context_limit:
             raise ValueError("Openjev pair exceeds context limit; refusing truncation")
-        ordered = sorted(enumerate(tokens), key=lambda row: len(row[1]))
+        ordered = list(enumerate(tokens))
         scores = {}
         with self.torch.inference_mode():
             for batch in candidate_batches(ordered, [len(row[1]) for row in ordered], 16, 4096):

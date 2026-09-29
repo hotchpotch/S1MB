@@ -1,14 +1,25 @@
 # Viewer guidance
 
 Use Node.js 22.22.2 and run npm commands from this directory. Run `npm test`,
-`npm run typecheck` and `npm run build` after changes. Builds include Storybook
-and must not require private data or credentials. Dataset integration tests skip
-when data is absent or `S1MB_TEST_NO_DATASET=1`; other tests use synthetic fixtures.
+`npm run typecheck` and `npm run build` after implementation changes. Builds
+include Storybook and must not require private data or credentials. Dataset integration tests skip
+when data is absent or disabled by public CI; other tests use synthetic fixtures.
 
 Use shared shadcn/ui components. Clearly label all Storybook measurements as
 synthetic. Read current compact Arrow datasets with Apache Arrow JS and native
 Zstandard decoding; do not introduce historical-schema adapters or Python services.
 `data` links to `../evaluator/data`; never duplicate or commit downloaded data.
+
+Follow `../docs/contributing_results.md` for result layout and synchronization.
+The default source is `data/hub-results` when present, otherwise `data/results`;
+explicit `--results-dir` options select the sources to load. Decode `.json.xz`
+with bounded output and memory; `xz` is a runtime/test prerequisite.
+
+For published results, use the model folder as the row identity and read display
+metadata from `metadata.json`. Preserve per-benchmark original run IDs and
+model/dataset/evaluator revisions in details. Mixed revisions are allowed; validate
+against the recorded dataset revision materialized by synchronization and use its
+baseline in aggregation. Raw local runs retain their existing run-ID semantics.
 
 Results load at startup. Restart after data or result updates. Reject conflicting
 results and invalid input hashes. Require complete coverage for ranked aggregates,

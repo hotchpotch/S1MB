@@ -1,7 +1,9 @@
 # S1MB evaluator
 
 Python package and CLI for typed Choice, Noul, and Score evaluation. Run commands
-from this directory using Python 3.11 and uv.
+from this directory using Python 3.11 and uv. Start with the
+[evaluation guide](../docs/evaluation.md) for an end-to-end run, or the
+[submission guide](../docs/contributing_results.md) for Hugging Face Dataset PRs.
 
 ## Install and evaluate
 
@@ -13,13 +15,17 @@ uv run s1mb run --adapter dummy --category smoke-v1 --limit 2 --run-id smoke
 
 The dummy adapter checks plumbing with synthetic predictions. `smoke-v1` selects
 one benchmark per task; `english-v1` selects the complete evaluation set. Omit
-`--limit` for full evaluation. A limited run is always marked partial. Each run
+`--limit` for full evaluation. Missing cases or failed decisions make a result
+partial. Each run
 requires a fresh `--run-id`; saved runs are not overwritten.
 
 `data/results/<run-id>/` holds predictions, recomputed metrics, model configuration,
 timing, input hashes, and `environment.dataset_source` with the exact dataset
-repository and commit SHA. Results are local and ignored by Git. Reports and
-non-result JSON must stay outside result directories.
+repository and commit SHA. This standard output is ignored by Git, as is
+`evaluator/output/` when using `--output output`. Other custom output locations
+need their own ignore rule or must be outside the checkout. Benchmark definitions
+and synthetic fixtures remain tracked. Reports and auxiliary JSON must stay
+outside raw result directories.
 
 ## Dataset acquisition
 
@@ -34,8 +40,9 @@ row contents. The original source files remain alongside the local materializati
 `data/datasets/hub-source.json` records the resolved SHA. A lock prevents another
 CLI evaluation or refresh from replacing the dataset during a run.
 
-The repository currently requires Hugging Face read access. Use `hf auth login`
-or `HF_TOKEN`; credentials are never stored in result files. A failed online
+If the configured repository requires authorization, use `uv run hf auth login`
+or the credential configuration in [`.env.sample`](../.env.sample). Credentials
+are not stored in result files. A failed online
 check stops evaluation. `--offline-dataset` explicitly uses installed data without
 a network request. `list`, `check-data`, and `validate` always operate locally.
 An optional explicit refresh is available as `uv run python scripts/fetch_dataset.py`.
@@ -55,7 +62,8 @@ checkouts are not part of this repository.
 
 ### TypeSafe / Jev
 
-Set `TYPESAFE_API_KEY`, then select the API model:
+Configure API credentials using [`.env.sample`](../.env.sample), then select
+the API model:
 
 ```sh
 uv run --env-file ../.env s1mb run --adapter typesafe --model jev \
@@ -102,8 +110,8 @@ uv run tox
 
 `validate` requires at least one result. Do not run it on an empty checkout.
 Public unit tests require no dataset credentials or GPU. Dataset integration
-tests skip explicitly when the release is absent; use `S1MB_TEST_NO_DATASET=1`
-to reproduce that configuration. Shared fixtures keep Python and viewer scoring
+tests skip explicitly when the release is absent; see the
+[CI workflow](../.github/workflows/check.yml) for the public configuration. Shared fixtures keep Python and viewer scoring
 consistent. See [SCORING.md](SCORING.md) for metric definitions.
 
 ### Parameter metadata
@@ -147,3 +155,16 @@ architecture and tied parameters. The counter runs no inference and makes no dev
 transfers or network requests. If the factory loads weights on this workspace, use
 physical GPU 1 (`CUDA_VISIBLE_DEVICES=1`) and check free memory first. Existing
 measurements are not rewritten; new evaluations count the actual loaded model.
+
+## Shared results
+
+See [Adding a model to the leaderboard](../docs/contributing_results.md) for
+model-folder `.json.xz` submissions, `metadata.json`, and Dataset PRs. Use
+`export-results` to add or replace published benchmark files, `validate-results`
+to check the package against recorded dataset revisions, and `sync-results` to
+install a verified Hub snapshot. Mixed revisions and original run IDs are allowed
+within a published model folder; original local run directories remain unchanged.
+Synchronization caches and result snapshots are ignored by Git.
+
+For smoke checks, full runs, reruns, and validation, follow the
+[evaluation guide](../docs/evaluation.md).

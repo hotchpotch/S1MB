@@ -1,4 +1,5 @@
 /** Resolve runtime data before starting Next; no external files are needed at build time. */
+import { existsSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -22,7 +23,7 @@ for (let i = 0; i < args.length; i++) {
 const allowed = ['127.0.0.1', ...(networkInterfaces().tailscale0 ?? []).filter(a => a.family === 'IPv4').map(a => a.address)];
 if (!allowed.includes(host)) throw new Error('Bind to localhost or this machine’s Tailscale IPv4 address.');
 const dataDir = path.resolve(root, 'data');
-if (!dirs.length) dirs.push(path.join(dataDir, 'results'));
+if (!dirs.length) dirs.push(path.join(dataDir, existsSync(path.join(dataDir, 'hub-results')) ? 'hub-results' : 'results'));
 const snapshot = await loadSnapshot(dataDir, dirs);
 console.log(`Loaded ${snapshot.results.length} results from ${snapshot.sources.length} directories.`);
 for (const issue of snapshot.issues) console.warn(issue);

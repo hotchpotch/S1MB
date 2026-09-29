@@ -8,7 +8,17 @@
 /.playwright-cli/
 /.ruff_cache/
 /evaluator/data/datasets/
+# Standard s1mb run output; keep only the empty-directory placeholder.
 /evaluator/data/results/*
 !/evaluator/data/results/.gitkeep
 /evaluator/audits/
 /evaluator/OPEN_MODEL_RESULTS.md
+
+# Published results, synchronization snapshots/locks, and recorded dataset revisions.
+/evaluator/data/hub-results
+/evaluator/data/.hub-results*
+/evaluator/data/result-datasets/
+
+# Conventional explicit --output destinations (not source fixtures).
+/output/
+/evaluator/output/

@@ -1,12 +1,13 @@
 export type Task = 'choice' | 'noul' | 'score';
 export type Benchmark = { id: string; task: Task; dataset: string; split: string; case_count: number; decision_count: number; primary_metric: string };
 export type Category = { id: string; name: string; description: string; benchmarks: string[] };
-export type ModelInfo = { id: string; adapter: string; revision: string; settings: Record<string, unknown>; total_params?: number | null; active_params?: number | null; parameter_count_method?: "non_lookup_parameters_v1" | null };
+export type ModelInfo = { display_name?: string; short_name?: string; url?: string | null; hf_url?: string | null; id: string; adapter: string; revision: string; settings: Record<string, unknown>; total_params?: number | null; active_params?: number | null; parameter_count_method?: "non_lookup_parameters_v1" | null };
 export function instructionLabel(model: ModelInfo): string {
   const label = 'Dataset instructions';
   return typeof model.settings.questions_per_call === 'number' ? `${label} · ${model.settings.questions_per_call} question(s)/call` : label;
 }
 export type ResultSummary = {
+  evaluator_revision?: string; original_run_id?: string; dataset_source?: { repo_id: string; revision: string }; scoring?: { eligible: boolean; reason: string | null };
   run_id: string; benchmark: Benchmark; model: ModelInfo; created_at: string;
   evaluator_version: string; provenance: 'measured' | 'demo'; status: 'complete' | 'partial';
   counts: { cases: number; expected: number; succeeded: number; failed: number };
@@ -62,7 +63,7 @@ export function diagnosticMean(snapshot: Snapshot, category: Category, task: Tas
   const required = snapshot.benchmarks.filter(b => category.benchmarks.includes(b.id) && b.task === task);
   if (!required.length || required.some(b => !results.some(r => r.benchmark.id === b.id && r.status === 'complete' && r.provenance === 'measured'))) return null;
   const eligible = metric === 'baseline_adjusted_score'
-    ? required.filter(b => snapshot.scoring?.[b.id]?.eligible) : required;
+    ? required.filter(b => (results.find(r => r.benchmark.id === b.id)?.scoring ?? snapshot.scoring?.[b.id])?.eligible) : required;
   if (!eligible.length) return null;
   const values = eligible.map(b => results.find(r => r.benchmark.id === b.id)!.metrics[metric]);
   if (values.some(v => v == null)) return null;

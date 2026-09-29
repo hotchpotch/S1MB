@@ -1,6 +1,6 @@
 # S1MB viewer
 
-Next.js / TypeScript viewer for local S1MB results, with shared shadcn/ui and
+Next.js / TypeScript viewer for local and synchronized Hugging Face S1MB results, with shared shadcn/ui and
 Storybook components. Requires Node.js 22.22.2 and npm.
 
 ```sh
@@ -14,15 +14,23 @@ symlink to `../evaluator/data`; do not copy or commit a second dataset. The view
 reads Arrow directly, including Zstandard-compressed streams, without a Python
 process. No data, credentials or results are required for builds or public tests.
 
-By default, results come from `data/results`. To compare additional local folders:
+By default, results come from synchronized `data/hub-results` when present, otherwise
+`data/results`. Published model folders contain `metadata.json` and per-benchmark
+`.json.xz` files. Install `xz-utils` to read compressed results. See the
+[results workflow](../docs/contributing_results.md) for export, Dataset PRs and
+synchronization. To compare additional local folders:
 
 ```sh
 npm start -- --results-dir ./data/results --results-dir /path/to/other-results
 ```
 
-Every JSON file in a result directory must be a benchmark result. Results are
-validated against the installed dataset, deduplicated by run and benchmark ID,
-and loaded at startup. Restart after new results or data changes. Missing inputs,
+`metadata.json` provides model names, links and optional parameter counts; other
+JSON/XZ files must be benchmark results. Each published model folder is one
+leaderboard row, including results from different runs and dataset revisions.
+Published results are validated against their recorded dataset revision
+(materialized by synchronization) and deduplicated by model folder and benchmark
+ID. Raw local results are validated against the installed dataset and grouped by
+run ID. Both sources load at startup. Restart after new results or data changes. Missing inputs,
 conflicting results, and incomplete coverage are not silently assigned scores.
 The browser receives summaries, never raw inputs or prediction files.
 
@@ -43,8 +51,8 @@ npm run typecheck
 npm run build
 ```
 
-Dataset integration tests skip explicitly when data is absent, or when
-`S1MB_TEST_NO_DATASET=1`. All other tests use synthetic fixtures. Storybook is built
+Dataset integration tests skip explicitly when data is absent or disabled by the
+[public CI configuration](../.github/workflows/check.yml). All other tests use synthetic fixtures. Storybook is built
 by `npm run build` and served at `/storybook/`; its measurements are explicitly
 synthetic. `npm run build-storybook` rebuilds it separately.
 

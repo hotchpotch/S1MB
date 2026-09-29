@@ -92,6 +92,7 @@ export function compareRuns(
   return { runs, groups };
 }
 export function modelName(model: ModelInfo): string {
+  if (model.display_name) return model.display_name;
   if (model.adapter === "system-ichi") {
     const parts = model.id.split("/").filter(Boolean);
     return (

@@ -1,5 +1,10 @@
 # Contributing
 
+For leaderboard submissions, start with [Running evaluations](docs/evaluation.md)
+and [Adding a model to the leaderboard](docs/contributing_results.md). Submit
+result files through a Hugging Face Dataset PR; keep adapter and other code
+changes in a separate source-code PR.
+
 Use Python 3.11 and uv under `evaluator/`, and Node.js 22.22.2/npm under `viewer/`.
 Follow the README commands and directory-specific AGENTS.md instructions.
 

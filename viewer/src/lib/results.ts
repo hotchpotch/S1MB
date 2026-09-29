@@ -1,6 +1,8 @@
 /** Read local files once per process; components consume only summaries. */
-import { readdir, readFile, realpath, stat } from 'node:fs/promises';
+import { readdir, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
+import { readResultJson, metadataSchema, datasetSourceSchema } from './result-files';
 import { z } from 'zod';
 import { METRICS, type Snapshot } from './types';
 import { prepareScoring } from './diagnostics';
@@ -27,14 +29,14 @@ export function canonical(value: unknown): string {
   return JSON.stringify(value);
 }
 
-async function json(file: string) { return JSON.parse(await readFile(file, 'utf8')); }
+const json = readResultJson;
 async function files(root: string): Promise<string[]> {
   const output: string[] = [];
   for (const entry of await readdir(root, { withFileTypes: true })) {
     const file = path.join(root, entry.name);
     // Directory links inside an external result root are not followed.
     if (entry.isDirectory()) output.push(...await files(file));
-    else if (entry.isFile() && entry.name.endsWith('.json')) output.push(file);
+    else if (entry.isFile() && (entry.name.endsWith('.json') || entry.name.endsWith('.json.xz')) && entry.name !== 'metadata.json') output.push(file);
   }
   return output.sort();
 }
@@ -60,6 +62,28 @@ export async function loadSnapshot(dataDir: string, resultDirs: string[]): Promi
     snapshot.scoring[b.id] = prepared.context;
   }
   const results = new Map<string, z.infer<typeof resultSchema>>();
+  const presentation = new Map<string, { metadata: z.infer<typeof metadataSchema>; original_run_id: string }>();
+  const contexts = new Map<string, ReturnType<typeof prepareScoring>['context']>();
+  const computed = new Map<string, Record<string, number | null>>();
+  const publishedRows = new Set<string>();
+  const rowMetadata = new Map<string, string>();
+  const inconsistentRows = new Set<string>();
+  const installedSource = await json(path.join(dataDir, 'datasets/hub-source.json')).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
+  const metadataCache = new Map<string, z.infer<typeof metadataSchema> | null>();
+  async function metadataFor(file: string) {
+    const folder = path.dirname(file);
+    if (!metadataCache.has(folder)) {
+      const metadataFile = path.join(folder, 'metadata.json');
+      const exists = await stat(metadataFile).then(() => true, (error: NodeJS.ErrnoException) => {
+        if (error.code === 'ENOENT') return false;
+        throw error;
+      });
+      const metadata = exists ? metadataSchema.parse(await json(metadataFile)) : null;
+      if (metadata && metadata.model_id !== path.basename(folder)) throw new Error('Model directory/metadata ID mismatch');
+      metadataCache.set(folder, metadata);
+    }
+    return metadataCache.get(folder)!;
+  }
   const conflictKeys = new Set<string>();
   let validDirs = 0;
   for (const directory of resultDirs) {
@@ -78,12 +102,35 @@ export async function loadSnapshot(dataDir: string, resultDirs: string[]): Promi
       try {
         const r = resultSchema.parse(await json(file));
         if (r.model.adapter === 'dummy' && r.provenance !== 'demo') throw new Error('Dummy results must be marked as demo');
-        const b = known.get(r.benchmark.id);
-        if (!b || canonical(b) !== canonical(r.benchmark)) throw new Error('Unknown or changed benchmark definition');
-        const cases = datasets.get(canonical([b.dataset, b.split]))!;
+        const metadata = await metadataFor(file);
+        const current = known.get(r.benchmark.id);
+        const b = r.benchmark;
+        if (!current) throw new Error('Unknown benchmark definition');
+        let cases;
+        let prepared;
+        if (metadata) {
+          if (path.basename(file) !== `${b.id}.json.xz`) throw new Error('Benchmark filename/ID mismatch');
+          for (const key of ['id', 'task', 'dataset', 'split', 'primary_metric'] as const) {
+            if (current[key] !== b[key]) throw new Error('Incompatible benchmark definition');
+          }
+          const source = datasetSourceSchema.parse(r.environment.dataset_source);
+          const root = canonical(installedSource && typeof installedSource === 'object'
+            ? { repo_id: (installedSource as Record<string, unknown>).repo_id, revision: (installedSource as Record<string, unknown>).revision } : null) === canonical(source)
+            ? dataDir : path.join(dataDir, 'result-datasets', createHash('sha256').update(`${source.repo_id}@${source.revision}`).digest('hex'));
+          const key = canonical([root, b.dataset, b.split]);
+          if (!datasets.has(key)) datasets.set(key, await loadHfCases(root, b.dataset, b.split));
+          cases = datasets.get(key)!;
+          prepared = prepareScoring(cases, b.task);
+          if (prepared.decisions !== b.decision_count || prepared.cases !== b.case_count) throw new Error('Dataset counts differ');
+        } else {
+          if (file.endsWith('.json.xz')) throw new Error('Published result requires metadata.json');
+          if (canonical(current) !== canonical(b)) throw new Error('Changed benchmark definition');
+          cases = datasets.get(canonical([b.dataset, b.split]))!;
+          prepared = scoring.get(b.id)!;
+        }
         const hashes = Object.fromEntries(cases.filter(c => c.questions.some(q => q.task === b.task)).map(c => [c.case_id, c.input_hash]));
         if (canonical(r.environment.input_hashes) !== canonical(hashes)) throw new Error('Result input hashes differ from the dataset or are missing');
-        const recomputed = scoring.get(b.id)!.calculate(r.predictions);
+        const recomputed = prepared.calculate(r.predictions);
         const storedKeys = Object.keys(r.metrics);
         if (!(b.primary_metric in r.metrics) || storedKeys.length !== Object.keys(recomputed).length) throw new Error('Unexpected metric');
         for (const [name, value] of Object.entries(r.metrics)) {
@@ -105,7 +152,18 @@ export async function loadSnapshot(dataDir: string, resultDirs: string[]): Promi
         if (r.counts.expected !== b.decision_count || r.counts.failed !== failed || r.counts.succeeded !== r.predictions.length - failed || r.counts.cases !== new Set(r.predictions.map(p => p.case_id)).size || r.counts.cases > b.case_count || r.predictions.length > b.decision_count) throw new Error('Prediction counts differ');
         const complete = failed === 0 && r.predictions.length === b.decision_count && r.counts.cases === b.case_count;
         if ((r.status === 'complete') !== complete || (r.counts.succeeded === 0) !== (score === null)) throw new Error('Incorrect completion or metric status');
+        const original_run_id = r.run_id;
+        if (metadata) r.run_id = metadata.model_id;
+        const rowIdentity = canonical(metadata);
+        if (rowMetadata.has(r.run_id) && rowMetadata.get(r.run_id) !== rowIdentity) inconsistentRows.add(r.run_id);
+        rowMetadata.set(r.run_id, rowIdentity);
         const key = canonical([r.run_id, b.id]);
+        computed.set(key, recomputed);
+        contexts.set(key, prepared.context);
+        if (metadata) {
+          presentation.set(key, { metadata, original_run_id });
+          publishedRows.add(r.run_id);
+        }
         const prior = results.get(key);
         if (prior && canonical(prior) !== canonical(r)) {
           conflictKeys.add(key);
@@ -118,8 +176,9 @@ export async function loadSnapshot(dataDir: string, resultDirs: string[]): Promi
   }
   if (!validDirs) throw new Error('No readable result directories. Pass --results-dir with an existing directory.');
   const identities = new Map<string, string>();
-  const invalidRuns = new Set<string>();
+  const invalidRuns = inconsistentRows;
   for (const r of results.values()) {
+    if (publishedRows.has(r.run_id)) continue;
     const identity = canonical([r.model, r.provenance, r.evaluator_version]);
     if (identities.has(r.run_id) && identities.get(r.run_id) !== identity) invalidRuns.add(r.run_id);
     identities.set(r.run_id, identity);
@@ -128,7 +187,20 @@ export async function loadSnapshot(dataDir: string, resultDirs: string[]): Promi
   for (const [key, r] of results) {
     if (conflictKeys.has(key) || invalidRuns.has(r.run_id)) continue;
     const { predictions: _predictions, environment: _environment, format_version: _version, ...summary } = r;
-    snapshot.results.push({ ...summary, metrics: { ...summary.metrics, ...scoring.get(r.benchmark.id)!.calculate(r.predictions) } });
+    const display = presentation.get(key);
+    const metadata = display?.metadata;
+    const metadataCounts = metadata && (metadata.total_params != null || metadata.active_params != null);
+    snapshot.results.push({ ...summary,
+      model: metadata ? { ...summary.model, display_name: metadata.display_name, short_name: metadata.short_name,
+        url: metadata.url, hf_url: metadata.hf_url,
+        total_params: metadataCounts ? metadata.total_params : summary.model.total_params,
+        active_params: metadataCounts ? metadata.active_params : summary.model.active_params,
+        parameter_count_method: metadataCounts ? metadata.parameter_count_method : summary.model.parameter_count_method } : summary.model,
+      original_run_id: display?.original_run_id,
+      evaluator_revision: typeof r.environment.evaluator_revision === 'string' ? r.environment.evaluator_revision : undefined,
+      dataset_source: datasetSourceSchema.safeParse(r.environment.dataset_source).data,
+      scoring: contexts.get(key),
+      metrics: { ...summary.metrics, ...computed.get(key) } });
   }
   return snapshot;
 }

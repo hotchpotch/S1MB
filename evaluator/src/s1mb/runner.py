@@ -1,6 +1,7 @@
 """Run each benchmark once and preserve predictions, including failed decisions."""
 
 import platform
+import subprocess
 import time
 from datetime import UTC, datetime
 from importlib.metadata import version
@@ -98,6 +99,18 @@ def evaluate(
         "platform": platform.platform(),
         "input_hashes": {c.case_id: c.provenance["input_hash"] for c in cases},
     }
+    checkout = Path(__file__).resolve().parents[2]
+    if (checkout / "pyproject.toml").is_file():
+        try:
+            environment["evaluator_revision"] = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"],
+                cwd=checkout,
+                text=True,
+                stderr=subprocess.DEVNULL,
+                timeout=5,
+            ).strip()
+        except (OSError, subprocess.SubprocessError):
+            pass
     if dataset_source is not None:
         environment["dataset_source"] = {
             key: dataset_source[key] for key in ("repo_id", "revision")

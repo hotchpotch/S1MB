@@ -5,36 +5,54 @@ It combines specialized benchmarks into a common evaluation and comparison
 workflow. It does not establish general intelligence, unseen-task generalization,
 or training-data non-overlap.
 
-The repository contains a Python evaluator, model adapters, benchmark definitions,
-shared scoring fixtures, and a Next.js results viewer. Measured benchmark results,
-downloaded datasets, checkpoints, and development reports are not distributed here.
+This repository contains the Python evaluator, model adapters, benchmark
+definitions, shared scoring fixtures, and a Next.js leaderboard viewer. Model
+measurements are submitted separately through Hugging Face Dataset pull requests.
+Downloaded datasets, checkpoints, credentials, and generated results are not
+included in the source distribution.
+
+## Guides
+
+- [Run evaluations](docs/evaluation.md): setup, smoke checks, full runs, and validation.
+- [Add leaderboard results](docs/contributing_results.md): model metadata, compressed
+  results, Dataset PRs, replacements, and synchronization.
+- [Scoring](evaluator/SCORING.md): primary metrics and baseline-adjusted summaries.
+- [Evaluator reference](evaluator/README.md) and [adapter notes](evaluator/OPEN_MODELS.md).
+- [Viewer reference](viewer/README.md), [code contributions](CONTRIBUTING.md), and
+  [source release preparation](RELEASING.md).
 
 ## Quick start
 
-Requirements: Python 3.11, [uv](https://docs.astral.sh/uv/), and Node.js 22.22.2
-for the optional viewer. GPU-backed adapters require their own CUDA environment.
+Use Python 3.11 and [uv](https://docs.astral.sh/uv/). From the repository root:
 
 ```sh
 cd evaluator
 uv sync --locked
-uv run s1mb run --adapter dummy --category smoke-v1 --limit 2 --run-id smoke
+uv run s1mb run --adapter dummy --category smoke-v1 --limit 2 --run-id smoke-001
+uv run s1mb validate data/results/smoke-001
 ```
 
-The evaluator checks the latest revision of
-[hotchpotch/s1mb-dataset](https://huggingface.co/datasets/hotchpotch/s1mb-dataset)
-once at startup. It downloads and materializes data only when needed, then reads
-all subsets locally. Every new result records the actual dataset commit SHA.
-The dataset currently requires Hugging Face read access: authenticate using
-`hf auth login` or set `HF_TOKEN`. Code access does not grant dataset access.
-No credentials are required to run the public unit tests or build the viewer.
-
 The dummy adapter produces **synthetic demo predictions**, not model measurements.
-See [evaluator instructions](evaluator/README.md) for real adapters and full runs.
-Never commit tokens; `.env.sample` lists the supported credential variables.
+It checks evaluation plumbing using the evaluation dataset. For a real model,
+follow the [evaluation guide](docs/evaluation.md); local GPU adapters need their
+supported model runtime, and API models need provider credentials.
 
-## View local results
+`s1mb run` resolves the revision configured in
+[`evaluator/dataset-source.json`](evaluator/dataset-source.json) once, downloads
+only when needed, and records the exact dataset commit SHA in every result.
+If the configured dataset requires authorization, run `uv run hf auth login`
+from `evaluator/` before evaluation. Code access does not grant dataset access.
+Credential configuration is documented in [`.env.sample`](.env.sample); keep real
+credentials in an ignored local `.env`.
 
-After a dataset has been acquired through evaluation:
+A failed online check stops evaluation. `--offline-dataset` explicitly uses an
+already installed dataset. Use a fresh `--run-id` for each local run. The standard
+output is `evaluator/data/results/<run-id>/`, which is ignored by Git.
+
+## View results
+
+Use Node.js 22.22.2 and npm. Once the evaluation dataset and local results are
+available, run these commands from the repository root:
 
 ```sh
 cd viewer
@@ -43,11 +61,20 @@ npm run build
 npm start
 ```
 
-The viewer reads `viewer/data`, a symlink to `evaluator/data`, and loads local
-results at startup. Restart it after new results or dataset updates. It binds to
-the machine's Tailscale IPv4 address, or localhost if Tailscale is unavailable.
-It does not expose raw inputs or prediction files as public assets.
-See [viewer instructions](viewer/README.md) for additional result directories.
+The viewer reads `viewer/data`, a relative symlink to `evaluator/data`. It selects
+synchronized `data/hub-results` when present, otherwise `data/results`. To inspect
+a particular local run, pass `--results-dir ../evaluator/data/results/RUN_ID`.
+Results load at startup; restart after data or result changes.
+
+To use contributed results, run `uv run s1mb sync-results --repo-id ORG/RESULTS`
+from `evaluator/`, then restart the viewer. `ORG/RESULTS` is a placeholder for the
+maintainer-designated results repository. Reading `.json.xz` files requires `xz`
+(`xz-utils` on Debian/Ubuntu). See the [submission guide](docs/contributing_results.md)
+for PR previews and recorded-dataset validation.
+
+The start wrapper binds only to the machine's Tailscale IPv4 address, or localhost
+when Tailscale is unavailable. The browser receives summaries; raw inputs and
+prediction files are not served as public assets.
 
 ## Scores
 
@@ -55,36 +82,60 @@ See [viewer instructions](viewer/README.md) for additional result directories.
 | --- | --- | --- | --- |
 | Choice | Distribution over alternatives | Target mass at selected alternative | Higher |
 | Noul | Probability of the authored true category | Brier score | Lower |
-| Score | Distribution over numeric criteria | Normalized expected-score MAE | Lower |
+| Score | Distribution over numeric criteria | Normalized expected-value MAE | Lower |
 
-Overview scores use a baseline-adjusted 0–100 scale where **higher is better**.
-The overall index averages the three task scores equally. Zero means at or below
-the task-specific baseline, not necessarily random predictions. Raw metrics remain
-available. See [scoring definitions](evaluator/SCORING.md) for formulas and limits.
+Overview task scores use a baseline-adjusted 0–100 scale, where **higher is better**.
+Scores are adjusted and clipped per benchmark, then averaged within each task.
+The overall index weights the three tasks equally and requires complete coverage.
+Zero means at or below the reference baseline; 100 is a reference ceiling.
+Raw metrics retain their original directions. See [scoring](evaluator/SCORING.md)
+for formulas, exclusions, and interpretation limits.
 
-## Development
+## Contribute leaderboard results
+
+Each model has a folder containing `metadata.json` and per-benchmark `.json.xz`
+files. Add benchmarks or replace existing files through a Dataset PR. Different
+recorded dataset revisions can coexist; each result is validated and scored
+against its own revision. Use a new model ID for versions or configurations that
+should appear as separate rows.
+
+The [submission guide](docs/contributing_results.md) covers `export-results`,
+`validate-results`, PR creation and updates, and `sync-results`. Merging a Dataset
+PR does not itself refresh a running viewer: synchronize and restart it afterward.
+Adapter or other source changes belong in a separate code PR.
+
+## Development and generated files
+
+Run Python commands from `evaluator/`:
 
 ```sh
-cd evaluator
 uv sync --locked
 uv run tox
 ```
 
+Run npm commands from `viewer/`:
+
 ```sh
-cd viewer
 npm ci
 npm test
 npm run typecheck
 npm run build
 ```
 
-Dataset integration tests run when the evaluation release is installed; otherwise
-they are explicitly skipped. Set `S1MB_TEST_NO_DATASET=1` to exercise the public CI
-configuration. Tests use synthetic fixtures; CI needs no private data, API tokens,
-model checkpoints, or GPU. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Public tests and builds need no private data, tokens, models, or GPU. Dataset
+integration tests are marked explicitly and skip when data is absent. The
+[CI workflow](.github/workflows/check.yml) also runs without downloaded datasets.
 
-See [release preparation](RELEASING.md) before distributing a source archive or
-publishing a repository.
+Standard evaluation results, synchronized Hub results and snapshots, cached
+historical datasets, audits, and `tmp/` staging files are ignored by Git.
+`output/` at the repository root and `evaluator/output/` are also ignored for
+explicit `--output` use. Other custom destinations need their own ignore rule
+or must be outside the repository. Benchmark definitions and synthetic test
+fixtures remain source files; do not ignore or remove them as generated results.
+
+Before publishing source, follow [RELEASING.md](RELEASING.md), including review of
+the actual release file list and Git history. Ignore rules do not remove files
+that were already committed.
 
 ## License
 

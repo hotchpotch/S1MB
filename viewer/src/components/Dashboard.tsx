@@ -114,7 +114,7 @@ function ModelLabel({
           onClick={onClick}
           className="font-semibold text-sm text-foreground underline-offset-4 hover:underline text-left break-words"
         >
-          {modelName(model)}
+          {detailed ? modelName(model) : model.short_name ?? modelName(model)}
         </button>
       ) : (
         <p className="font-semibold text-sm break-words">{modelName(model)}</p>
@@ -937,6 +937,19 @@ function RunDetails({
       <details className="text-xs text-muted-foreground">
         <summary>Model identity</summary>
         <dl className="mt-2 space-y-1 break-all"><div>Model: {run.model.id}</div><div>Adapter: {run.model.adapter}</div><div>Revision: {run.model.revision}</div><div>Total params: {run.model.total_params?.toLocaleString('en-US') ?? 'Unknown'}</div><div>Active params: {run.model.active_params?.toLocaleString('en-US') ?? 'Unknown'}</div><div>AP definition: parameters excluding lookup-only embeddings; shared output weights are retained.</div></dl>
+      </details>
+      {(run.model.url || run.model.hf_url) && <div className="flex gap-4 text-sm">
+        {run.model.url && <a href={run.model.url} target="_blank" rel="noreferrer" className="underline">Model website</a>}
+        {run.model.hf_url && <a href={run.model.hf_url} target="_blank" rel="noreferrer" className="underline">Hugging Face</a>}
+      </div>}
+      <details className="text-sm">
+        <summary>Measurement provenance by benchmark</summary>
+        <ul className="text-xs mt-3 space-y-3 break-all">{run.results.map(result => <li key={result.benchmark.id}>
+          <strong>{result.benchmark.id}</strong><br />
+          Dataset: {result.dataset_source ? `${result.dataset_source.repo_id} @ ${result.dataset_source.revision}` : 'Not recorded'}<br />
+          Model revision: {result.model.revision} · Evaluator: {result.evaluator_version}{result.evaluator_revision ? ` @ ${result.evaluator_revision}` : ''}<br />
+          Run: {result.original_run_id ?? result.run_id} · {result.created_at}
+        </li>)}</ul>
       </details>
       <details className="text-sm">
         <summary>Effective model settings</summary>

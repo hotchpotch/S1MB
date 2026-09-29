@@ -7,7 +7,7 @@ from .upstream import UpstreamAdapter, candidate_batches
 
 
 class JevK5Adapter(UpstreamAdapter):
-    case_batch_size = 16
+    case_batch_size = 1
 
     def __init__(self, model, revision, source, device):
         self.setup("jevk5", model, revision, source, device)
@@ -42,6 +42,8 @@ class JevK5Adapter(UpstreamAdapter):
         return self.predict_batch([case])[0]
 
     def predict_batch(self, cases):
+        if len(cases) > 1:
+            return [self.predict(case) for case in cases]
         rows = []
         answers = [{} for _ in cases]
         for index, case in enumerate(cases):

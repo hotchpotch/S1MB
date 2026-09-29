@@ -70,7 +70,8 @@ class OpenJevAdapter(UpstreamAdapter):
         tokens = self.engine.tokenizer(texts, truncation=False)["input_ids"]
         if max(map(len, tokens)) > self.context_limit:
             raise ValueError("Open-Jev input exceeds context limit; refusing truncation")
-        ordered = sorted(enumerate(tokens), key=lambda row: len(row[1]))
+        # Keep native row order: BF16 reordering can change calibrated probabilities.
+        ordered = list(enumerate(tokens))
         scores = {}
         with self.torch.inference_mode():
             for batch in candidate_batches(ordered, [len(row[1]) for row in ordered], 16, 4096):

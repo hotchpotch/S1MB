@@ -51,8 +51,8 @@ questions and retains native knockout selection above 16 candidates. The Qwen3.5
 adapters enable supported Transformers Hub kernels for recurrent layers; SDPA and
 these recurrent kernels serve different operations.
 With the pinned Torch 2.10 runtime, convolution stays on the native GPU path;
-the Hub convolution layer builds require a newer Torch version. Decider processes
-one case at a time because its BF16 cross-case batch probe exceeded the accepted
+the Hub convolution layer builds require a newer Torch version. Decider and JevK5 process
+one case at a time because their BF16 cross-case batch probes exceeded the accepted
 probability drift, while retaining native candidate processing within each case.
 Minojev's FP32 checkpoint path is the measured default: converting its backbone
 to BF16 produced substantial batch-dependent drift in the preflight probe.
@@ -97,6 +97,8 @@ windows with 2,000-character overlap, maximum entailment across windows and
 normalization across candidates. Every encoded pair is checked before inference;
 the upstream pair encoder's silent truncation is removed. Windowing preserves
 text coverage but does not preserve all cross-window relationships.
+Inference preserves the native per-question call boundary and candidate order:
+combining questions changed BF16 probabilities beyond the preflight tolerance.
 
 The Alex Wortega v5 model card explicitly discloses training on test splits of
 several public benchmarks. Consult its `panel_manifest.json` and model card when

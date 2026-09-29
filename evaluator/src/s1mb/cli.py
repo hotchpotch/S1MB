@@ -27,6 +27,19 @@ def main() -> None:
     check_data.add_argument("--category", default="english-v1")
     validate = commands.add_parser("validate", help="Recompute and validate saved results")
     validate.add_argument("paths", nargs="+", type=Path)
+    export = commands.add_parser("export-results", help="Prepare model folders for a results PR")
+    export.add_argument("paths", nargs="+", type=Path)
+    export.add_argument("--metadata", type=Path, required=True)
+    export.add_argument("--output", type=Path, required=True)
+    sync = commands.add_parser("sync-results", help="Validate and install a Hub results snapshot")
+    sync.add_argument("--repo-id", required=True)
+    sync.add_argument("--revision", default="main")
+    sync.add_argument("--output", type=Path)
+    published = commands.add_parser(
+        "validate-results", help="Validate a published model repository"
+    )
+    published.add_argument("repository", type=Path)
+    published.add_argument("--download-datasets", action="store_true")
     run = commands.add_parser("run", help="Evaluate and save one run")
     run.add_argument(
         "--adapter",
@@ -105,8 +118,28 @@ def main() -> None:
 
 
 def execute(args, parser):
+    if args.command in {"export-results", "sync-results", "validate-results"}:
+        from .result_repository import export_results, sync_results, validate_repository
+
+        if args.command == "export-results":
+            print(export_results(args.data_dir, args.paths, args.metadata, args.output))
+        elif args.command == "sync-results":
+            sync_results(
+                args.data_dir,
+                args.repo_id,
+                args.revision,
+                args.output or args.data_dir / "hub-results",
+            )
+        else:
+            count = validate_repository(
+                args.data_dir, args.repository, download=args.download_datasets
+            )
+            print(f"Validated {count} published results")
+        return
     if args.command == "validate":
-        files = sorted({f for p in args.paths for f in (p.rglob("*.json") if p.is_dir() else [p])})
+        from .result_repository import result_files
+
+        files = result_files(args.paths)
         if not files:
             parser.error("No result files found")
         identities = {}

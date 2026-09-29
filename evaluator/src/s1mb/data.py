@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import json
+import lzma
 import math
 import re
+import tempfile
 from pathlib import Path
 from typing import Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+MAX_JSON_BYTES = 64 * 1024 * 1024
 
 Task = Literal["choice", "noul", "score"]
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
@@ -202,14 +206,36 @@ def read_json(path: Path) -> Any:
     def invalid(value):
         raise ValueError(f"Non-finite JSON number: {value}")
 
-    return json.loads(path.read_text(), object_pairs_hook=unique, parse_constant=invalid)
+    # Bound both the compressed input and the decompressed output before parsing.
+    with path.open("rb") as stream:
+        payload = stream.read(MAX_JSON_BYTES + 1)
+    if len(payload) > MAX_JSON_BYTES:
+        raise ValueError(f"JSON exceeds 64 MiB: {path}")
+    if path.name.endswith(".json.xz"):
+        decoder = lzma.LZMADecompressor(format=lzma.FORMAT_XZ, memlimit=128 * 1024 * 1024)
+        payload = decoder.decompress(payload, max_length=MAX_JSON_BYTES + 1)
+        if len(payload) > MAX_JSON_BYTES:
+            raise ValueError(f"JSON exceeds 64 MiB: {path}")
+        if not decoder.eof or decoder.unused_data:
+            raise ValueError(f"Truncated XZ stream or trailing data: {path}")
+    return json.loads(payload, object_pairs_hook=unique, parse_constant=invalid)
 
 
 def write_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(".tmp")
-    temporary.write_text(json.dumps(value, indent=2, ensure_ascii=False, allow_nan=False) + "\n")
-    temporary.replace(path)
+    payload = (json.dumps(value, indent=2, ensure_ascii=False, allow_nan=False) + "\n").encode()
+    if len(payload) > MAX_JSON_BYTES:
+        raise ValueError(f"JSON exceeds 64 MiB: {path}")
+    if path.name.endswith(".json.xz"):
+        payload = lzma.compress(payload)
+    with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as stream:
+        temporary = Path(stream.name)
+        try:
+            stream.write(payload)
+            stream.close()
+            temporary.replace(path)
+        finally:
+            temporary.unlink(missing_ok=True)
 
 
 def load_benchmark(root: Path, name: str) -> Benchmark:
@@ -254,13 +280,13 @@ def load_cases(root: Path, benchmark: Benchmark) -> list[Case]:
     return cases
 
 
-def validate_result(root: Path, result: Result) -> None:
+def validate_result(root: Path, result: Result, *, published: bool = False) -> None:
     from .metrics import calculate
 
     safe_id(result.run_id)
     if result.model.adapter == "dummy" and result.provenance != "demo":
         raise ValueError("Dummy adapter results must be marked as demo")
-    benchmark = load_benchmark(root, result.benchmark.id)
+    benchmark = result.benchmark if published else load_benchmark(root, result.benchmark.id)
     if benchmark != result.benchmark:
         raise ValueError("Result benchmark differs from the fixed definition")
     cases = load_cases(root, benchmark)
