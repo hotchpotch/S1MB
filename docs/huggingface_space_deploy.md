@@ -1,5 +1,8 @@
 # Private Hugging Face Space deployment
 
+See [Developer workflow](developer_workflow.md) for deployment permissions, the
+`hf-space-docker` worktree, cross-merges with `main`, and routine deployment steps.
+
 The private `hotchpotch/S1MB` repository builds a public, code-only GHCR image at
 `ghcr.io/hotchpotch/s1mb-leaderboard`. The Docker Space
 `hotchpotch/S1MB-leaderboard` stays private. Image visibility is independent of

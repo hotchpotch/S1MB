@@ -13,6 +13,9 @@ included in the source distribution.
 
 ## Guides
 
+- [Developer workflow](docs/developer_workflow.md): worktrees, branch synchronization,
+  local results, checks, and authorized HF deployment.
+
 - [Run evaluations](docs/evaluation.md): setup, smoke checks, full runs, and validation.
 - [Add leaderboard results](docs/contributing_results.md): model metadata, compressed
   results, Dataset PRs, replacements, and synchronization.
