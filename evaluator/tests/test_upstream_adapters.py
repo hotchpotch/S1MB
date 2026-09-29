@@ -1,17 +1,36 @@
 """Verify upstream boundaries without loading weights or running model inference."""
 
-import json
 from types import ModuleType, SimpleNamespace
 
 import pytest
 
 from s1mb.adapters.base import questions_for_api
-from s1mb.adapters.decider import DeciderAdapter
-from s1mb.adapters.jevforge import JevForgeAdapter
-from s1mb.adapters.jevk5 import JevK5Adapter
 from s1mb.adapters.minojev import MinojevAdapter
 from s1mb.adapters.upstream import UpstreamAdapter, candidate_batches
 from s1mb.data import Case
+
+
+@pytest.mark.parametrize("masked", [False, True])
+def test_fp32_sdpa_preserves_grouped_attention_and_padding(monkeypatch, masked):
+    from contextlib import nullcontext
+
+    torch = pytest.importorskip("torch")
+    pytest.importorskip("transformers")
+    from s1mb.adapters.minojev import fp32_sdpa
+
+    monkeypatch.setattr(torch.nn.attention, "sdpa_kernel", lambda backend: nullcontext())
+    torch.manual_seed(11)
+    query = torch.randn(2, 4, 7, 8)
+    key, value = torch.randn(2, 2, 7, 8), torch.randn(2, 2, 7, 8)
+    mask = None
+    if masked:
+        mask = torch.ones(2, 1, 7, 7, dtype=torch.bool).tril()
+        mask[1, :, :, 5:] = False
+    expected = torch.nn.functional.scaled_dot_product_attention(
+        query, key, value, attn_mask=mask, is_causal=not masked, enable_gqa=True
+    )
+    actual, _ = fp32_sdpa(SimpleNamespace(is_causal=True), query, key, value, mask)
+    torch.testing.assert_close(actual, expected.transpose(1, 2))
 
 
 def cases():
@@ -69,32 +88,59 @@ def answer(definition):
     return {"type": "score", "probabilities": {"0": 0.3, "1": 0.7}}
 
 
-@pytest.mark.parametrize("cls", [JevForgeAdapter, DeciderAdapter, JevK5Adapter])
-def test_native_api_preserves_instructions_ids_and_score_scale(cls):
+def test_native_api_preserves_instructions_and_maps_anonymous_choice_ids():
+    from s1mb.adapters.base import decode_answers
+
     case = cases()
-    seen = []
-
-    def decide(state, questions, **kwargs):
-        assert state == (
-            json.dumps(case.state, ensure_ascii=False) if cls is JevForgeAdapter else case.state
-        )
-        assert "gold-must-not-be-sent" not in str(questions)
-        seen.append(questions)
-        if cls is JevK5Adapter:
-            return answer(questions)
-        answers = {key: answer(value) for key, value in questions.items()}
-        return {"answers": answers} if cls is DeciderAdapter else answers
-
-    adapter = object.__new__(cls)
-    adapter.engine = SimpleNamespace(decide=decide, system_one=decide)
-    predictions = adapter.predict(case)
-    assert len(seen) == 3
-    sent = seen[0] if cls is JevK5Adapter else seen[0]["choose"]
-    assert sent == questions_for_api(case.questions)["choose"]
-    assert sent["instructions"] == "System.\n\nChoose."
+    request = questions_for_api(case.questions, anonymous_choice=True)
+    assert "gold-must-not-be-sent" not in str(request)
+    assert request["choose"]["criteria"] == {"option_0": "Same", "option_1": "Same"}
+    assert request["choose"]["instructions"] == "System.\n\nChoose."
+    assert request["judge"]["criteria"] == {"true": "Yes", "false": "No"}
+    assert request["rate"]["criteria"] == ["Low", "High"]
+    answers = {key: answer(value) for key, value in request.items()}
+    answers["choose"]["probabilities"] = {"option_0": 0.2, "option_1": 0.8}
+    predictions = decode_answers(case, answers, anonymous_choice=True)
     assert predictions[0].probabilities == {"x": 0.2, "y": 0.8}
+    assert predictions[1].probabilities is not None
     assert predictions[1].probabilities["true"] == pytest.approx(0.7)
     assert predictions[2].probabilities == {"low": 0.3, "high": 0.7}
+    answers["choose"]["probabilities"] = {"x": 0.2, "y": 0.8}
+    with pytest.raises(ValueError, match="Anonymous choice keys"):
+        decode_answers(case, answers, anonymous_choice=True)
+
+
+def test_laya_full_sequence_retains_long_options_and_rejects_overflow():
+    from s1mb.adapters.laya import full_sequence
+
+    class Tokenizer:
+        mask_token = "[MASK]"
+        cls_token_id, sep_token_id, mask_token_id = 1, 2, 3
+
+        def __call__(self, texts, **kwargs):
+            assert kwargs == {"add_special_tokens": False, "truncation": False}
+            return {"input_ids": [[ord(c) for c in text] for text in texts]}
+
+    common = SimpleNamespace(
+        render_options=lambda q: q["options"], serialize_state=lambda s: s, QTYPES={"choice": 0}
+    )
+    q = {"t": "choice", "ins": "choose", "options": ["a" * 100, "b" * 100]}
+    result = full_sequence(Tokenizer(), "evidence" * 100, q, common, 2048)
+    assert result["ids"].count(ord("a")) >= 100
+    assert result["ids"].count(ord("b")) == 100
+    assert len(result["markers"]) == 2
+    with pytest.raises(ValueError, match="exceeding"):
+        full_sequence(Tokenizer(), "evidence" * 100, q, common, 512)
+    with pytest.raises(ValueError, match="head_max_len"):
+        full_sequence(Tokenizer(), "evidence", q, common, 2048, 32)
+
+
+@pytest.mark.parametrize("subfolder", ["..", ".", "", "../weights", "nested/weights"])
+def test_checkpoint_subfolder_is_validated_before_network_access(subfolder):
+    from s1mb.adapters.upstream import checkpoint_path
+
+    with pytest.raises(ValueError, match="single directory name"):
+        checkpoint_path("unreachable/model", "main", subfolder)
 
 
 def test_no_automatic_cpu_fallback():

@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from s1mb.data import InferenceCase, ModelInfo, Prediction
+from s1mb.parameters import parameter_metadata
 
 from .input_lengths import check_input_lengths
 
@@ -162,6 +163,7 @@ class SystemIchiAdapter:
 
     def metadata(self) -> ModelInfo:
         return ModelInfo(
+            **parameter_metadata(self.model),
             id=Path(self.checkpoint).parent.name,
             adapter="system-ichi",
             revision=self.revision,

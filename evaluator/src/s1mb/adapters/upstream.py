@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from s1mb.data import ModelInfo
+from s1mb.parameters import parameter_metadata
 
 
 def source_path(source: str) -> tuple[Path, str]:
@@ -26,9 +27,13 @@ def source_path(source: str) -> tuple[Path, str]:
     return root, digest.hexdigest()
 
 
-def checkpoint_path(model: str, revision: str) -> tuple[Path, str]:
+def checkpoint_path(model: str, revision: str, subfolder: str | None = None) -> tuple[Path, str]:
+    if subfolder is not None and (
+        Path(subfolder).name != subfolder or subfolder in {"", ".", ".."}
+    ):
+        raise ValueError("Checkpoint subfolder must be a single directory name")
     if Path(model).exists():
-        root = Path(model).resolve()
+        root = (Path(model) / subfolder if subfolder else Path(model)).resolve(strict=True)
         digest = hashlib.sha256()
         for path in [root] if root.is_file() else sorted(root.rglob("*")):
             if path.is_file() and not any(p.startswith(".") for p in path.relative_to(root).parts):
@@ -42,20 +47,26 @@ def checkpoint_path(model: str, revision: str) -> tuple[Path, str]:
     if not resolved:
         raise ValueError("Hub did not return a resolved checkpoint revision")
     root = Path(
-        hub.snapshot_download(model, revision=resolved, ignore_patterns=["*.gguf", "*.onnx"])
+        hub.snapshot_download(
+            model,
+            revision=resolved,
+            ignore_patterns=["*.gguf", "*.onnx"],
+            allow_patterns=[f"{subfolder}/*"] if subfolder else None,
+        )
     )
-    return root, resolved
+    return root / subfolder if subfolder else root, resolved
 
 
 class UpstreamAdapter:
     attention_model: Any
+    engine: Any
 
-    def setup(self, name: str, model: str, revision: str, source: str, device: str):
+    def setup(self, name: str, model: str, revision: str, source: str, device: str, subfolder=None):
         if not device.startswith("cuda"):
             raise ValueError("These evaluation bridges require explicit CUDA; no CPU fallback")
         self.name, self.model_id, self.device = name, model, device
         self.source, self.source_digest = source_path(source)
-        self.path, self.revision = checkpoint_path(model, revision)
+        self.path, self.revision = checkpoint_path(model, revision, subfolder)
         self.torch = importlib.import_module("torch")
         if not self.torch.cuda.is_available():
             raise RuntimeError("CUDA is unavailable; refusing CPU fallback")
@@ -63,7 +74,9 @@ class UpstreamAdapter:
         self.settings = {}
 
     def metadata(self) -> ModelInfo:
+        model = self.engine._get_model() if self.name == "von" else self.engine
         return ModelInfo(
+            **parameter_metadata(model),
             id=self.model_id,
             adapter=self.name,
             revision=self.revision,
@@ -100,6 +113,26 @@ class UpstreamAdapter:
         if self.attention_model.config._attn_implementation != actual:
             raise RuntimeError(f"Model did not activate requested attention backend: {actual}")
         self.settings["attention_implementation"] = actual
+
+    def enable_kernels(self):
+        """Use Transformers' supported kernels for hybrid recurrent layers."""
+        model = self.attention_model
+        if hasattr(model, "get_base_model"):
+            model = model.get_base_model()
+        kernels = importlib.import_module("kernels")
+        hub = importlib.import_module("transformers.integrations.hub_kernels")
+        # The Hub convolution layer builds require Torch >=2.11. Keep the native
+        # GPU convolution while accelerating the expensive delta-rule recurrence.
+        mapping = {
+            **hub.get_kernel_mapping_transformers(),
+            "causal_conv1d_fn": {},
+            "causal_conv1d_update": {},
+        }
+        with kernels.use_kernel_mapping(mapping):
+            kernels.kernelize(model, device="cuda", mode=kernels.Mode.INFERENCE)
+        self.settings["hub_kernels"] = True
+        self.settings["convolution_backend"] = "torch-gpu"
+        self.settings["kernels_version"] = importlib.metadata.version("kernels")
 
 
 def state_text(state) -> str:

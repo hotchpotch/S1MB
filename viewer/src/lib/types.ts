@@ -1,7 +1,7 @@
 export type Task = 'choice' | 'noul' | 'score';
 export type Benchmark = { id: string; task: Task; dataset: string; split: string; case_count: number; decision_count: number; primary_metric: string };
 export type Category = { id: string; name: string; description: string; benchmarks: string[] };
-export type ModelInfo = { id: string; adapter: string; revision: string; settings: Record<string, unknown> };
+export type ModelInfo = { id: string; adapter: string; revision: string; settings: Record<string, unknown>; total_params?: number | null; active_params?: number | null; parameter_count_method?: "non_lookup_parameters_v1" | null };
 export function instructionLabel(model: ModelInfo): string {
   const label = 'Dataset instructions';
   return typeof model.settings.questions_per_call === 'number' ? `${label} · ${model.settings.questions_per_call} question(s)/call` : label;

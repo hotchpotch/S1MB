@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from s1mb.data import InferenceCase, ModelInfo, Prediction
+from s1mb.parameters import parameter_metadata
 
 from .input_lengths import (
     check_balanced_input_lengths_batched,
@@ -173,6 +174,7 @@ class BekkoAdapter:
 
     def metadata(self) -> ModelInfo:
         return ModelInfo(
+            **parameter_metadata(self.model),
             id=f"{self.checkpoint.parent.parent.name}-{self.checkpoint.parent.name}",
             adapter="bekko",
             revision=self.revision,

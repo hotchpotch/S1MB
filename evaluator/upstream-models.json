@@ -88,5 +88,33 @@
     "repository": "https://github.com/jaredpalmer/kev",
     "commit": "2855ba2a55a80579176a459f78b95d03548cabb5",
     "model": "jaredpalmer/kev-27b"
+  },
+  {
+    "adapter": "open-jev",
+    "repository": "https://github.com/Zefan-Cai/Open-Jev",
+    "commit": "3308a15ccd7eea1df7a37d6ddc39b023b801ba16",
+    "model": "ZefanCai/Open-Jev-2B",
+    "revision": "0c7aa498b1627be8da4acf34c863ff0ee0a92785"
+  },
+  {
+    "adapter": "open-jev",
+    "repository": "https://github.com/Zefan-Cai/Open-Jev",
+    "commit": "3308a15ccd7eea1df7a37d6ddc39b023b801ba16",
+    "model": "ZefanCai/Open-Jev-9B",
+    "revision": "47e966881e489511c0c7f5633a9e1960a676a551"
+  },
+  {
+    "adapter": "alex-openjev",
+    "repository": "https://huggingface.co/AlexWortega/openjev",
+    "model": "AlexWortega/openjev",
+    "revision": "26de23c44b67586b4bea31c0ef2e016e3068ae66",
+    "subfolder": "qwen3.5-2b-nli-v5"
+  },
+  {
+    "adapter": "alex-openjev",
+    "repository": "https://huggingface.co/AlexWortega/openjev",
+    "model": "AlexWortega/openjev",
+    "revision": "26de23c44b67586b4bea31c0ef2e016e3068ae66",
+    "subfolder": "qwen3.5-4b-nli-v5"
   }
 ]

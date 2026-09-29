@@ -45,11 +45,14 @@ def main() -> None:
             "openvons",
             "verdict2",
             "luce",
+            "open-jev",
+            "alex-openjev",
         ],
         required=True,
     )
     run.add_argument("--model")
     run.add_argument("--revision", default="main")
+    run.add_argument("--subfolder", help="Alex Openjev checkpoint subfolder")
     run.add_argument("--device", default="cpu")
     run.add_argument("--dtype", choices=["float32", "bfloat16"], help="Minojev backbone precision")
     run.add_argument(
@@ -60,7 +63,7 @@ def main() -> None:
     run.add_argument(
         "--context-limit",
         type=int,
-        help="Explicit non-truncating input limit for Von, JevForge, or Kev",
+        help="Explicit non-truncating input limit for Von, JevForge, Kev, or Open-Jev",
     )
     run.add_argument(
         "--query-length",
@@ -153,12 +156,17 @@ def execute(args, parser):
         parser.error("--disable-autocast-cache applies only to Laya")
     if args.adapter != "laya" and (args.max_len is not None or args.head_max_len is not None):
         parser.error("Token limit options apply only to the Laya adapter")
+    if args.subfolder is not None and args.adapter != "alex-openjev":
+        parser.error("--subfolder applies only to alex-openjev")
     if args.dtype is not None and args.adapter != "minojev":
         parser.error("--dtype applies only to the Minojev adapter")
     if args.context_limit is not None and (
-        args.context_limit < 1 or args.adapter not in {"von", "jevforge", "kev"}
+        args.context_limit < 1
+        or args.adapter not in {"von", "jevforge", "kev", "open-jev", "alex-openjev"}
     ):
-        parser.error("--context-limit must be positive and applies only to Von/JevForge/Kev")
+        parser.error(
+            "--context-limit must be positive and applies only to Von/JevForge/Kev/Open-Jev"
+        )
     if args.attention and args.adapter not in {
         "von",
         "jevforge",
@@ -167,6 +175,8 @@ def execute(args, parser):
         "jevk5",
         "minojev",
         "luce",
+        "open-jev",
+        "alex-openjev",
     }:
         parser.error("--attention applies only to measured upstream adapters")
     if args.benchmark:
@@ -229,6 +239,8 @@ def execute(args, parser):
         "openvons",
         "verdict2",
         "luce",
+        "open-jev",
+        "alex-openjev",
     }:
         if not args.source:
             parser.error("--source is required for upstream model adapters")
@@ -244,11 +256,18 @@ def execute(args, parser):
             "openvons": "OpenvonsAdapter",
             "verdict2": "Verdict2Adapter",
             "luce": "LuceAdapter",
+            "open-jev": "OpenJevAdapter",
+            "alex-openjev": "AlexOpenJevAdapter",
         }
-        module = importlib.import_module(f"s1mb.adapters.{args.adapter}")
+        module_name = {"open-jev": "open_jev", "alex-openjev": "alex_openjev"}.get(
+            args.adapter, args.adapter
+        )
+        module = importlib.import_module(f"s1mb.adapters.{module_name}")
         options = {"dtype": args.dtype} if args.dtype is not None else {}
         if args.context_limit is not None:
             options["context_limit"] = args.context_limit
+        if args.subfolder is not None:
+            options["subfolder"] = args.subfolder
         adapter = getattr(module, classes[args.adapter])(
             args.model, args.revision, args.source, args.device, **options
         )

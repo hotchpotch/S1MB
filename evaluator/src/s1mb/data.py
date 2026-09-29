@@ -146,6 +146,19 @@ class ModelInfo(Record):
     adapter: str
     revision: str
     settings: dict[str, Any] = Field(default_factory=dict)
+    total_params: int | None = Field(default=None, ge=0, strict=True)
+    active_params: int | None = Field(default=None, ge=0, strict=True)
+    parameter_count_method: Literal["non_lookup_parameters_v1"] | None = None
+
+    @model_validator(mode="after")
+    def check_parameters(self) -> Self:
+        if self.active_params is not None and (
+            self.total_params is None or self.active_params > self.total_params
+        ):
+            raise ValueError("Active parameters require total_params >= active_params")
+        if (self.active_params is not None) != (self.parameter_count_method is not None):
+            raise ValueError("Active parameters require a counting method")
+        return self
 
 
 class Counts(Record):

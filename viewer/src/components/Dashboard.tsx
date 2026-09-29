@@ -936,7 +936,7 @@ function RunDetails({
       </div>
       <details className="text-xs text-muted-foreground">
         <summary>Model identity</summary>
-        <dl className="mt-2 space-y-1 break-all"><div>Model: {run.model.id}</div><div>Adapter: {run.model.adapter}</div><div>Revision: {run.model.revision}</div></dl>
+        <dl className="mt-2 space-y-1 break-all"><div>Model: {run.model.id}</div><div>Adapter: {run.model.adapter}</div><div>Revision: {run.model.revision}</div><div>Total params: {run.model.total_params?.toLocaleString('en-US') ?? 'Unknown'}</div><div>Active params: {run.model.active_params?.toLocaleString('en-US') ?? 'Unknown'}</div><div>AP definition: parameters excluding lookup-only embeddings; shared output weights are retained.</div></dl>
       </details>
       <details className="text-sm">
         <summary>Effective model settings</summary>

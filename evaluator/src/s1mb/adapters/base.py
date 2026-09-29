@@ -13,7 +13,11 @@ class ModelAdapter(Protocol):
 
 
 def questions_for_api(
-    questions: list[Question], *, sort_score: bool = False, structured: bool = False
+    questions: list[Question],
+    *,
+    sort_score: bool = False,
+    structured: bool = False,
+    anonymous_choice: bool = False,
 ) -> dict:
     result = {}
     for q in questions:
@@ -35,6 +39,8 @@ def questions_for_api(
             if q.task == "score"
             else {o.id: description(o) for o in q.options}
         )
+        if anonymous_choice and q.task == "choice":
+            criteria = {f"option_{i}": description(o) for i, o in enumerate(q.options)}
         result[q.id] = {"type": q.task, "instructions": instructions, "criteria": criteria}
     return result
 
@@ -55,6 +61,7 @@ def decode_answers(
     rounded: bool = False,
     rounding_decimals: int = 4,
     sort_score: bool = False,
+    anonymous_choice: bool = False,
 ) -> list[Prediction]:
     if set(answers) != {q.id for q in case.questions}:
         raise ValueError("Returned question IDs differ from the request")
@@ -75,6 +82,13 @@ def decode_answers(
             }
         else:
             probabilities = {k: float(v) for k, v in answer["probabilities"].items()}
+            if anonymous_choice:
+                expected = {f"option_{i}" for i in range(len(q.options))}
+                if set(probabilities) != expected:
+                    raise ValueError("Anonymous choice keys do not match")
+                probabilities = {
+                    o.id: probabilities[f"option_{i}"] for i, o in enumerate(q.options)
+                }
         if rounded:
             # Normalize only within the configured decimal rounding error.
             total = sum(probabilities.values())

@@ -105,3 +105,45 @@ Public unit tests require no dataset credentials or GPU. Dataset integration
 tests skip explicitly when the release is absent; use `S1MB_TEST_NO_DATASET=1`
 to reproduce that configuration. Shared fixtures keep Python and viewer scoring
 consistent. See [SCORING.md](SCORING.md) for metric definitions.
+
+### Parameter metadata
+
+Local adapters record `model.total_params`, `model.active_params`, and
+`model.parameter_count_method` in each new result. API models and older results
+with unavailable counts use null/absent values, never an estimated zero.
+The viewer displays both counts in the run's model identity details.
+
+`non_lookup_parameters_v1` uses the mmBERT embedding project's non-lookup AP
+convention: count all unique registered parameters (including frozen weights and
+task heads), then subtract lookup-only `Embedding` and `EmbeddingBag` weights.
+Shared weights are counted once; an embedding tied to an output projection remains
+active. Position/type lookup tables are also excluded. Buffers are excluded from
+both counts. This is not per-token MoE routing, FLOPs, or trainable parameter count.
+
+To calculate the same metadata independently, provide an importable Python factory
+returning the **complete** model or native runtime wrapper, including task heads:
+
+```sh
+uv run python scripts/count_parameters.py my_model:load --kwargs '{"checkpoint":"/path/to/checkpoint"}'
+# Equivalent module entry point:
+uv run python -m s1mb.parameters my_model:load --kwargs '{"checkpoint":"/path/to/checkpoint"}'
+```
+
+For a local Transformers sequence-classification checkpoint, its standard loader
+can be used directly (after checking physical GPU 1's free memory):
+
+```sh
+CUDA_VISIBLE_DEVICES=1 uv run --extra open-models python scripts/count_parameters.py \
+  transformers:AutoModelForSequenceClassification.from_pretrained \
+  --kwargs '{"pretrained_model_name_or_path":"/path/to/checkpoint","local_files_only":true,"device_map":"cuda:0"}'
+```
+
+Use the checkpoint's actual model class; an encoder-only loader would omit task
+heads and produce a different total.
+
+Install the factory's model dependencies first. It may build an architecture on
+the meta device to avoid allocating weights, provided it preserves the checkpoint's
+architecture and tied parameters. The counter runs no inference and makes no device
+transfers or network requests. If the factory loads weights on this workspace, use
+physical GPU 1 (`CUDA_VISIBLE_DEVICES=1`) and check free memory first. Existing
+measurements are not rewritten; new evaluations count the actual loaded model.

@@ -13,7 +13,7 @@ const category = z.object({ id, name: z.string(), description: z.string(), bench
 const prediction = z.object({ case_id: z.string(), question_id: z.string(), probabilities: z.record(z.string(), z.number().min(0).max(1)).nullable(), error: z.string().nullable() }).strict();
 const resultSchema = z.object({
   format_version: z.literal(1), run_id: id, benchmark,
-  model: z.object({ id: z.string(), adapter: z.string(), revision: z.string(), settings: z.record(z.string(), z.unknown()) }).strict(),
+  model: z.object({ id: z.string(), adapter: z.string(), revision: z.string(), settings: z.record(z.string(), z.unknown()), total_params: count.nullish(), active_params: count.nullish(), parameter_count_method: z.literal('non_lookup_parameters_v1').nullish() }).strict().refine(m => (m.active_params == null || (m.total_params != null && m.active_params <= m.total_params)) && (m.active_params != null) === (m.parameter_count_method != null), 'Invalid parameter counts'),
   created_at: z.string().datetime({ offset: true }), evaluator_version: z.string(),
   provenance: z.enum(['measured', 'demo']), status: z.enum(['complete', 'partial']),
   counts: z.object({ cases: count, expected: count, succeeded: count, failed: count }).strict(),
