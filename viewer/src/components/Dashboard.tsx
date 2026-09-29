@@ -870,6 +870,14 @@ export function Dashboard({
             onClose={() => setRun("")}
           />
         )}
+        {snapshot.resultsSource && (
+          <section aria-label="Results source" className="text-xs text-muted-foreground space-y-1 break-all">
+            <p>Results: <a className="underline" href={snapshot.resultsSource.url} target="_blank" rel="noreferrer">{snapshot.resultsSource.repoId}</a></p>
+            <p>Commit SHA-1: <a className="underline" href={snapshot.resultsSource.url.replace('/tree/', '/commit/')} target="_blank" rel="noreferrer">{snapshot.resultsSource.revision}</a></p>
+            <p>Last checked: {snapshot.resultsSource.checkedAt}</p>
+            {snapshot.resultsSource.refreshFailed && <p role="status" className="text-destructive">The latest results could not be refreshed. Showing the last validated snapshot; the server will retry after the cache interval.</p>}
+          </section>
+        )}
         {snapshot.issues.length > 0 && (
           <section
             role="status"
@@ -948,6 +956,7 @@ function RunDetails({
           <strong>{result.benchmark.id}</strong><br />
           Dataset: {result.dataset_source ? `${result.dataset_source.repo_id} @ ${result.dataset_source.revision}` : 'Not recorded'}<br />
           Model revision: {result.model.revision} · Evaluator: {result.evaluator_version}{result.evaluator_revision ? ` @ ${result.evaluator_revision}` : ''}<br />
+          {result.resultUrl && <><a className="underline" href={result.resultUrl} target="_blank" rel="noreferrer">Result file on Hugging Face (pinned commit)</a><br /></>}
           Run: {result.original_run_id ?? result.run_id} · {result.created_at}
         </li>)}</ul>
       </details>

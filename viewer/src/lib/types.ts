@@ -7,13 +7,14 @@ export function instructionLabel(model: ModelInfo): string {
   return typeof model.settings.questions_per_call === 'number' ? `${label} · ${model.settings.questions_per_call} question(s)/call` : label;
 }
 export type ResultSummary = {
-  evaluator_revision?: string; original_run_id?: string; dataset_source?: { repo_id: string; revision: string }; scoring?: { eligible: boolean; reason: string | null };
+  resultUrl?: string; evaluator_revision?: string; original_run_id?: string; dataset_source?: { repo_id: string; revision: string }; scoring?: { eligible: boolean; reason: string | null };
   run_id: string; benchmark: Benchmark; model: ModelInfo; created_at: string;
   evaluator_version: string; provenance: 'measured' | 'demo'; status: 'complete' | 'partial';
   counts: { cases: number; expected: number; succeeded: number; failed: number };
   metrics: Record<string, number | null>; elapsed_seconds: number;
 };
-export type Snapshot = { scoring?: Record<string, { eligible: boolean; reason: string | null }>; categories: Category[]; benchmarks: Benchmark[]; results: ResultSummary[]; issues: string[]; sources: { name: string; files: number }[] };
+export type ResultsSource = { repoId: string; revision: string; url: string; checkedAt: string; refreshFailed?: boolean };
+export type Snapshot = { resultsSource?: ResultsSource; scoring?: Record<string, { eligible: boolean; reason: string | null }>; categories: Category[]; benchmarks: Benchmark[]; results: ResultSummary[]; issues: string[]; sources: { name: string; files: number }[] };
 export const TASKS: Task[] = ['choice', 'noul', 'score'];
 export const METRICS: Record<Task, { name: string; label: string; direction: 'up' | 'down'; description: string }> = {
   choice: { name: 'target_mass_at_prediction', label: 'Target mass at prediction', direction: 'up', description: 'Target probability assigned to the selected option. Equal to accuracy for hard labels.' },

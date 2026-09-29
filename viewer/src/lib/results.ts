@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { METRICS, type Snapshot } from './types';
 import { prepareScoring } from './diagnostics';
 import { loadHfCases } from './hf-data';
+import { HubResultsCache, hubResultsOptions } from './hub-results';
 
 const id = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/);
 const count = z.number().int().nonnegative();
@@ -205,10 +206,16 @@ export async function loadSnapshot(dataDir: string, resultDirs: string[]): Promi
   return snapshot;
 }
 
-const shared = globalThis as typeof globalThis & { s1mbSnapshot?: Promise<Snapshot> };
+const shared = globalThis as typeof globalThis & { s1mbSnapshot?: Promise<Snapshot>; s1mbHubResults?: HubResultsCache };
 export function getSnapshot(): Promise<Snapshot> {
   const dataDir = process.env.S1MB_DATA_DIR;
   if (!dataDir) throw new Error('Start with npm start so the runtime data directory is configured.');
+  const hub = hubResultsOptions();
+  if (hub) {
+    if (process.env.S1MB_RESULTS_DIRS) throw new Error('Choose either Hub results or explicit local result directories');
+    shared.s1mbHubResults ??= new HubResultsCache(hub, directory => loadSnapshot(dataDir, [directory]));
+    return shared.s1mbHubResults.get();
+  }
   const dirs = process.env.S1MB_RESULTS_DIRS ? JSON.parse(process.env.S1MB_RESULTS_DIRS) as string[] : [path.join(dataDir, 'results')];
   return shared.s1mbSnapshot ??= loadSnapshot(dataDir, dirs);
 }

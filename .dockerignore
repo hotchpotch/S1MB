@@ -1,0 +1,30 @@
+# Explicit build inputs only. Re-exclude descendants after allowing each parent:
+# Docker directory negations otherwise also include their contents.
+**
+!viewer/
+viewer/**
+!viewer/package.json
+!viewer/package-lock.json
+!viewer/tsconfig.json
+!viewer/next-env.d.ts
+!viewer/next.config.ts
+!viewer/postcss.config.mjs
+!viewer/components.json
+!viewer/data
+!viewer/src/
+!viewer/src/**
+!viewer/scripts/
+!viewer/scripts/**
+!viewer/.storybook/
+!viewer/.storybook/**
+!viewer/public/
+viewer/public/**
+!viewer/public/favicon.svg
+!evaluator/
+evaluator/**
+!evaluator/data/
+evaluator/data/**
+!evaluator/data/benchmarks/
+!evaluator/data/benchmarks/*.json
+!evaluator/data/categories/
+!evaluator/data/categories/*.json

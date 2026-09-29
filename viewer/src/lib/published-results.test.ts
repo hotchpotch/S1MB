@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { DataType, Field, Float64, List, RecordBatch, Schema, Struct, Table, Utf8, vectorFromArray, tableToIPC } from 'apache-arrow';
 import { loadSnapshot } from './results';
+import { HubClient, HubResultsCache, type HubResultsOptions } from './hub-results';
 import { scoringCaseFromRow } from './hf-data';
 import { prepareScoring } from './diagnostics';
 import { categoryRuns, modelName } from './comparison';
@@ -73,6 +74,27 @@ test('Published model folders combine runs and revisions, support replacement, a
         environment: { input_hashes: { [currentRow.case_id]: currentRow.input_hash }, dataset_source: index === 0 ? oldSource : source }, predictions });
     }
     await put(path.join(data, 'categories/test.json'), { id: 'test', name: 'Test', description: 'Synthetic', benchmarks: benchmarks.map(b => b.id) });
+    // Exercise remote XZ downloads through the real Arrow/scoring validation path.
+    let hubRevision = '1'.repeat(40), now = Date.now();
+    const options: HubResultsOptions = { repoId: 'test/results', revision: 'main', cacheDir: path.join(root, 'cache'), ttlMs: 3600_000 };
+    const fetcher: typeof fetch = async input => {
+      const url = new URL(String(input));
+      if (url.pathname.includes('/revision/')) return Response.json({ sha: hubRevision });
+      if (url.pathname.includes('/tree/')) {
+        return Response.json(await Promise.all((await readdir(folder)).map(async name => {
+          const bytes = await readFile(path.join(folder, name));
+          return { type: 'file', path: `test__model_v1/${name}`, size: bytes.length,
+            oid: createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex') };
+        })));
+      }
+      return new Response(new Uint8Array(await readFile(path.join(folder, path.basename(url.pathname)))));
+    };
+    const cache = new HubResultsCache(options, dir => loadSnapshot(data, [dir]), new HubClient(options, fetcher), () => now);
+    const remote = await cache.get();
+    assert.equal(remote.results.length, 2);
+    assert.equal(remote.results[0].dataset_source?.revision, oldSource.revision);
+    assert.equal(remote.resultsSource?.revision, hubRevision);
+    assert.match(remote.results[0].resultUrl!, /blob\/1{40}\/test__model_v1\/sample-choice.json.xz$/);
     let snapshot = await loadSnapshot(data, [results]);
     assert.deepEqual(snapshot.issues, []);
     const runs = categoryRuns(snapshot, snapshot.categories[0]);
@@ -92,11 +114,18 @@ test('Published model folders combine runs and revisions, support replacement, a
     snapshot = await loadSnapshot(data, [results]);
     assert.equal(snapshot.results.length, 2);
     assert.equal(snapshot.results[0].original_run_id, 'replacement');
+    hubRevision = '2'.repeat(40); now += options.ttlMs;
+    assert.equal((await cache.get()).results[0].original_run_id, 'replacement');
     changed.environment.input_hashes = {};
     await compressed(file, changed);
     snapshot = await loadSnapshot(data, [results]);
     assert.equal(snapshot.results.length, 1);
     assert.match(snapshot.issues.join(), /input hashes differ/);
+    hubRevision = '3'.repeat(40); now += options.ttlMs;
+    const retained = await cache.get();
+    assert.equal(retained.results.length, 2);
+    assert.equal(retained.resultsSource?.revision, '2'.repeat(40));
+    assert.equal(retained.resultsSource?.refreshFailed, true);
     assert.equal(diagnosticMean(snapshot, snapshot.categories[0], 'choice', snapshot.results, 'baseline_adjusted_score'), null);
     await put(path.join(folder, 'metadata.json'), { model_id: 'test__other', display_name: 'Bad', short_name: 'Bad' });
     snapshot = await loadSnapshot(data, [results]);

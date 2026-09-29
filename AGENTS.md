@@ -72,8 +72,10 @@ reject a result solely because its dataset revision differs.
 Use `export-results` to package results, `validate-results` for published folders,
 and `sync-results` to install a verified Hub snapshot. Keep incomplete results
 visibly incomplete. Synchronization must leave the installed snapshot unchanged
-on failure. A Dataset PR merge needs synchronization and viewer restart to appear;
-do not imply automatic deployment without a configured update job.
+on failure. In local mode, a Dataset PR merge needs synchronization and viewer restart to
+appear. Opt-in live Hub results refresh on requests after the configured cache
+interval; do not imply automatic updates unless that mode or an update job is
+configured. Evaluation data changes still require a restart.
 
 ## Score presentation
 

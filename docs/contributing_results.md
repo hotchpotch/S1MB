@@ -271,14 +271,19 @@ From `viewer/`, restart with `npm start`. When `data/hub-results` exists, it is 
 default result source; otherwise local `data/results` is used. Explicit
 `--results-dir /path/to/results` selects another source. The viewer needs the
 `xz` executable (`xz-utils` on Debian/Ubuntu); decompressed JSON is limited to
-64 MiB per file. No network requests are made by the viewer. Public builds and
+64 MiB per file. Local mode makes no network requests. The optional
+[live Hub mode](../viewer/README.md#live-hugging-face-results) fetches results at
+startup and checks for updates on requests after its cache interval. Public builds and
 unit tests need no Hub account, private data, model, or GPU.
 
 ## After merge
 
-Merging a Dataset PR does not itself restart the application. Run `sync-results`
-and restart the viewer after merging, manually or in the deployment's scheduled
-job. The viewer exposes per-benchmark dataset/model/evaluator revisions in model
+Merging a Dataset PR does not itself restart the application. In local mode, run
+`sync-results` and restart the viewer after merging, manually or in the
+deployment's scheduled job. With live Hub mode explicitly configured, the first
+page request after the cache interval checks for the merged commit and installs
+it after validation. Its recorded evaluation dataset revisions must already be
+prepared; changing those inputs still requires a viewer restart. The viewer exposes per-benchmark dataset/model/evaluator revisions in model
 details. Missing or partial benchmarks remain visible and cannot claim complete
 aggregate coverage. Results remain self-reported: consistency checks do not prove
 which model generated a prediction.

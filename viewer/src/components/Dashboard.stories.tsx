@@ -242,3 +242,19 @@ export const RepeatedModelRuns: Story = { args: {
 export const RepeatedModelComparison: Story = { args: {
   ...RepeatedModelRuns.args, initialView: 'compare', initialCompare: ['synthetic-layout-0', 'synthetic-layout-1'],
 } };
+
+export const HubResults: Story = {
+  args: {
+    snapshot: {
+      ...fixture,
+      resultsSource: {
+        repoId: 'synthetic/results', revision: 'a'.repeat(40),
+        url: `https://huggingface.co/datasets/synthetic/results/tree/${'a'.repeat(40)}`,
+        checkedAt: '2026-09-29T00:00:00.000Z',
+      },
+    },
+  },
+};
+export const HubRefreshFailed: Story = {
+  args: { snapshot: { ...HubResults.args!.snapshot!, resultsSource: { ...HubResults.args!.snapshot!.resultsSource!, refreshFailed: true } } },
+};

@@ -21,7 +21,10 @@ model/dataset/evaluator revisions in details. Mixed revisions are allowed; valid
 against the recorded dataset revision materialized by synchronization and use its
 baseline in aggregation. Raw local runs retain their existing run-ID semantics.
 
-Results load at startup. Restart after data or result updates. Reject conflicting
+Local results load at startup. Restart after local data or result updates.
+Opt-in Hub results use a temporary, validated snapshot cache and request-driven
+refreshes after the configured interval; preserve atomic replacement and failure
+fallback. Evaluation data and definition changes still require a restart. Reject conflicting
 results and invalid input hashes. Require complete coverage for ranked aggregates,
 keep missing results visible, and preserve run selection in comparison URLs.
 Do not serve raw inputs, predictions or credentials as public assets.
