@@ -31,11 +31,8 @@ const fixture: Snapshot = {
     model: {
       id: "Example System One model · Synthetic",
       adapter: "dummy",
-      revision: "demo",
       settings: {},
     },
-    created_at: "2026-09-25T00:00:00Z",
-    evaluator_version: "0.1.0",
     provenance: "demo",
     status: "complete",
     counts: { cases: 100, expected: 100, succeeded: 100, failed: 0 },
@@ -45,7 +42,6 @@ const fixture: Snapshot = {
         : b.task === 'choice' ? { fixed_answer_accuracy_baseline: 0.5 }
         : { normalized_score_rmse: 0.22, constant_mae_baseline: 0.32 }),
     },
-    elapsed_seconds: 3,
   })),
 };
 const meta = {
@@ -243,20 +239,18 @@ export const RepeatedModelComparison: Story = { args: {
   ...RepeatedModelRuns.args, initialView: 'compare', initialCompare: ['synthetic-layout-0', 'synthetic-layout-1'],
 } };
 
-export const HubResults: Story = {
+export const CachedResults: Story = {
   args: {
     snapshot: {
       ...fixture,
-      resultsSource: {
-        repoId: 'synthetic/results', revision: 'a'.repeat(40),
-        url: `https://huggingface.co/datasets/synthetic/results/tree/${'a'.repeat(40)}`,
-        checkedAt: '2026-09-29T00:00:00.000Z',
+      cache: {
+        checkedAt: '2026-09-29T00:00:00.000Z', refreshFailed: false,
       },
     },
   },
 };
-export const HubRefreshFailed: Story = {
-  args: { snapshot: { ...HubResults.args!.snapshot!, resultsSource: { ...HubResults.args!.snapshot!.resultsSource!, refreshFailed: true } } },
+export const CacheRefreshFailed: Story = {
+  args: { snapshot: { ...CachedResults.args!.snapshot!, cache: { ...CachedResults.args!.snapshot!.cache!, refreshFailed: true } } },
 };
 
 // Six-axis sharing fixtures are entirely synthetic, including their measured-format rows.

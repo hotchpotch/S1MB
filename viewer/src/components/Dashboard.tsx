@@ -828,12 +828,10 @@ export function Dashboard({
             onClose={() => setRun("")}
           />
         )}
-        {snapshot.resultsSource && (
-          <section aria-label="Results source" className="text-xs text-muted-foreground space-y-1 break-all">
-            <p>Results: <a className="underline" href={snapshot.resultsSource.url} target="_blank" rel="noreferrer">{snapshot.resultsSource.repoId}</a></p>
-            <p>Commit SHA-1: <a className="underline" href={snapshot.resultsSource.url.replace('/tree/', '/commit/')} target="_blank" rel="noreferrer">{snapshot.resultsSource.revision}</a></p>
-            <p>Last checked: {snapshot.resultsSource.checkedAt}</p>
-            {snapshot.resultsSource.refreshFailed && <p role="status" className="text-destructive">The latest results could not be refreshed. Showing the last validated snapshot; the server will retry after the cache interval.</p>}
+        {snapshot.cache && (
+          <section aria-label="Results cache" className="text-xs text-muted-foreground space-y-1 break-all">
+            <p>Last checked: {snapshot.cache.checkedAt}</p>
+            {snapshot.cache.refreshFailed && <p role="status" className="text-destructive">The latest results could not be refreshed. Showing the last validated snapshot; the server will retry after the cache interval.</p>}
           </section>
         )}
         {snapshot.issues.length > 0 && (
@@ -883,7 +881,7 @@ function RunDetails({
         onCloseAutoFocus={event => { event.preventDefault(); returnFocus.current?.focus(); }}
       >
       <Dialog.Title className="sr-only">Run details: {modelName(run.model)}</Dialog.Title>
-      <Dialog.Description className="sr-only">Model identity, effective settings and benchmark results.</Dialog.Description>
+      <Dialog.Description className="sr-only">Model information and benchmark results.</Dialog.Description>
       <div className="flex justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
@@ -902,28 +900,12 @@ function RunDetails({
       </div>
       <details className="text-xs text-muted-foreground">
         <summary>Model identity</summary>
-        <dl className="mt-2 space-y-1 break-all"><div>Model: {run.model.id}</div><div>Adapter: {run.model.adapter}</div><div>Revision: {run.model.revision}</div><div>Total params: {run.model.total_params?.toLocaleString('en-US') ?? 'Unknown'}</div><div>Active params: {run.model.active_params?.toLocaleString('en-US') ?? 'Unknown'}</div><div>AP definition: parameters excluding lookup-only embeddings; shared output weights are retained.</div></dl>
+        <dl className="mt-2 space-y-1 break-all"><div>Model: {run.model.id}</div><div>Adapter: {run.model.adapter}</div><div>Total params: {run.model.total_params?.toLocaleString('en-US') ?? 'Unknown'}</div><div>Active params: {run.model.active_params?.toLocaleString('en-US') ?? 'Unknown'}</div><div>AP definition: parameters excluding lookup-only embeddings; shared output weights are retained.</div></dl>
       </details>
       {(run.model.url || run.model.hf_url) && <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
         {run.model.url && run.model.url !== run.model.hf_url && <ModelWebsiteLink url={run.model.url} />}
         {run.model.hf_url && <ModelWebsiteLink url={run.model.hf_url} />}
       </div>}
-      <details className="text-sm">
-        <summary>Measurement provenance by benchmark</summary>
-        <ul className="text-xs mt-3 space-y-3 break-all">{run.results.map(result => <li key={result.benchmark.id}>
-          <strong>{result.benchmark.id}</strong><br />
-          Dataset: {result.dataset_source ? `${result.dataset_source.repo_id} @ ${result.dataset_source.revision}` : 'Not recorded'}<br />
-          Model revision: {result.model.revision} · Evaluator: {result.evaluator_version}{result.evaluator_revision ? ` @ ${result.evaluator_revision}` : ''}<br />
-          {result.resultUrl && <><a className="underline" href={result.resultUrl} target="_blank" rel="noreferrer">Result file on Hugging Face (pinned commit)</a><br /></>}
-          Run: {result.original_run_id ?? result.run_id} · {result.created_at}
-        </li>)}</ul>
-      </details>
-      <details className="text-sm">
-        <summary>Effective model settings</summary>
-        <pre className="text-xs p-4 bg-muted rounded mt-3 overflow-auto max-h-80">
-          {JSON.stringify(run.model.settings, null, 2)}
-        </pre>
-      </details>
       <div className="flex flex-wrap gap-3">
         <Input aria-label="Filter model benchmarks" placeholder="Find a benchmark…" value={filter} onChange={event => setFilter(event.target.value)} className="sm:max-w-xs" />
         <Select value={task} onValueChange={setTask}><SelectTrigger aria-label="Model detail task" className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All tasks</SelectItem>{TASKS.map(t => <SelectItem key={t} value={t}>{title(t)}</SelectItem>)}</SelectContent></Select>

@@ -10,28 +10,23 @@ design. Review primary screens at desktop and mobile widths, including selected
 comparison runs and the details dialog. Keep screenshots under ignored `../tmp/`.
 
 Use shared shadcn/ui components. Clearly label all Storybook measurements as
-synthetic. Read current compact Arrow datasets with Apache Arrow JS and native
-Zstandard decoding; do not introduce historical-schema adapters or Python services.
-`data` links to `../evaluator/data`; never duplicate or commit downloaded data.
+synthetic. Read saved metrics from result JSON/XZ files; do not download evaluation
+inputs, load Arrow, or run Python in the viewer. Publication validation belongs to
+the evaluator. Check metric ranges, saved baseline adjustment, counts, membership
+and display metadata before exposing a candidate snapshot.
+`data` links to `../evaluator/data`; never commit downloaded data.
 
-Follow `../docs/contributing_results.md` for result layout and synchronization.
-The default source is `data/hub-results` when present, otherwise `data/results`;
-explicit `--results-dir` options select the sources to load. Decode `.json.xz`
-with bounded output and memory; `xz` is a runtime/test prerequisite.
+Follow `../docs/contributing_results.md` for publication layout. Published folders
+supply row identity and display metadata. Preserve raw run identity for local runs.
+Keep complete coverage requirements and per-result baseline eligibility.
 
-For published results, use the model folder as the row identity and read display
-metadata from `metadata.json`. Preserve per-benchmark original run IDs and
-model/dataset/evaluator revisions in details. Mixed revisions are allowed; validate
-against the recorded dataset revision materialized by synchronization and use its
-baseline in aggregation. Raw local runs retain their existing run-ID semantics.
-
-Local results load at startup. Restart after local data or result updates.
-Opt-in Hub results use a temporary, validated snapshot cache and request-driven
-refreshes after the configured interval; preserve atomic replacement and failure
-fallback. Evaluation data and definition changes still require a restart. Reject conflicting
-results and invalid input hashes. Require complete coverage for ranked aggregates,
-keep missing results visible, and preserve run selection in comparison URLs.
-Do not serve raw inputs, predictions or credentials as public assets.
+Use one filesystem loader for local startup, Docker and HF mounted volumes.
+A separate Node child process scans metadata and decodes changed files. Cached
+requests must not wait for refresh. Coalesce concurrent checks, replace the entire
+candidate atomically, and keep the last good snapshot on failure. Local checks
+are request-driven with zero interval by default; managed Spaces default to one
+hour. Definitions participate in the same filesystem check. Never serve raw
+inputs, predictions, environment settings or credentials to the browser.
 
 The start wrapper binds to Tailscale IPv4 or localhost and rejects public/all-interface
 addresses. Verify the actual listening address when starting a service.

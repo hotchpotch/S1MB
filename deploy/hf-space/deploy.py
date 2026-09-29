@@ -27,9 +27,11 @@ def check_space(api: HfApi, space: str):
     info = api.space_info(space)
     if info.private is not True or info.sdk != "docker":
         raise ValueError("Deployment requires an existing private Docker Space")
-    variables = api.get_space_variables(space)
-    if not variables.get("S1MB_HF_RESULTS_REPO"):
-        raise ValueError("Configure the Space results Dataset before deploying")
+    volumes = info.runtime.raw.get("volumes", []) if info.runtime else []
+    if not any(v.get("type") == "dataset" and v.get("source") == "hotchpotch/s1mb-result"
+               and v.get("mountPath") == "/mnt/results" and v.get("readOnly") is True
+               for v in volumes):
+        raise ValueError("Mount the read-only results Dataset at /mnt/results before deploying")
     return info
 
 

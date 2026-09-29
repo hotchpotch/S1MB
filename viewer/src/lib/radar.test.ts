@@ -13,9 +13,8 @@ function fixture(): Snapshot {
     benchmarks, issues: [], sources: [],
     scoring: Object.fromEntries(benchmarks.map(b => [b.id, { eligible: true, reason: null }])),
     results: ['A', 'B', 'C'].flatMap(run_id => benchmarks.map((benchmark, index) => ({
-      run_id, benchmark, model: { id: run_id, adapter: 'test', revision: '', settings: {} }, created_at: '',
-      evaluator_version: '', provenance: 'measured', status: 'complete', counts: { cases: 1, expected: 1, succeeded: 1, failed: 0 },
-      metrics: { baseline_adjusted_score: [0, 0.2, 0.4, 0.6, 0.8, 1][index] }, elapsed_seconds: 0,
+      run_id, benchmark, model: { id: run_id, adapter: 'test', settings: {} }, provenance: 'measured', status: 'complete', counts: { cases: 1, expected: 1, succeeded: 1, failed: 0 },
+      metrics: { baseline_adjusted_score: [0, 0.2, 0.4, 0.6, 0.8, 1][index] },
     }))),
   };
 }

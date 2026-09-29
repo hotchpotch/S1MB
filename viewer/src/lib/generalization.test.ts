@@ -10,9 +10,8 @@ function fixture(): Snapshot {
   })));
   return { benchmarks, categories: [{ id: 'test', name: 'Synthetic', description: '', benchmarks: benchmarks.map(b => b.id) }], issues: [], sources: [],
     scoring: Object.fromEntries(benchmarks.map(b => [b.id, { eligible: true, reason: null }])),
-    results: benchmarks.map((benchmark, i) => ({ run_id: 'synthetic', benchmark, model: { id: 'Synthetic', adapter: 'test', revision: '', settings: {} },
-      created_at: '', evaluator_version: '', provenance: 'measured', status: 'complete', counts: { cases: 1, expected: 1, succeeded: 1, failed: 0 },
-      metrics: { baseline_adjusted_score: i / 5 }, elapsed_seconds: 0,
+    results: benchmarks.map((benchmark, i) => ({ run_id: 'synthetic', benchmark, model: { id: 'Synthetic', adapter: 'test', settings: {} }, provenance: 'measured', status: 'complete', counts: { cases: 1, expected: 1, succeeded: 1, failed: 0 },
+      metrics: { baseline_adjusted_score: i / 5 },
     })),
   };
 }

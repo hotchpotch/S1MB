@@ -26,14 +26,11 @@ function result(
   return {
     run_id: run,
     benchmark: b,
-    model: { id: "same-model", adapter: "test", revision: "one", settings: {} },
-    created_at: "",
-    evaluator_version: "1",
+    model: { id: "same-model", adapter: "test", settings: {} },
     provenance: "measured",
     status: "complete",
     counts: { cases: 1, succeeded: 1, expected: 1, failed: 0 },
     metrics: { [b.primary_metric]: value },
-    elapsed_seconds: 1,
     ...extra,
   };
 }
@@ -110,7 +107,6 @@ test("Model display names support checkpoint labels as well as paths", () => {
   const model = {
     id: "50pct-lr2e4-head2e4",
     adapter: "system-ichi",
-    revision: "one",
     settings: {},
   };
   assert.equal(modelName(model), "System Ichi · 50pct-lr2e4-head2e4");
@@ -134,7 +130,7 @@ test('Adjusted comparison uses higher-is-better for every task and preserves und
 
 
 test('Model labels preserve checkpoint identity without experiment naming rules', () => {
-  const model = { id: 'example/bekko-small', adapter: 'bekko', revision: 'fixture', settings: {} };
+  const model = { id: 'example/bekko-small', adapter: 'bekko', settings: {} };
   assert.equal(modelName(model), model.id);
 });
 

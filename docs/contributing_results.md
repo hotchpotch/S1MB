@@ -267,23 +267,25 @@ For a locally downloaded repository, prepare and validate its dataset revisions:
 uv run s1mb validate-results /path/to/results --download-datasets
 ```
 
-From `viewer/`, restart with `npm start`. When `data/hub-results` exists, it is the
+From `viewer/`, start with `npm start`. When `data/hub-results` exists, it is the
 default result source; otherwise local `data/results` is used. Explicit
 `--results-dir /path/to/results` selects another source. The viewer needs the
 `xz` executable (`xz-utils` on Debian/Ubuntu); decompressed JSON is limited to
-64 MiB per file. Local mode makes no network requests. The optional
-[live Hub mode](../viewer/README.md#live-hugging-face-results) fetches results at
-startup and checks for updates on requests after its cache interval. Public builds and
-unit tests need no Hub account, private data, model, or GPU.
+64 MiB per file. It reads saved metrics without downloading evaluation inputs.
+Publication validation above remains responsible for prediction/target checks.
+Public builds and unit tests need no Hub account, private data, model, or GPU.
 
 ## After merge
 
-Merging a Dataset PR does not itself restart the application. In local mode, run
-`sync-results` and restart the viewer after merging, manually or in the
-deployment's scheduled job. With live Hub mode explicitly configured, the first
-page request after the cache interval checks for the merged commit and installs
-it after validation. Its recorded evaluation dataset revisions must already be
-prepared; changing those inputs still requires a viewer restart. The viewer exposes per-benchmark dataset/model/evaluator revisions in model
-details. Missing or partial benchmarks remain visible and cannot claim complete
-aggregate coverage. Results remain self-reported: consistency checks do not prove
-which model generated a prediction.
+Synchronize local results with `sync-results`, or use a managed Dataset mount
+that exposes remote updates. The viewer checks filesystem metadata in a separate
+Node process, triggered by requests (every access locally, at most hourly in
+Spaces). Existing requests receive cached summaries immediately. Changed files
+are loaded and the candidate cache is swapped atomically; failure keeps the old
+cache. A later request sees the updated data. A regular local directory does not
+synchronize itself with the Hub. See [viewer cache behavior](../viewer/README.md#filesystem-cache).
+
+Missing or partial benchmarks remain visible and cannot claim complete aggregate
+coverage. Detailed provenance remains in original result files and Hub history.
+Results remain self-reported: consistency checks do not prove which model
+generated a prediction.

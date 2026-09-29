@@ -74,10 +74,12 @@ reject a result solely because its dataset revision differs.
 Use `export-results` to package results, `validate-results` for published folders,
 and `sync-results` to install a verified Hub snapshot. Keep incomplete results
 visibly incomplete. Synchronization must leave the installed snapshot unchanged
-on failure. In local mode, a Dataset PR merge needs synchronization and viewer restart to
-appear. Opt-in live Hub results refresh on requests after the configured cache
-interval; do not imply automatic updates unless that mode or an update job is
-configured. Evaluation data changes still require a restart.
+on failure. The viewer reads saved metrics from local or mounted result files without evaluation
+inputs. Publication validation remains the evaluator's responsibility. On requests,
+a separate Node process checks filesystem metadata (every access locally, at most
+hourly in Spaces), reads changed files, and swaps summaries atomically. Existing
+requests receive cached data immediately; refresh failures preserve that cache.
+An external mount or synchronization process must make Hub updates visible locally.
 
 ## Score presentation
 

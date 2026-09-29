@@ -1,221 +1,71 @@
-/** Read local files once per process; components consume only summaries. */
-import { readdir, realpath, stat } from 'node:fs/promises';
+/** The web process holds compact summaries; a child process reads and parses files. */
+import { spawn, type ChildProcess } from 'node:child_process';
 import path from 'node:path';
-import { createHash } from 'node:crypto';
-import { readResultJson, metadataSchema, datasetSourceSchema } from './result-files';
-import { z } from 'zod';
-import { METRICS, type Snapshot } from './types';
-import { prepareScoring } from './diagnostics';
-import { loadHfCases } from './hf-data';
-import { HubResultsCache, hubResultsOptions } from './hub-results';
+import type { Snapshot } from './types';
 
-const id = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/);
-const count = z.number().int().nonnegative();
-const benchmark = z.object({ id, task: z.enum(['choice', 'noul', 'score']), dataset: z.string(), split: z.literal('test'), case_count: count.positive(), decision_count: count.positive(), primary_metric: z.string() }).strict();
-const category = z.object({ id, name: z.string(), description: z.string(), benchmarks: z.array(id).nonempty() }).strict();
-const prediction = z.object({ case_id: z.string(), question_id: z.string(), probabilities: z.record(z.string(), z.number().min(0).max(1)).nullable(), error: z.string().nullable() }).strict();
-const resultSchema = z.object({
-  format_version: z.literal(1), run_id: id, benchmark,
-  model: z.object({ id: z.string(), adapter: z.string(), revision: z.string(), settings: z.record(z.string(), z.unknown()), total_params: count.nullish(), active_params: count.nullish(), parameter_count_method: z.literal('non_lookup_parameters_v1').nullish() }).strict().refine(m => (m.active_params == null || (m.total_params != null && m.active_params <= m.total_params)) && (m.active_params != null) === (m.parameter_count_method != null), 'Invalid parameter counts'),
-  created_at: z.string().datetime({ offset: true }), evaluator_version: z.string(),
-  provenance: z.enum(['measured', 'demo']), status: z.enum(['complete', 'partial']),
-  counts: z.object({ cases: count, expected: count, succeeded: count, failed: count }).strict(),
-  metrics: z.record(z.string(), z.number().nullable()), elapsed_seconds: z.number().nonnegative(),
-  environment: z.record(z.string(), z.unknown()), predictions: z.array(prediction),
-}).strict();
-
-export function canonical(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
-  if (value !== null && typeof value === 'object') return `{${Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(',')}}`;
-  return JSON.stringify(value);
+export type Refresh = () => Promise<Snapshot | null>;
+export class SnapshotCache {
+  private current?: Snapshot;
+  private pending?: Promise<Snapshot>;
+  private nextCheck = 0;
+  constructor(private refresh: Refresh, private intervalMs: number, private now = Date.now) {}
+  get(): Promise<Snapshot> {
+    if (!this.current) return this.pending ?? this.start();
+    // Do not await refresh: the same request and concurrent requests get the old snapshot.
+    if (!this.pending && this.now() >= this.nextCheck) void this.start().catch(() => {});
+    return Promise.resolve(this.current);
+  }
+  private start(): Promise<Snapshot> {
+    this.nextCheck = this.now() + this.intervalMs;
+    this.pending = this.refresh().then(snapshot => {
+      if (!snapshot && !this.current) throw new Error('Worker returned no initial snapshot');
+      this.current = { ...(snapshot ?? this.current!), cache: { checkedAt: new Date(this.now()).toISOString(), refreshFailed: false } };
+      return this.current;
+    }).catch(error => {
+      console.error('Results refresh failed:', error instanceof Error ? error.message : 'unknown error');
+      if (!this.current) throw error;
+      this.current = { ...this.current, cache: { ...this.current.cache!, refreshFailed: true } };
+      return this.current;
+    }).finally(() => { this.pending = undefined; this.nextCheck = this.now() + this.intervalMs; });
+    return this.pending;
+  }
 }
 
-const json = readResultJson;
-async function files(root: string): Promise<string[]> {
-  const output: string[] = [];
-  for (const entry of await readdir(root, { withFileTypes: true })) {
-    const file = path.join(root, entry.name);
-    // Directory links inside an external result root are not followed.
-    if (entry.isDirectory()) output.push(...await files(file));
-    else if (entry.isFile() && (entry.name.endsWith('.json') || entry.name.endsWith('.json.xz')) && entry.name !== 'metadata.json') output.push(file);
+export class ResultsWorker {
+  private child?: ChildProcess;
+  constructor(private dataDir: string, private dirs: string[]) {}
+  refresh(): Promise<Snapshot | null> {
+    if (this.child && !this.child.connected) this.child = undefined;
+    const child = this.child ??= spawn(process.execPath, ['--import', 'tsx', path.join(process.cwd(), 'scripts/results-worker.ts')], {
+      stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
+    });
+    return new Promise((resolve, reject) => {
+      const cleanup = () => { clearTimeout(timer); child.off('message', message); child.off('exit', exit); child.off('error', error); };
+      const error = () => { cleanup(); this.child = undefined; child.kill(); reject(new Error('Results worker failed')); };
+      const exit = () => { cleanup(); this.child = undefined; reject(new Error('Results worker exited')); };
+      const message = (value: { snapshot?: Snapshot | null; error?: string }) => {
+        cleanup();
+        if (value.error) reject(new Error(value.error)); else resolve(value.snapshot ?? null);
+      };
+      const timer = setTimeout(error, 15 * 60_000);
+      child.once('message', message); child.once('exit', exit); child.once('error', error);
+      child.send({ dataDir: this.dataDir, dirs: this.dirs }, e => { if (e) error(); });
+    });
   }
-  return output.sort();
+  close() { this.child?.kill(); this.child = undefined; }
 }
 
-export async function loadSnapshot(dataDir: string, resultDirs: string[]): Promise<Snapshot> {
-  const definitions = await Promise.all((await files(path.join(dataDir, 'benchmarks'))).map(async f => benchmark.parse(await json(f))));
-  const categories = await Promise.all((await files(path.join(dataDir, 'categories'))).map(async f => category.parse(await json(f))));
-  const known = new Map(definitions.map(b => [b.id, b]));
-  if (known.size !== definitions.length || new Set(categories.map(c => c.id)).size !== categories.length) throw new Error('Duplicate definition IDs');
-  for (const b of definitions) if (b.primary_metric !== METRICS[b.task].name) throw new Error(`Unknown metric: ${b.id}`);
-  for (const c of categories) if (new Set(c.benchmarks).size !== c.benchmarks.length || c.benchmarks.some(b => !known.has(b))) throw new Error(`Invalid category: ${c.id}`);
-  const snapshot: Snapshot = { categories, benchmarks: definitions, results: [], issues: [], sources: [] };
-  const scoring = new Map<string, ReturnType<typeof prepareScoring>>();
-  snapshot.scoring = {};
-  const datasets = new Map<string, Awaited<ReturnType<typeof loadHfCases>>>();
-  for (const b of definitions) {
-    const key = canonical([b.dataset, b.split]);
-    if (!datasets.has(key)) datasets.set(key, await loadHfCases(dataDir, b.dataset, b.split));
-    const cases = datasets.get(key)!;
-    const prepared = prepareScoring(cases, b.task);
-    if (prepared.decisions !== b.decision_count || prepared.cases !== b.case_count) throw new Error(`Dataset counts differ: ${b.id}`);
-    scoring.set(b.id, prepared);
-    snapshot.scoring[b.id] = prepared.context;
-  }
-  const results = new Map<string, z.infer<typeof resultSchema>>();
-  const presentation = new Map<string, { metadata: z.infer<typeof metadataSchema>; original_run_id: string }>();
-  const contexts = new Map<string, ReturnType<typeof prepareScoring>['context']>();
-  const computed = new Map<string, Record<string, number | null>>();
-  const publishedRows = new Set<string>();
-  const rowMetadata = new Map<string, string>();
-  const inconsistentRows = new Set<string>();
-  const installedSource = await json(path.join(dataDir, 'datasets/hub-source.json')).catch((error: NodeJS.ErrnoException) => { if (error.code === 'ENOENT') return null; throw error; });
-  const metadataCache = new Map<string, z.infer<typeof metadataSchema> | null>();
-  async function metadataFor(file: string) {
-    const folder = path.dirname(file);
-    if (!metadataCache.has(folder)) {
-      const metadataFile = path.join(folder, 'metadata.json');
-      const exists = await stat(metadataFile).then(() => true, (error: NodeJS.ErrnoException) => {
-        if (error.code === 'ENOENT') return false;
-        throw error;
-      });
-      const metadata = exists ? metadataSchema.parse(await json(metadataFile)) : null;
-      if (metadata && metadata.model_id !== path.basename(folder)) throw new Error('Model directory/metadata ID mismatch');
-      metadataCache.set(folder, metadata);
-    }
-    return metadataCache.get(folder)!;
-  }
-  const conflictKeys = new Set<string>();
-  let validDirs = 0;
-  for (const directory of resultDirs) {
-    let entries: string[];
-    try {
-      const resolved = await realpath(directory);
-      if (!(await stat(resolved)).isDirectory()) throw new Error('Not a directory');
-      entries = await files(resolved);
-      validDirs++;
-    } catch {
-      snapshot.issues.push(`Cannot read result directory: ${directory}`);
-      continue;
-    }
-    snapshot.sources.push({ name: path.basename(directory), files: entries.length });
-    for (const file of entries) {
-      try {
-        const r = resultSchema.parse(await json(file));
-        if (r.model.adapter === 'dummy' && r.provenance !== 'demo') throw new Error('Dummy results must be marked as demo');
-        const metadata = await metadataFor(file);
-        const current = known.get(r.benchmark.id);
-        const b = r.benchmark;
-        if (!current) throw new Error('Unknown benchmark definition');
-        let cases;
-        let prepared;
-        if (metadata) {
-          if (path.basename(file) !== `${b.id}.json.xz`) throw new Error('Benchmark filename/ID mismatch');
-          for (const key of ['id', 'task', 'dataset', 'split', 'primary_metric'] as const) {
-            if (current[key] !== b[key]) throw new Error('Incompatible benchmark definition');
-          }
-          const source = datasetSourceSchema.parse(r.environment.dataset_source);
-          const root = canonical(installedSource && typeof installedSource === 'object'
-            ? { repo_id: (installedSource as Record<string, unknown>).repo_id, revision: (installedSource as Record<string, unknown>).revision } : null) === canonical(source)
-            ? dataDir : path.join(dataDir, 'result-datasets', createHash('sha256').update(`${source.repo_id}@${source.revision}`).digest('hex'));
-          const key = canonical([root, b.dataset, b.split]);
-          if (!datasets.has(key)) datasets.set(key, await loadHfCases(root, b.dataset, b.split));
-          cases = datasets.get(key)!;
-          prepared = prepareScoring(cases, b.task);
-          if (prepared.decisions !== b.decision_count || prepared.cases !== b.case_count) throw new Error('Dataset counts differ');
-        } else {
-          if (file.endsWith('.json.xz')) throw new Error('Published result requires metadata.json');
-          if (canonical(current) !== canonical(b)) throw new Error('Changed benchmark definition');
-          cases = datasets.get(canonical([b.dataset, b.split]))!;
-          prepared = scoring.get(b.id)!;
-        }
-        const hashes = Object.fromEntries(cases.filter(c => c.questions.some(q => q.task === b.task)).map(c => [c.case_id, c.input_hash]));
-        if (canonical(r.environment.input_hashes) !== canonical(hashes)) throw new Error('Result input hashes differ from the dataset or are missing');
-        const recomputed = prepared.calculate(r.predictions);
-        const storedKeys = Object.keys(r.metrics);
-        if (!(b.primary_metric in r.metrics) || storedKeys.length !== Object.keys(recomputed).length) throw new Error('Unexpected metric');
-        for (const [name, value] of Object.entries(r.metrics)) {
-          const expected = recomputed[name];
-          if (expected === undefined || (value === null || expected === null ? value !== expected : Math.abs(value - expected) > 1e-8)) throw new Error(`Stored metric differs from predictions: ${name}`);
-        }
-        const score = r.metrics[b.primary_metric];
-        if (score !== null && (score < 0 || score > 1)) throw new Error('Metric outside [0, 1]');
-        const seen = new Set<string>();
-        let failed = 0;
-        for (const p of r.predictions) {
-          const key = canonical([p.case_id, p.question_id]);
-          if (seen.has(key)) throw new Error('Duplicate prediction IDs');
-          seen.add(key);
-          if ((p.error === null) === (p.probabilities === null)) throw new Error('Missing or ambiguous prediction');
-          if (p.error !== null) failed++;
-          if (p.probabilities && Math.abs(Object.values(p.probabilities).reduce((a, b) => a + b, 0) - 1) > 1e-5) throw new Error('Probabilities do not sum to one');
-        }
-        if (r.counts.expected !== b.decision_count || r.counts.failed !== failed || r.counts.succeeded !== r.predictions.length - failed || r.counts.cases !== new Set(r.predictions.map(p => p.case_id)).size || r.counts.cases > b.case_count || r.predictions.length > b.decision_count) throw new Error('Prediction counts differ');
-        const complete = failed === 0 && r.predictions.length === b.decision_count && r.counts.cases === b.case_count;
-        if ((r.status === 'complete') !== complete || (r.counts.succeeded === 0) !== (score === null)) throw new Error('Incorrect completion or metric status');
-        const original_run_id = r.run_id;
-        if (metadata) r.run_id = metadata.model_id;
-        const rowIdentity = canonical(metadata);
-        if (rowMetadata.has(r.run_id) && rowMetadata.get(r.run_id) !== rowIdentity) inconsistentRows.add(r.run_id);
-        rowMetadata.set(r.run_id, rowIdentity);
-        const key = canonical([r.run_id, b.id]);
-        computed.set(key, recomputed);
-        contexts.set(key, prepared.context);
-        if (metadata) {
-          presentation.set(key, { metadata, original_run_id });
-          publishedRows.add(r.run_id);
-        }
-        const prior = results.get(key);
-        if (prior && canonical(prior) !== canonical(r)) {
-          conflictKeys.add(key);
-          snapshot.issues.push(`Conflicting result excluded: ${r.run_id} / ${b.id}`);
-        } else results.set(key, r);
-      } catch (error) {
-        snapshot.issues.push(`Invalid result ${path.basename(file)}: ${error instanceof z.ZodError ? 'unsupported or malformed format' : String(error)}`);
-      }
-    }
-  }
-  if (!validDirs) throw new Error('No readable result directories. Pass --results-dir with an existing directory.');
-  const identities = new Map<string, string>();
-  const invalidRuns = inconsistentRows;
-  for (const r of results.values()) {
-    if (publishedRows.has(r.run_id)) continue;
-    const identity = canonical([r.model, r.provenance, r.evaluator_version]);
-    if (identities.has(r.run_id) && identities.get(r.run_id) !== identity) invalidRuns.add(r.run_id);
-    identities.set(r.run_id, identity);
-  }
-  for (const run of invalidRuns) snapshot.issues.push(`Run has inconsistent model metadata and is excluded: ${run}`);
-  for (const [key, r] of results) {
-    if (conflictKeys.has(key) || invalidRuns.has(r.run_id)) continue;
-    const { predictions: _predictions, environment: _environment, format_version: _version, ...summary } = r;
-    const display = presentation.get(key);
-    const metadata = display?.metadata;
-    const metadataCounts = metadata && (metadata.total_params != null || metadata.active_params != null);
-    snapshot.results.push({ ...summary,
-      model: metadata ? { ...summary.model, display_name: metadata.display_name, short_name: metadata.short_name,
-        url: metadata.url, hf_url: metadata.hf_url,
-        total_params: metadataCounts ? metadata.total_params : summary.model.total_params,
-        active_params: metadataCounts ? metadata.active_params : summary.model.active_params,
-        parameter_count_method: metadataCounts ? metadata.parameter_count_method : summary.model.parameter_count_method } : summary.model,
-      original_run_id: display?.original_run_id,
-      evaluator_revision: typeof r.environment.evaluator_revision === 'string' ? r.environment.evaluator_revision : undefined,
-      dataset_source: datasetSourceSchema.safeParse(r.environment.dataset_source).data,
-      scoring: contexts.get(key),
-      metrics: { ...summary.metrics, ...computed.get(key) } });
-  }
-  return snapshot;
-}
-
-const shared = globalThis as typeof globalThis & { s1mbSnapshot?: Promise<Snapshot>; s1mbHubResults?: HubResultsCache };
+const shared = globalThis as typeof globalThis & { s1mbFiles?: SnapshotCache };
 export function getSnapshot(): Promise<Snapshot> {
-  const dataDir = process.env.S1MB_DATA_DIR;
-  if (!dataDir) throw new Error('Start with npm start so the runtime data directory is configured.');
-  const hub = hubResultsOptions();
-  if (hub) {
-    if (process.env.S1MB_RESULTS_DIRS) throw new Error('Choose either Hub results or explicit local result directories');
-    shared.s1mbHubResults ??= new HubResultsCache(hub, directory => loadSnapshot(dataDir, [directory]));
-    return shared.s1mbHubResults.get();
+  if (!shared.s1mbFiles) {
+    const dataDir = process.env.S1MB_DATA_DIR;
+    if (!dataDir) throw new Error('Start with npm start so the runtime directories are configured');
+    const dirs: unknown = JSON.parse(process.env.S1MB_RESULTS_DIRS ?? '[]');
+    if (!Array.isArray(dirs) || !dirs.length || dirs.some(d => typeof d !== 'string')) throw new Error('Configure at least one results directory');
+    const seconds = Number(process.env.S1MB_RESULTS_CHECK_SECONDS ?? 0);
+    if (!Number.isSafeInteger(seconds) || seconds < 0 || seconds > 86400) throw new Error('Invalid filesystem check interval');
+    const worker = new ResultsWorker(dataDir, dirs);
+    shared.s1mbFiles = new SnapshotCache(() => worker.refresh(), seconds * 1000);
   }
-  const dirs = process.env.S1MB_RESULTS_DIRS ? JSON.parse(process.env.S1MB_RESULTS_DIRS) as string[] : [path.join(dataDir, 'results')];
-  return shared.s1mbSnapshot ??= loadSnapshot(dataDir, dirs);
+  return shared.s1mbFiles.get();
 }

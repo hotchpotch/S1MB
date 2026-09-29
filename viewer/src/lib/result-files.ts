@@ -15,7 +15,6 @@ export const metadataSchema = z.object({
   parameter_count_method: z.literal('non_lookup_parameters_v1').nullish(),
 }).strict().refine(m => m.active_params == null ||
   (m.parameter_count_method === 'non_lookup_parameters_v1' && (m.total_params == null || m.active_params <= m.total_params)), 'Invalid parameter counts');
-export const datasetSourceSchema = z.object({ repo_id: z.string().min(1), revision: z.string().regex(/^[0-9a-f]{40}$/) }).strict();
 
 export async function readResultJson(file: string): Promise<unknown> {
   if (file.endsWith('.json.xz')) {

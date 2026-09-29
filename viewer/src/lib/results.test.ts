@@ -1,113 +1,120 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { existsSync } from 'node:fs';
-const datasetTest = !process.env.S1MB_TEST_NO_DATASET && existsSync('data/datasets/hub-source.json') ? test : test.skip;
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { loadSnapshot } from './results';
-import { loadHfCases } from './hf-data';
-import { prepareScoring } from './diagnostics';
-import { instructionLabel, leaderboard } from './types';
+import { execFileSync } from 'node:child_process';
+import { FilesystemResults, summarize } from './result-loader';
+import { readResultJson } from './result-files';
+import { SnapshotCache, ResultsWorker } from './results';
+import type { Snapshot } from './types';
 
-const data = path.resolve('data');
-async function sampleResult() {
-  const benchmark = JSON.parse(await readFile(path.join(data, 'benchmarks/arc-choice-test-v1.json'), 'utf8'));
-  const cases = await loadHfCases(data, benchmark.dataset, benchmark.split);
-  const predictions = cases.slice(0, 2).flatMap(c => c.questions.map(q => ({ case_id: c.case_id, question_id: q.id,
-    probabilities: Object.fromEntries(q.options.map(o => [o.id, 1 / q.options.length])), error: null })));
-  return { format_version: 1, run_id: 'fixture', benchmark,
-    model: { id: 'test', adapter: 'fixture', revision: '1', settings: { renderer: 'reviewed-system-and-instruction-v1' } },
-    created_at: '2026-09-26T00:00:00Z', evaluator_version: '0.1.0', provenance: 'measured', status: 'partial',
-    counts: { cases: 2, expected: benchmark.decision_count, succeeded: predictions.length, failed: 0 },
-    metrics: prepareScoring(cases, 'choice').calculate(predictions), elapsed_seconds: 0,
-    environment: { input_hashes: Object.fromEntries(cases.map(c => [c.case_id, c.input_hash])) }, predictions };
+const benchmark = { id: 'choice', task: 'choice', dataset: 'datasets/test', split: 'test', case_count: 2, decision_count: 2, primary_metric: 'target_mass_at_prediction' };
+const result = (score = 0.8) => ({ format_version: 1, run_id: 'run', benchmark,
+  model: { id: 'example/model', adapter: 'test', revision: 'ignored', settings: { secret: 'never-render', questions_per_call: 1 } },
+  provenance: 'measured', status: 'complete', counts: { cases: 2, expected: 2, succeeded: 2, failed: 0 },
+  metrics: { target_mass_at_prediction: score, fixed_answer_accuracy_baseline: 0.5, baseline_adjusted_score: Math.max(0, 2 * score - 1) },
+  predictions: [{ private: 'never-render' }], dataset_source: { repo_id: 'private', revision: 'ignored' },
+});
+async function fixture() {
+  const root = await mkdtemp(path.join(tmpdir(), 's1mb-files-'));
+  const results = path.join(root, 'results'), model = path.join(results, 'example__model');
+  await Promise.all(['benchmarks', 'categories', 'results/example__model'].map(d => mkdir(path.join(root, d), { recursive: true })));
+  await writeFile(path.join(root, 'benchmarks/choice.json'), JSON.stringify(benchmark));
+  await writeFile(path.join(root, 'categories/all.json'), JSON.stringify({ id: 'all', name: 'All', description: '', benchmarks: ['choice'] }));
+  await writeFile(path.join(model, 'metadata.json'), JSON.stringify({ model_id: 'example__model', display_name: 'Synthetic', short_name: 'Synthetic' }));
+  const file = path.join(model, 'choice.json.xz');
+  const write = async (score: number) => writeFile(file, execFileSync('xz', ['--compress', '--stdout'], { input: JSON.stringify(result(score)) }));
+  await write(0.8);
+  return { root, results, file, write };
 }
 
-datasetTest('Changed inputs are rejected even with identical case IDs and targets', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 's1mb-stale-'));
+test('filesystem cache decodes only changed files, handles deletions and preserves state on invalid updates', async () => {
+  const f = await fixture(); let reads = 0;
+  const loader = new FilesystemResults(f.root, [f.results], async file => { reads++; return readResultJson(file); });
   try {
-    const sample = await sampleResult();
-    const id = sample.predictions[0].case_id;
-    sample.environment.input_hashes[id] = 'different-input-same-case-id';
-    await writeFile(path.join(root, 'stale.json'), JSON.stringify(sample));
-    const snapshot = await loadSnapshot(data, [root]);
-    assert.equal(snapshot.results.length, 0);
-    assert.match(snapshot.issues.join(), /input hashes differ/);
-  } finally { await rm(root, { recursive: true }); }
+    const first = (await loader.refresh())!;
+    assert.equal(first.results[0].run_id, 'example__model');
+    assert.equal(first.results[0].model.display_name, 'Synthetic');
+    assert.ok(!JSON.stringify(first).includes('never-render'));
+    assert.ok(!JSON.stringify(first).includes('dataset_source'));
+    const initialReads = reads;
+    assert.equal(await loader.refresh(), null); assert.equal(reads, initialReads);
+    await f.write(0.9);
+    assert.equal((await loader.refresh())!.results[0].metrics.target_mass_at_prediction, 0.9);
+    assert.equal(reads, initialReads + 1);
+    await writeFile(f.file, 'invalid xz');
+    await assert.rejects(loader.refresh(), /Invalid result/);
+    await f.write(0.7);
+    assert.equal((await loader.refresh())!.results[0].metrics.target_mass_at_prediction, 0.7);
+    await unlink(f.file);
+    assert.equal((await loader.refresh())!.results.length, 0);
+  } finally { await rm(f.root, { recursive: true, force: true }); }
 });
 
-datasetTest('Multiple directories deduplicate results; conflicts are excluded', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 's1mb-viewer-'));
-  try {
-    const a = path.join(root, 'a'), b = path.join(root, 'b');
-    await mkdir(a); await mkdir(b);
-    const sample = await sampleResult();
-    await writeFile(path.join(a, 'one.json'), JSON.stringify(sample));
-    await writeFile(path.join(b, 'same.json'), JSON.stringify(sample));
-    let snapshot = await loadSnapshot(data, [a, b]);
-    assert.equal(snapshot.results.length, 1);
-    assert.equal('predictions' in snapshot.results[0], false);
-    assert.equal(snapshot.issues.length, 0);
-    const category = snapshot.categories.find(c => c.id === 'english-v1')!;
-    assert.equal(leaderboard(snapshot, category, 'choice')[0].score, null);
-    sample.created_at = '2026-09-25T10:00:00Z';
-    await writeFile(path.join(b, 'same.json'), JSON.stringify(sample));
-    snapshot = await loadSnapshot(data, [a, b]);
-    assert.equal(snapshot.results.length, 0);
-    assert.match(snapshot.issues.join(), /Conflicting/);
-  } finally { await rm(root, { recursive: true }); }
+test('background cache returns stale data immediately, coalesces requests, throttles, swaps and keeps data on failure', async () => {
+  let time = 0, calls = 0;
+  let resolve!: (s: Snapshot | null) => void, reject!: (e: Error) => void;
+  const cache = new SnapshotCache(() => { calls++; return new Promise((yes, no) => { resolve = yes; reject = no; }); }, 3600000, () => time);
+  const initial = cache.get(); assert.equal(cache.get(), initial); assert.equal(calls, 1);
+  const snapshot: Snapshot = { benchmarks: [], categories: [], results: [], sources: [], issues: [] };
+  resolve(snapshot); const first = await initial;
+  assert.equal(await cache.get(), first); assert.equal(calls, 1);
+  time = 3600000;
+  assert.equal(await cache.get(), first); assert.equal(await cache.get(), first); assert.equal(calls, 2);
+  resolve({ ...snapshot, issues: ['new'] }); await new Promise(r => setImmediate(r));
+  const updated = await cache.get(); assert.deepEqual(updated.issues, ['new']);
+  time += 3600000;
+  assert.equal(await cache.get(), updated); reject(new Error('synthetic failure')); await new Promise(r => setImmediate(r));
+  assert.deepEqual((await cache.get()).issues, ['new']); assert.equal((await cache.get()).cache?.refreshFailed, true);
 });
 
-datasetTest('Empty directory is valid; missing directories are reported', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 's1mb-viewer-'));
+test('real child process reads XZ, stays cached and refreshes without Python or evaluation data', async () => {
+  const f = await fixture(); const worker = new ResultsWorker(f.root, [f.results]);
   try {
-    const snapshot = await loadSnapshot(data, [root, path.join(root, 'missing')]);
-    assert.equal(snapshot.results.length, 0);
-    assert.equal(snapshot.issues.length, 1);
-    await assert.rejects(loadSnapshot(data, [path.join(root, 'missing')]), /No readable/);
-  } finally { await rm(root, { recursive: true }); }
+    assert.equal((await worker.refresh())!.results.length, 1);
+    assert.equal(await worker.refresh(), null);
+    await f.write(0.6);
+    assert.equal((await worker.refresh())!.results[0].metrics.target_mass_at_prediction, 0.6);
+  } finally { worker.close(); await rm(f.root, { recursive: true, force: true }); }
 });
 
-datasetTest('A partial result cannot claim a complete score', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 's1mb-viewer-'));
-  try {
-    const sample = await sampleResult();
-    sample.status = 'complete';
-    await writeFile(path.join(root, 'invalid.json'), JSON.stringify(sample));
-    const snapshot = await loadSnapshot(data, [root]);
-    assert.equal(snapshot.results.length, 0);
-    assert.match(snapshot.issues.join(), /completion/);
-  } finally { await rm(root, { recursive: true }); }
+test('reject invalid scores, counts and parameter metadata; preserve incomplete results', () => {
+  assert.throws(() => summarize({ ...result(), metrics: { ...result().metrics, baseline_adjusted_score: 1 } }));
+  assert.throws(() => summarize({ ...result(), counts: { cases: 2, expected: 3, succeeded: 2, failed: 0 } }));
+  assert.throws(() => summarize({ ...result(), model: { ...result().model, active_params: 3, total_params: 2 } }));
+  const partial = summarize({ ...result(), status: 'partial', counts: { cases: 1, expected: 2, succeeded: 1, failed: 0 } });
+  assert.equal(partial.status, 'partial');
 });
 
-datasetTest('Category definitions and scoring load without measured results', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 's1mb-category-'));
-  try {
-    const snapshot = await loadSnapshot(data, [root]);
-    assert.deepEqual(snapshot.issues, []);
-    assert.equal(snapshot.results.length, 0);
-    assert.equal(snapshot.benchmarks.length, 137);
-    assert.equal(Object.keys(snapshot.scoring!).length, 137);
-    for (const category of snapshot.categories) for (const task of ['choice', 'noul', 'score'] as const) {
-      assert.deepEqual(leaderboard(snapshot, category, task), []);
-    }
-  } finally { await rm(root, { recursive: true }); }
+test('zero interval checks on each access but never blocks a cached response', async () => {
+  let calls = 0, resolve!: (value: Snapshot | null) => void;
+  const initial: Snapshot = { benchmarks: [], categories: [], results: [], sources: [], issues: [] };
+  const cache = new SnapshotCache(() => { calls++; return calls === 1 ? Promise.resolve(initial) : new Promise(r => { resolve = r; }); }, 0);
+  const first = await cache.get();
+  assert.equal(await cache.get(), first); assert.equal(calls, 2);
+  assert.equal(await cache.get(), first); assert.equal(calls, 2);
+  resolve(null); await new Promise(r => setImmediate(r));
+  await cache.get(); assert.equal(calls, 3); resolve(null);
 });
 
-datasetTest('Batch configurations of one checkpoint remain separate runs', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 's1mb-instructions-'));
+test('a failed initial load can retry; a candidate changing during loading is not installed', async () => {
+  const f = await fixture(); let mutate = false;
+  const loader = new FilesystemResults(f.root, [f.results], async file => {
+    const value = await readResultJson(file);
+    if (mutate && file === f.file) { mutate = false; await f.write(0.9); }
+    return value;
+  });
   try {
-    const baseline = await sampleResult();
-    const variant = structuredClone(baseline);
-    variant.run_id = 'same-model-question-batch';
-    (variant.model.settings as Record<string, unknown>).questions_per_call = 1;
-    await writeFile(path.join(root, 'default.json'), JSON.stringify(baseline));
-    await writeFile(path.join(root, 'variant.json'), JSON.stringify(variant));
-    const snapshot = await loadSnapshot(data, [root]);
-    assert.deepEqual(snapshot.issues, []);
-    const rows = leaderboard(snapshot, snapshot.categories.find(c => c.id === 'english-v1')!, 'choice');
-    assert.equal(rows.length, 2);
-    assert.deepEqual(new Set(rows.map(r => instructionLabel(r.model))), new Set(['Dataset instructions', 'Dataset instructions · 1 question(s)/call']));
-  } finally { await rm(root, { recursive: true }); }
+    let fail = true;
+    const cache = new SnapshotCache(() => fail ? Promise.reject(new Error('synthetic initial failure')) : loader.refresh(), 0);
+    await assert.rejects(cache.get(), /initial failure/); fail = false;
+    assert.equal((await cache.get()).results.length, 1);
+    await f.write(0.7); mutate = true;
+    await assert.rejects(loader.refresh(), /changed during refresh/);
+    assert.equal((await loader.refresh())!.results[0].metrics.target_mass_at_prediction, 0.9);
+    const metadata = path.join(path.dirname(f.file), 'metadata.json');
+    await writeFile(metadata, JSON.stringify({ model_id: 'example__model', display_name: 'Renamed synthetic', short_name: 'Renamed' }));
+    assert.equal((await loader.refresh())!.results[0].model.display_name, 'Renamed synthetic');
+  } finally { await rm(f.root, { recursive: true, force: true }); }
 });

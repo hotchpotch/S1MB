@@ -51,7 +51,7 @@ output is `evaluator/data/results/<run-id>/`, which is ignored by Git.
 
 ## View results
 
-Use Node.js 22.22.2 and npm. Once the evaluation dataset and local results are
+Use Node.js 22.22.2 and npm. Once local or mounted result files are
 available, run these commands from the repository root:
 
 ```sh
@@ -64,10 +64,11 @@ npm start
 The viewer reads `viewer/data`, a relative symlink to `evaluator/data`. It selects
 synchronized `data/hub-results` when present, otherwise `data/results`. To inspect
 a particular local run, pass `--results-dir ../evaluator/data/results/RUN_ID`.
-Results load at startup; restart after data or result changes.
+Results load on first access; subsequent requests trigger background filesystem
+checks and keep serving the current cache while changed files are loaded.
 
 To use contributed results, run `uv run s1mb sync-results --repo-id ORG/RESULTS`
-from `evaluator/`, then restart the viewer. `ORG/RESULTS` is a placeholder for the
+from `evaluator/`. `ORG/RESULTS` is a placeholder for the
 maintainer-designated results repository. Reading `.json.xz` files requires `xz`
 (`xz-utils` on Debian/Ubuntu). See the [submission guide](docs/contributing_results.md)
 for PR previews and recorded-dataset validation.
@@ -101,7 +102,8 @@ should appear as separate rows.
 
 The [submission guide](docs/contributing_results.md) covers `export-results`,
 `validate-results`, PR creation and updates, and `sync-results`. Merging a Dataset
-PR does not itself refresh a running viewer: synchronize and restart it afterward.
+PR becomes visible after synchronization (or the managed Dataset mount updates)
+and a request triggers the next background filesystem check.
 Adapter or other source changes belong in a separate code PR.
 
 ## Development and generated files

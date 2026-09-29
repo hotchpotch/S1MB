@@ -15,6 +15,6 @@ System One Mosaic Benchmark combines specialized Choice, Noul, and Score tasks.
 It does not establish unseen-task generalization or training-data non-overlap.
 
 This private Space runs an immutable viewer image built from the source
-repository's `hf-space-docker` branch. Evaluation inputs and result files are
-downloaded at runtime; the browser receives summaries only. Dataset rights are
+repository's `hf-space-docker` branch. Results are read from a managed, read-only Dataset volume; the browser receives
+compact summaries only. Evaluation inputs are not needed by this viewer. Dataset rights are
 separate from the source code's MIT license.

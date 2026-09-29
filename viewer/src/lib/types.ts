@@ -1,20 +1,19 @@
 export type Task = 'choice' | 'noul' | 'score';
 export type Benchmark = { id: string; task: Task; dataset: string; split: string; case_count: number; decision_count: number; primary_metric: string };
 export type Category = { id: string; name: string; description: string; benchmarks: string[] };
-export type ModelInfo = { display_name?: string; short_name?: string; url?: string | null; hf_url?: string | null; id: string; adapter: string; revision: string; settings: Record<string, unknown>; total_params?: number | null; active_params?: number | null; parameter_count_method?: "non_lookup_parameters_v1" | null };
+export type ModelInfo = { display_name?: string; short_name?: string; url?: string | null; hf_url?: string | null; id: string; adapter: string; settings: Record<string, unknown>; total_params?: number | null; active_params?: number | null; parameter_count_method?: "non_lookup_parameters_v1" | null };
 export function instructionLabel(model: ModelInfo): string {
   const label = 'Dataset instructions';
   return typeof model.settings.questions_per_call === 'number' ? `${label} · ${model.settings.questions_per_call} question(s)/call` : label;
 }
 export type ResultSummary = {
-  resultUrl?: string; evaluator_revision?: string; original_run_id?: string; dataset_source?: { repo_id: string; revision: string }; scoring?: { eligible: boolean; reason: string | null };
-  run_id: string; benchmark: Benchmark; model: ModelInfo; created_at: string;
-  evaluator_version: string; provenance: 'measured' | 'demo'; status: 'complete' | 'partial';
+  resultUrl?: string; evaluator_original_run_id?: string; dataset_source?: { repo_id: string; revision: string }; scoring?: { eligible: boolean; reason: string | null };
+  run_id: string; benchmark: Benchmark; model: ModelInfo;
+  provenance: 'measured' | 'demo'; status: 'complete' | 'partial';
   counts: { cases: number; expected: number; succeeded: number; failed: number };
-  metrics: Record<string, number | null>; elapsed_seconds: number;
+  metrics: Record<string, number | null>;
 };
-export type ResultsSource = { repoId: string; revision: string; url: string; checkedAt: string; refreshFailed?: boolean };
-export type Snapshot = { resultsSource?: ResultsSource; scoring?: Record<string, { eligible: boolean; reason: string | null }>; categories: Category[]; benchmarks: Benchmark[]; results: ResultSummary[]; issues: string[]; sources: { name: string; files: number }[] };
+export type Snapshot = { cache?: { checkedAt: string; refreshFailed: boolean }; scoring?: Record<string, { eligible: boolean; reason: string | null }>; categories: Category[]; benchmarks: Benchmark[]; results: ResultSummary[]; issues: string[]; sources: { name: string; files: number }[] };
 export const TASKS: Task[] = ['choice', 'noul', 'score'];
 export const METRICS: Record<Task, { name: string; label: string; direction: 'up' | 'down'; description: string }> = {
   choice: { name: 'target_mass_at_prediction', label: 'Target mass at prediction', direction: 'up', description: 'Target probability assigned to the selected option. Equal to accuracy for hard labels.' },

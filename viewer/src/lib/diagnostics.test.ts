@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
+import { summarize } from './result-loader';
 import { prepareScoring, type ScoringCase } from './diagnostics';
 import { diagnosticMean, overallIndex, METRICS, TASKS, type Snapshot, type ResultSummary } from './types';
 
@@ -19,6 +20,13 @@ for (const fixture of fixtures) test(`Shared scoring: ${fixture.name}`, () => {
   }
   const scoring = prepareScoring(cases, fixture.task);
   const metrics = scoring.calculate(predictions);
+  const summary = summarize({ format_version: 1, run_id: 'synthetic',
+    benchmark: { id: 'synthetic', task: fixture.task, dataset: 'synthetic', split: 'test',
+      case_count: cases.length, decision_count: cases.length, primary_metric: METRICS[fixture.task].name },
+    model: { id: 'synthetic', adapter: 'test', settings: {} }, provenance: 'measured', status: 'complete',
+    counts: { cases: cases.length, expected: cases.length, succeeded: cases.length, failed: 0 }, metrics });
+  assert.equal(summary.metrics.baseline_adjusted_score, metrics.baseline_adjusted_score);
+
   for (const [name, expected] of Object.entries(fixture.expected)) {
     if (expected === null) assert.equal(metrics[name], null, name);
     else assert.ok(metrics[name] !== null && Math.abs(metrics[name]! - expected) < 1e-10, `${name}: ${metrics[name]} != ${expected}`);
@@ -30,8 +38,7 @@ test('Aggregate requires full coverage, uses dataset-wide exclusions and equal t
   const benchmarks = [...TASKS, 'choice' as const].map((task, i) => ({ id: String(i), task, dataset: 'x', split: 'test', case_count: 1, decision_count: 1, primary_metric: METRICS[task].name }));
   const category = { id: 'test', name: 'Test', description: '', benchmarks: benchmarks.map(b => b.id) };
   const results: ResultSummary[] = benchmarks.map((b, i) => ({
-    run_id: 'run', benchmark: b, model: { id: 'm', adapter: 'm', revision: '1', settings: {} },
-    created_at: '', evaluator_version: '1', provenance: 'measured', status: 'complete', elapsed_seconds: 0,
+    run_id: 'run', benchmark: b, model: { id: 'm', adapter: 'm', settings: {} }, provenance: 'measured', status: 'complete',
     counts: { cases: 1, expected: 1, succeeded: 1, failed: 0 },
     metrics: { [b.primary_metric]: 1, baseline_adjusted_score: [0.2, 0.4, 0.9, null][i] },
   }));
@@ -54,8 +61,7 @@ test('General-purpose breakdown participates in full task means without extra ov
   })));
   const category = { id: 'all', name: 'All', description: '', benchmarks: benchmarks.map(b => b.id) };
   const results: ResultSummary[] = benchmarks.map(b => ({
-    run_id: 'run', benchmark: b, model: { id: 'm', adapter: 'm', revision: '1', settings: {} },
-    created_at: '', evaluator_version: '1', provenance: 'measured', status: 'complete', elapsed_seconds: 0,
+    run_id: 'run', benchmark: b, model: { id: 'm', adapter: 'm', settings: {} }, provenance: 'measured', status: 'complete',
     counts: { cases: 100, expected: 100, succeeded: 100, failed: 0 },
     metrics: { baseline_adjusted_score: b.id.startsWith('specialized') ? 0 : 0.9 },
   }));

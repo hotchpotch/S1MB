@@ -1,37 +1,41 @@
-/** Resolve runtime data before starting Next; no external files are needed at build time. */
+/** Resolve filesystem sources before starting Next. */
 import { existsSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { networkInterfaces } from 'node:os';
-import { hubResultsOptions } from '../src/lib/hub-results';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const env = { ...process.env };
 const dirs: string[] = [];
-let dev = false;
+let dev = false, space = false;
 let port = '3000';
 let host = '127.0.0.1';
 for (const address of networkInterfaces().tailscale0 ?? []) if (address.family === 'IPv4') host = address.address;
 for (let i = 0; i < args.length; i++) {
   const arg = args[i];
   if (arg === '--dev') dev = true;
-  else if (arg === '--results-dir' && args[i + 1]) dirs.push(path.resolve(args[++i]));
-  else if (arg === '--results-repo' && args[i + 1] && !args[i + 1].startsWith('--')) env.S1MB_HF_RESULTS_REPO = args[++i];
-  else if (arg === '--results-revision' && args[i + 1] && !args[i + 1].startsWith('--')) env.S1MB_HF_RESULTS_REVISION = args[++i];
-  else if (arg === '--port' && args[i + 1]) port = args[++i];
-  else if (arg === '--host' && args[i + 1]) host = args[++i];
-  else throw new Error(`Unknown or incomplete option: ${arg}`);
+  else if (arg === '--space') space = true;
+  else if (['--results-dir', '--check-seconds', '--port', '--host'].includes(arg) && args[i + 1] && !args[i + 1].startsWith('--')) {
+    const value = args[++i];
+    if (arg === '--results-dir') dirs.push(path.resolve(value));
+    else if (arg === '--check-seconds') env.S1MB_RESULTS_CHECK_SECONDS = value;
+    else if (arg === '--port') port = value;
+    else host = value;
+  } else throw new Error(`Unknown or incomplete option: ${arg}`);
+}
+if (space) {
+  if (!env.SPACE_ID) throw new Error('--space requires the managed HF Space environment');
+  host = '0.0.0.0'; port = '7860';
 }
 const allowed = ['127.0.0.1', ...(networkInterfaces().tailscale0 ?? []).filter(a => a.family === 'IPv4').map(a => a.address)];
-if (!allowed.includes(host)) throw new Error('Bind to localhost or this machine’s Tailscale IPv4 address.');
-const dataDir = path.resolve(process.env.S1MB_DATA_DIR || path.join(root, 'data'));
-const hub = hubResultsOptions(env);
-if (!hub && args.includes('--results-revision')) throw new Error('--results-revision requires a Hub results repository');
-if (hub && (dirs.length || process.env.S1MB_RESULTS_DIRS)) throw new Error('Choose either Hub results or --results-dir');
-if (!hub && !dirs.length) dirs.push(path.join(dataDir, existsSync(path.join(dataDir, 'hub-results')) ? 'hub-results' : 'results'));
+if (!space && !allowed.includes(host)) throw new Error('Bind to localhost or this machine’s Tailscale IPv4 address.');
+const seconds = Number(env.S1MB_RESULTS_CHECK_SECONDS ?? (space ? 3600 : 0));
+if (!Number.isSafeInteger(seconds) || seconds < 0 || seconds > 86400) throw new Error('Invalid filesystem check interval');
+const dataDir = path.resolve(env.S1MB_DATA_DIR || path.join(root, 'data'));
+if (!dirs.length) dirs.push(path.resolve(env.S1MB_RESULTS_DIR || (space ? '/mnt/results' : path.join(dataDir, existsSync(path.join(dataDir, 'hub-results')) ? 'hub-results' : 'results'))));
 const child = spawn(process.execPath, [path.join(root, 'node_modules/next/dist/bin/next'), dev ? 'dev' : 'start', '--hostname', host, '--port', port], {
-  cwd: root, stdio: 'inherit', env: { ...env, S1MB_DATA_DIR: dataDir, S1MB_RESULTS_DIRS: hub ? undefined : JSON.stringify(dirs), NEXT_TELEMETRY_DISABLED: '1' },
+  cwd: root, stdio: 'inherit', env: { ...env, S1MB_DATA_DIR: dataDir, S1MB_RESULTS_DIRS: JSON.stringify(dirs), S1MB_RESULTS_CHECK_SECONDS: String(seconds), NEXT_TELEMETRY_DISABLED: '1' },
 });
 for (const signal of ['SIGINT', 'SIGTERM'] as const) process.on(signal, () => child.kill(signal));
 child.on('exit', code => { process.exitCode = code ?? 1; });

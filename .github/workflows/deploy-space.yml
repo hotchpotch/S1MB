@@ -49,8 +49,7 @@ jobs:
           cache-to: type=gha,scope=space,mode=max
       - name: Check runtime dependencies without credentials or data
         run: |
-          docker run --rm --entrypoint /app/evaluator/.venv/bin/python s1mb-space:test -c 'from s1mb.dataset_source import dataset_session; from s1mb.result_repository import sync_results'
-          docker run --rm --workdir /app/viewer --entrypoint node s1mb-space:test -e 'require("next"); require("apache-arrow")'
+          docker run --rm --workdir /app/viewer --entrypoint node s1mb-space:test -e 'require("next"); require("tsx")'
           docker run --rm --entrypoint xz s1mb-space:test --version
 
   publish-and-deploy:

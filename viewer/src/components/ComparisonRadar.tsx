@@ -40,9 +40,8 @@ export function ComparisonRadar({ snapshot, category, selectedIds, onMove, onRem
     cursor += nameLines.length * 22 + 72;
     return { profile, nameLines, y };
   });
-  const sourceLines = snapshot.resultsSource ? lines(`https://huggingface.co/datasets/${snapshot.resultsSource.repoId}`, 140) : [];
   const footerTop = Math.max(505, cursor + 12);
-  const height = footerTop + (snapshot.resultsSource ? 120 + sourceLines.length * 18 : 88);
+  const height = footerTop + 88;
 
   async function download() {
     if (!svg.current) return;
@@ -147,8 +146,6 @@ export function ComparisonRadar({ snapshot, category, selectedIds, onMove, onRem
             </g>)}
             <text x="30" y={footerTop} fontSize="13" fill="#475569">Higher is better · 0 = at or below baseline · 100 = reference ceiling · — = incomplete or unavailable</text>
             <text x="30" y={footerTop + 22} fontSize="12" fill="#64748b">G. / General = general-purpose subset. Scores are not accuracy or evidence of unseen-task generalization.</text>
-            {snapshot.resultsSource && <text x="30" y={footerTop + 46} fontSize="12" fill="#64748b">Results commit: {snapshot.resultsSource.revision}{snapshot.resultsSource.refreshFailed ? ' · Cached; refresh failed' : ''}</text>}
-            {sourceLines.map((line, index) => <text key={index} x="30" y={footerTop + 65 + index * 18} fontSize="12" fill="#64748b">{line}</text>)}
             <text x="30" y={height - 20} fontSize="12" fill="#64748b">System One Mosaic Benchmark{profiles.some(p => p.demo) ? ' · SYNTHETIC / DEMO' : ''}</text>
           </svg>
         </div>
