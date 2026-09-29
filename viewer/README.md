@@ -95,6 +95,20 @@ synthetic. `npm run build-storybook` rebuilds it separately.
 
 ## Live Hugging Face results
 
+The designated results Dataset is the public
+[`hotchpotch/s1mb-result`](https://huggingface.co/datasets/hotchpotch/s1mb-result).
+Use the runtime settings in [the environment sample](../.env.sample), or from
+`viewer/` pass the repository and optional revision explicitly:
+
+```sh
+npm start -- --results-repo hotchpotch/s1mb-result --results-revision main
+```
+
+Arguments override their corresponding environment settings and reach the Next.js
+server. Public results can be fetched without a token. For private repositories,
+supply a read token through the environment, never a command-line argument. These options also work with
+`npm run dev`. Prepared evaluation inputs are still required as described below.
+
 Set the viewer results repository option in [the environment sample](../.env.sample)
 to the designated HF results Dataset ID and pass those settings as runtime
 environment variables. Leave it empty for local mode. The sample documents the
@@ -155,6 +169,10 @@ is installed. Restart after changing evaluation data or definitions.
   not address this repository's commit-pinned results.
 
 ## Docker
+
+For the private `S1MB-leaderboard` Space and the `hf-space-docker` deployment
+branch, see the [HF Space deployment guide](../docs/huggingface_space_deploy.md).
+The default Docker target below retains the local startup behavior.
 
 From the repository root:
 

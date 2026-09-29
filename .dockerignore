@@ -28,3 +28,16 @@ evaluator/data/**
 !evaluator/data/benchmarks/*.json
 !evaluator/data/categories/
 !evaluator/data/categories/*.json
+!evaluator/pyproject.toml
+!evaluator/uv.lock
+!evaluator/README.md
+!evaluator/LICENSE
+!evaluator/dataset-source.json
+!evaluator/src/
+!evaluator/src/**
+**/__pycache__/
+!deploy/
+deploy/**
+!deploy/hf-space/
+deploy/hf-space/**
+!deploy/hf-space/bootstrap.py

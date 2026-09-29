@@ -98,3 +98,7 @@ Run Python commands from `evaluator/`, npm commands from `viewer/`, and follow l
 guidance. Public tests/CI must run without private data, tokens, models or GPU.
 Mark dataset integration tests explicitly. Restart the viewer after data/results
 change. Bind HTTP only to the machine's Tailscale IPv4 address or localhost.
+
+The HF Space image's dedicated bootstrap may bind to `0.0.0.0:7860` inside the
+managed Space container. This exception does not apply to local services or the
+normal viewer start wrapper. Follow `docs/huggingface_space_deploy.md` for deployment.
