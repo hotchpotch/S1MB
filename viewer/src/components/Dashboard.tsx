@@ -1,7 +1,10 @@
 "use client";
 
+import { ColumnHelp } from "./ColumnHelp";
+
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeftRight, ArrowUpRight, BarChart3, Blocks, Check, CircleCheck, ListChecks, Trophy, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { ArrowLeftRight, ArrowUpRight, BarChart3, Blocks, Check, CircleCheck, GitFork, ListChecks, Trophy, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { ModelWebsiteLink } from "./ModelWebsiteLink";
 import { ParameterCounts, ParameterCountsHeader } from "./ParameterCounts";
 import { Dialog } from "radix-ui";
 import { Button } from "./ui/button";
@@ -516,12 +519,21 @@ export function Dashboard({
               <a href="/" aria-label="S1MB home" className="mb-6 inline-block text-2xl font-bold tracking-tight">S1MB<span className="text-primary">.</span></a>
               <h1 className="text-[clamp(2.8rem,5.1vw,4.6rem)] font-semibold leading-[0.98] tracking-[-0.06em]">System One<br /><span className="text-primary">Mosaic</span> Benchmark</h1>
             </div>
-            <div className="space-y-6 lg:pb-1">
-              <p className="max-w-lg text-lg sm:text-xl leading-relaxed tracking-[-0.02em]"><span className="task-accent" data-task="choice">Choose an option.</span> <span className="task-accent" data-task="noul">Judge a statement.</span> <span className="task-accent" data-task="score">Assign a score.</span><br className="hidden sm:block" /> Explore how models perform across a mosaic of specialized decision tasks.</p>
-              <div className="flex flex-wrap gap-x-5 gap-y-3 text-xs font-medium text-muted-foreground">
-                <span className="inline-flex items-center gap-2"><ListChecks aria-hidden="true" className="size-4" strokeWidth={1.5} />{benchmarks.length} benchmarks</span>
-                <span className="inline-flex items-center gap-2"><CircleCheck aria-hidden="true" className="size-4" strokeWidth={1.5} />3 decision tasks</span>
-                <span className="inline-flex items-center gap-2"><BarChart3 aria-hidden="true" className="size-4" strokeWidth={1.5} />Baseline-adjusted scores</span>
+            <div className="w-full max-w-lg space-y-5 lg:justify-self-end lg:pb-1">
+              <p className="max-w-sm text-xl sm:text-2xl font-medium leading-snug tracking-tight text-foreground/90">Compare models across<br /><span className="text-primary">{benchmarks.length} specialized benchmarks.</span></p>
+              <div className="grid grid-cols-3 gap-3 sm:gap-5">
+                {([
+                  { task: 'choice', label: 'Choice', description: 'Select an option', Icon: ListChecks },
+                  { task: 'noul', label: 'Noul', description: 'Judge a statement', Icon: CircleCheck },
+                  { task: 'score', label: 'Score', description: 'Assign a value', Icon: BarChart3 },
+                ] as const).map(({ task, label, description, Icon }) => <div key={task} className="space-y-2">
+                  <div data-task={task} className="task-accent border-t-2 border-current pt-3 flex items-center gap-2 text-sm font-semibold"><Icon aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.5} />{label}</div>
+                  <p className="text-[11px] sm:text-xs leading-relaxed text-muted-foreground">{description}</p>
+                </div>)}
+              </div>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] sm:text-xs text-muted-foreground">
+                <p>Baseline-adjusted scores <span aria-hidden="true" className="mx-1">·</span> Higher is better</p>
+                <a href="https://github.com/hotchpotch/S1MB" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 transition-colors hover:text-primary"><GitFork aria-hidden="true" className="size-3.5" />hotchpotch/S1MB<ArrowUpRight aria-hidden="true" className="size-3" /></a>
               </div>
             </div>
           </div>
@@ -589,11 +601,11 @@ export function Dashboard({
               <Table aria-label="Overall leaderboard" className="table-fixed min-w-[760px] text-xs [&_th]:px-0.5 sm:[&_th]:px-1 [&_th]:whitespace-normal [&_th]:break-words [&_td]:px-0.5 sm:[&_td]:px-1 [&_td]:py-2 [&_tr>:first-child]:pl-3 sm:[&_tr>:first-child]:pl-4 [&_tr>:last-child]:pr-3 sm:[&_tr>:last-child]:pr-4 [&_button]:text-xs">
                 <TableHeader><TableRow>
                   <TableHead className="w-9 sm:w-11"><span className="sr-only">Compare</span></TableHead>
-                  <TableHead className="w-5 sm:w-8"><span aria-label="Rank">#</span></TableHead><TableHead className="w-[22%]">Model</TableHead>
-                  <TableHead className="text-right">Overall</TableHead>
-                  {DISPLAY_TASKS.map(t => <TableHead key={t} data-task={t} className="task-accent text-right">{title(t)}</TableHead>)}
-                  {DISPLAY_TASKS.map(t => <TableHead key={`general-${t}`} data-task={t} className="task-accent text-right"><span className="block text-[9px] sm:text-[10px] text-muted-foreground">General</span>{title(t)}</TableHead>)}
-                  <TableHead className="hidden sm:table-cell text-right w-14">Cov</TableHead>
+                  <TableHead className="w-5 sm:w-8"><ColumnHelp label="Rank" description="Rank by overall baseline-adjusted score, highest first. Only complete measured results are ranked.">#</ColumnHelp></TableHead><TableHead className="w-[22%]"><ColumnHelp description="Evaluated model. Select its name to view the model, settings and measurement details.">Model</ColumnHelp></TableHead>
+                  <TableHead className="text-right"><ColumnHelp description="Equal-weight average of the Noul, Choice and Score task scores on a 0–100 scale. Each benchmark is baseline-adjusted and clipped before averaging. Complete coverage is required; higher is better.">Overall</ColumnHelp></TableHead>
+                  {DISPLAY_TASKS.map(t => <TableHead key={t} data-task={t} className="task-accent text-right"><ColumnHelp description={`Mean baseline-adjusted score across all ${title(t)} benchmarks, including the general subset. 0–100; higher is better. Complete task coverage is required.`}>{title(t)}</ColumnHelp></TableHead>)}
+                  {DISPLAY_TASKS.map(t => <TableHead key={`general-${t}`} data-task={t} className="task-accent text-right"><ColumnHelp description={`Mean baseline-adjusted score for the Diverse and Contextual ${title(t)} benchmarks. Already included in the task score, with no additional ranking weight. This subset does not establish unseen-task generalization.`}><span className="block text-[9px] sm:text-[10px] text-muted-foreground">General</span>{title(t)}</ColumnHelp></TableHead>)}
+                  <TableHead className="hidden sm:table-cell text-right w-14"><ColumnHelp label="Coverage" description="Number of completed benchmarks in this category. Every benchmark must be complete for a model to appear on the leaderboard.">Cov</ColumnHelp></TableHead>
                   <TableHead className="w-14 sm:w-20 text-right"><ParameterCountsHeader /></TableHead>
                 </TableRow></TableHeader>
                 <TableBody>{rows.map((row,i) => <TableRow key={row.runId} className="cursor-pointer data-[state=selected]:bg-primary/10" data-state={selectedIds.includes(row.runId) ? 'selected' : undefined}
@@ -892,9 +904,9 @@ function RunDetails({
         <summary>Model identity</summary>
         <dl className="mt-2 space-y-1 break-all"><div>Model: {run.model.id}</div><div>Adapter: {run.model.adapter}</div><div>Revision: {run.model.revision}</div><div>Total params: {run.model.total_params?.toLocaleString('en-US') ?? 'Unknown'}</div><div>Active params: {run.model.active_params?.toLocaleString('en-US') ?? 'Unknown'}</div><div>AP definition: parameters excluding lookup-only embeddings; shared output weights are retained.</div></dl>
       </details>
-      {(run.model.url || run.model.hf_url) && <div className="flex gap-4 text-sm">
-        {run.model.url && <a href={run.model.url} target="_blank" rel="noreferrer" className="underline">Model website</a>}
-        {run.model.hf_url && <a href={run.model.hf_url} target="_blank" rel="noreferrer" className="underline">Hugging Face</a>}
+      {(run.model.url || run.model.hf_url) && <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+        {run.model.url && run.model.url !== run.model.hf_url && <ModelWebsiteLink url={run.model.url} />}
+        {run.model.hf_url && <ModelWebsiteLink url={run.model.hf_url} />}
       </div>}
       <details className="text-sm">
         <summary>Measurement provenance by benchmark</summary>

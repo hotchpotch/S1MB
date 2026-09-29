@@ -1,3 +1,4 @@
+import { ColumnHelp } from './ColumnHelp';
 import { generalizationComparison } from '../lib/generalization';
 import { modelName } from '../lib/comparison';
 import type { Category, Snapshot } from '../lib/types';
@@ -22,9 +23,9 @@ export function GeneralizationTable({ snapshot, category, selectedIds, onToggle 
       <Table aria-label="Generalization scores" className="table-fixed min-w-[760px] text-xs [&_th]:px-0.5 sm:[&_th]:px-1 [&_th]:whitespace-normal [&_th]:break-words [&_td]:px-0.5 sm:[&_td]:px-1 [&_td]:py-2 [&_tr>:first-child]:pl-3 sm:[&_tr>:first-child]:pl-4 [&_tr>:last-child]:pr-3 sm:[&_tr>:last-child]:pr-4 [&_button]:text-xs">
         <TableHeader><TableRow>
           <TableHead className="w-9 sm:w-11"><span className="sr-only">Compare</span></TableHead>
-          <TableHead className="w-[22%]">Model</TableHead>
-          <TableHead className="text-right">Average ↑</TableHead>
-          {columns.map(({ family, task, benchmark }) => <TableHead key={benchmark.id} data-task={task} className="task-accent text-right"><span className="block text-[9px] sm:text-[10px] text-muted-foreground">{title(family)}</span>{title(task)}</TableHead>)}
+          <TableHead className="w-[22%]"><ColumnHelp description="Evaluated model. Model links open the authored model page.">Model</ColumnHelp></TableHead>
+          <TableHead className="text-right"><ColumnHelp description="Equal-weight average of these six baseline-adjusted benchmark scores. 0–100; higher is better. All six must be complete and scored.">Average ↑</ColumnHelp></TableHead>
+          {columns.map(({ family, task, benchmark }) => <TableHead key={benchmark.id} data-task={task} className="task-accent text-right"><ColumnHelp description={`${title(family)} ${title(task)} benchmark, baseline-adjusted on a 0–100 scale. Higher is better; 0 means at or below the reference baseline. — means incomplete or unavailable.`}><span className="block text-[9px] sm:text-[10px] text-muted-foreground">{title(family)}</span>{title(task)}</ColumnHelp></TableHead>)}
           <TableHead className="w-14 sm:w-20 text-right"><ParameterCountsHeader /></TableHead>
         </TableRow></TableHeader>
         <TableBody>{rows.map(row => <TableRow key={row.id} data-state={selectedIds.includes(row.id) ? 'selected' : undefined}>

@@ -298,7 +298,7 @@ const generalizationFixture: Snapshot = {
   categories: [{ ...radarFixture.categories[0], benchmarks: generalizationBenchmarks.map(b => b.id) }],
   scoring: Object.fromEntries(generalizationBenchmarks.map(b => [b.id, { eligible: true, reason: null }])),
   results: ['Synthetic Zero', 'Synthetic Complete', 'Synthetic Partial'].flatMap((name, model) => generalizationBenchmarks.map((b, i) => ({
-    ...radarFixture.results[0], benchmark: b, run_id: `synthetic-general-${model}`, model: { ...radarFixture.results[0].model, id: name },
+    ...radarFixture.results[0], benchmark: b, run_id: `synthetic-general-${model}`, model: { ...radarFixture.results[0].model, id: name, total_params: [17_000_000, 4_210_000_000, 854_000_000][model], active_params: [15_000_000, 3_570_000_000, 598_000_000][model] },
     status: model === 2 && i === 0 ? 'partial' as const : 'complete' as const,
     metrics: { baseline_adjusted_score: model === 0 ? 0 : (i + 1) / 10 },
   }))),
@@ -320,3 +320,17 @@ export const DesignAuditMobileNavigation: Story = {
   decorators: [(Story) => <div style={{ width: 390, maxWidth: '100%' }}><Story /></div>],
   parameters: { docs: { description: { story: 'Synthetic results. Constrained width reproduces mobile task navigation without requiring a viewport addon.' } } },
 };
+
+export const LeaderboardColumnHelp: Story = {
+  ...DesignAuditLeaderboard,
+  parameters: { docs: { description: { story: 'Synthetic results. Hover or keyboard-focus each column heading to read its definition. Help triggers have no underline. TP/AP explains the non-lookup counting convention and its distinction from routed MoE activity and memory usage.' } } },
+};
+
+export const HuggingFaceModelLinks: Story = { args: {
+  initialRun: 'synthetic-demo',
+  snapshot: { ...fixture, results: fixture.results.map(result => ({ ...result, model: {
+    ...result.model,
+    url: 'https://huggingface.co/example/synthetic-model/tree/main/checkpoint',
+    hf_url: 'https://huggingface.co/example/synthetic-model/tree/main/checkpoint',
+  } })) },
+} };
