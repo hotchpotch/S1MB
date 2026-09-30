@@ -234,7 +234,7 @@ first and preserve unrelated mounts. For a Space with only these two old mounts:
 ```python
 from huggingface_hub import HfApi
 api = HfApi()
-api.set_space_volumes("hotchpotch/S1MB-leaderboard", [])
+api.delete_space_volumes("hotchpotch/S1MB-leaderboard")
 ```
 
 The Bucket is no longer used; this detaches it without deleting its contents.
