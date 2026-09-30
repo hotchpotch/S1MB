@@ -62,12 +62,20 @@ and pass that snapshot path with `--results-dir`.
 
 ## Read scores and refresh data
 
-Overview scores are baseline-adjusted scores multiplied by 100; higher is better.
-Complete coverage is required for each displayed aggregate. Details retain raw
+Task scores and **Task Avg** are baseline-adjusted scores multiplied by 100;
+higher is better. Task Avg weights the three tasks equally. The default sort is
+**Borda Score**, which averages relative rank points with equal weight per
+benchmark and depends on the complete model roster. Its endpoints are relative
+ranks, not a baseline and ceiling. Complete coverage in the selected scope is
+required for each displayed aggregate. Details retain raw
 metric directions: Choice target mass is higher-better, while Noul Brier and
 Score normalized expected-value MAE are lower-better. See [scoring](../evaluator/SCORING.md).
-Missing aggregates are not zero scores. The Generalization subset name does not
-establish unseen-task generalization or training-data non-overlap.
+Missing aggregates are not zero scores. **Generalization tasks only** restricts
+coverage and ranking to the active Diverse and Contextual benchmarks across all
+three tasks. Models complete only in that subset can rank there; unavailable
+full-category scores remain blank. See [benchmark scope](benchmark_scope.md).
+The subset name does not establish unseen-task generalization or training-data
+non-overlap.
 
 To update Hub results, rerun `sync-results`, then restart the local viewer after
 data/results changes. The viewer does not fetch Hub updates itself. Requests
@@ -81,6 +89,40 @@ and whether compressed files are real data and `xz` is installed. Validate raw
 runs with `s1mb validate` or published folders with `s1mb validate-results` as
 explained in the submission guide. Browser refresh alone cannot download Hub data.
 
+## Runtime options
+
+Pass these options to `npm start --` or `npm run dev --`:
+
+| Option | Purpose |
+| --- | --- |
+| `--results-dir PATH` | Select an existing results directory; repeat to combine sources |
+| `--cache-dir PATH` | Override the default `viewer/.cache/results` display cache |
+| `--check-seconds N` | Minimum interval between request-driven source checks; local default is 0 |
+| `--host 127.0.0.1` | Explicitly bind to localhost |
+| `--port N` | Override port 3000 |
+
+Environment-based configuration is listed in [`.env.sample`](../.env.sample).
+Source selection happens at startup. Restart after data/results changes,
+especially when changing paths or creating the default Hub snapshot for the first
+time. Existing source files are also checked in the background on eligible
+requests; the browser needs a later request or reload to see a refreshed snapshot.
+
+## Local Docker
+
+Build from the repository root, then use a read-only bind mount and host networking
+(on Linux) so the same safe address selection works:
+
+```sh
+docker build -f viewer/Dockerfile -t s1mb-viewer .
+docker run --rm --network host \
+  --mount type=bind,src=/absolute/path/to/results,dst=/mnt/results,readonly \
+  --mount type=volume,src=s1mb-viewer-cache,dst=/mnt/cache \
+  s1mb-viewer npm start -- --results-dir /mnt/results --cache-dir /mnt/cache --port 3000
+```
+
+Both Docker targets contain Node.js and `xz`, with no Python or Arrow dependency.
+Only source, UI assets and benchmark/category definitions are in the image.
+
 ## Develop the viewer
 
 From `viewer/`, run `npm run dev -- --results-dir /absolute/path/to/results`.
@@ -88,6 +130,5 @@ Run `npm test`, `npm run typecheck`, and `npm run build` for viewer changes.
 Build includes synthetic Storybook examples, available at `/storybook/` after
 building. Public checks do not require datasets, tokens, models or GPUs.
 
-See [the component reference](../viewer/README.md) for Docker and runtime options,
-[developer workflow](developer_workflow.md) for source changes, and
+See [developer workflow](developer_workflow.md) for source changes and
 [HF Space deployment](huggingface_space_deploy.md) for managed hosting.

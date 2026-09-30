@@ -289,7 +289,7 @@ Node process, triggered by requests (every access locally, at most hourly in
 Spaces). Existing requests receive cached summaries immediately. Changed files
 are loaded and the candidate cache is swapped atomically; failure keeps the old
 cache. A later request sees the updated data. A regular local directory does not
-synchronize itself with the Hub. See [viewer cache behavior](../viewer/README.md#filesystem-cache).
+synchronize itself with the Hub. See [viewer cache behavior](../viewer/DISPLAY_DATA.md).
 
 Missing or partial benchmarks remain visible and cannot claim complete aggregate
 coverage. Detailed provenance remains in original result files and Hub history.
@@ -302,5 +302,5 @@ Runs made with `s1mb run --generalization-only` use the same export and validati
 workflow. Publish only the completed benchmarks; do not fill missing measurements.
 The viewer lists models with complete active Generalization coverage (currently
 six benchmarks), shows their General scores, and leaves full-category aggregates
-unavailable until full coverage exists. See [the viewer guide](../viewer/README.md)
+unavailable until full coverage exists. See [the viewer guide](viewer.md)
 for combining a verified remote snapshot with local runs before publication.

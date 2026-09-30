@@ -1,6 +1,7 @@
 # Running evaluations for leaderboard submission
 
-Use this guide to produce validated S1MB measurements. Then follow
+Use this guide to produce validated S1MB measurements. For a first pipeline check
+or a local leaderboard, start with the [quick start](quickstart.md). Then follow
 [Adding a model to the leaderboard](contributing_results.md) to package results
 and open a Hugging Face Dataset PR. Submission accepts both new benchmark files
 and replacements; the original local evaluation runs remain separate.

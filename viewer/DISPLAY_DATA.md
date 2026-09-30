@@ -26,7 +26,7 @@ checks metric ranges, counts, membership and saved baseline adjustment; it does
 not validate predictions against evaluation targets. Publication validation
 remains the evaluator's responsibility.
 
-Overview scores follow [the scoring specification](../evaluator/SCORING.md):
+Task scores and Task Avg follow [the scoring specification](../evaluator/SCORING.md):
 adjust and clip each benchmark score, average within each task, then weight the
 three tasks equally and multiply by 100. Complete coverage is required. Detail
 views retain the primary metrics and their original directions.
@@ -127,10 +127,10 @@ but this is not a distributed transaction or a multi-writer cache.
 | Check interval | 0 seconds: check on each eligible request | 3,600 seconds |
 
 Use `--results-dir` (repeatable), `--cache-dir` and `--check-seconds` with the start
-wrapper to override these defaults. Environment alternatives are
-`S1MB_RESULTS_DIR`, `S1MB_RESULTS_CACHE_DIR` and `S1MB_RESULTS_CHECK_SECONDS`.
-`S1MB_DATA_DIR` selects the definition directory and defaults to `viewer/data`,
-the symlink to `../evaluator/data`. Source selection occurs at startup; changing
+wrapper to override these defaults. Environment alternatives are listed in
+[`.env.sample`](../.env.sample).
+The definition directory defaults to `viewer/data`, the symlink to
+`../evaluator/data`. Source selection occurs at startup; changing
 the selected paths requires a restart.
 
 For normal local use, generate the display cache automatically on first access.
@@ -141,7 +141,7 @@ managed mount. The viewer notices filesystem changes on the next eligible access
 For local Docker, mount results read-only and use a named volume for the cache,
 passing `--cache-dir` for its container path. Without a persistent cache volume,
 recreating the container can require a full initial load. See the runnable
-[Docker example](README.md#local-docker).
+[Docker example](../docs/viewer.md#local-docker).
 
 The private `hotchpotch/S1MB-leaderboard` Space uses the public
 `hotchpotch/s1mb-result` Dataset mounted read-only at `/mnt/results`, and the

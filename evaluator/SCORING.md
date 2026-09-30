@@ -82,7 +82,7 @@ MAE is zero, adjustment is undefined.
   baseline a model performs, which is why raw metrics and skills must remain visible.
 - The adjusted task score is the equally weighted mean of eligible benchmarks.
 - The experimental overall index is the equally weighted mean of the three task
-  scores. The current category has 60 Choice, 59 Noul, and 21 Score benchmarks;
+  scores. The current category has 57 Choice, 59 Noul, and 21 Score benchmarks;
   each task still receives one third of the index. This is an explicit convention, not an empirically validated weight.
 - Eligibility is determined from the entire fixed dataset, identically for every
   model: both classes must have positive target mass for Noul; Choice needs
@@ -145,11 +145,14 @@ publication validation and the Python baseline-adjusted formulas are unchanged.
 ## Storage and validation
 
 Python evaluations store primary and additional metrics. Validation requires the
-full metric set and recomputes every value. The viewer reads the same HF Arrow
-shards server-side and sends only summaries to the browser. It does not invoke
-a model. Shared fixtures exercise imbalance, soft targets, variable option
-counts, degenerate baselines, and scaled scores. Archived results are not loaded
-into the new category.
+full metric set and recomputes every value. The viewer reads saved metrics from
+local JSON or published JSON/XZ result files and sends only display summaries
+to the browser. It does not read evaluation
+inputs, load Arrow shards, or invoke a model. Prediction/target validation remains
+the evaluator's responsibility; see [result submission](../docs/contributing_results.md).
+Shared fixtures exercise imbalance, soft targets, variable option counts,
+degenerate baselines, and scaled scores. Current category definitions control
+which benchmarks participate in the leaderboard.
 
 The general-purpose columns show the equal-weight mean of the diverse and
 contextual benchmarks for each task. These benchmarks also contribute to the
