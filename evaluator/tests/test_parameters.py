@@ -35,9 +35,17 @@ class Embedding(Module):
 
 @pytest.fixture
 def synthetic_torch(monkeypatch):
-    monkeypatch.setitem(sys.modules, "torch", SimpleNamespace(nn=SimpleNamespace(
-        Module=Module, Embedding=Embedding, EmbeddingBag=Embedding,
-    )))
+    monkeypatch.setitem(
+        sys.modules,
+        "torch",
+        SimpleNamespace(
+            nn=SimpleNamespace(
+                Module=Module,
+                Embedding=Embedding,
+                EmbeddingBag=Embedding,
+            )
+        ),
+    )
 
 
 def test_complete_wrapper_and_shared_parameters(synthetic_torch):
@@ -46,7 +54,9 @@ def test_complete_wrapper_and_shared_parameters(synthetic_torch):
     model.alias = model.head
     model.cycle = model
     assert parameter_metadata(model) == {
-        "total_params": 112, "active_params": 12, "parameter_count_method": METHOD,
+        "total_params": 112,
+        "active_params": 12,
+        "parameter_count_method": METHOD,
     }
     model.output = Module(weight=table)
     assert parameter_metadata(model)["active_params"] == 112
@@ -57,11 +67,30 @@ def test_unknown_model_is_not_zero(synthetic_torch):
         parameter_metadata(object())
 
 
-@pytest.mark.parametrize("counts", [
-    {"total_params": -1}, {"total_params": True},
-    {"active_params": 2, "total_params": 1, "parameter_count_method": METHOD},
-    {"active_params": 1}, {"parameter_count_method": METHOD},
-])
+def test_quantized_storage_counts_original_parameter_shape(synthetic_torch):
+    packed = SimpleNamespace(numel=lambda: 16, quant_state=SimpleNamespace(shape=(4, 8)))
+    model = SimpleNamespace(
+        encoder=Module(weight=packed),
+        head=Module(bias=Parameter(3)),
+        lookup=Embedding(weight=Parameter(100)),
+    )
+    assert parameter_metadata(model) == {
+        "total_params": 135,
+        "active_params": 35,
+        "parameter_count_method": METHOD,
+    }
+
+
+@pytest.mark.parametrize(
+    "counts",
+    [
+        {"total_params": -1},
+        {"total_params": True},
+        {"active_params": 2, "total_params": 1, "parameter_count_method": METHOD},
+        {"active_params": 1},
+        {"parameter_count_method": METHOD},
+    ],
+)
 def test_invalid_metadata(counts):
     with pytest.raises(ValidationError):
         ModelInfo(id="test", adapter="test", revision="test", **counts)
@@ -69,6 +98,12 @@ def test_invalid_metadata(counts):
 
 def test_unknown_and_known_metadata():
     assert ModelInfo(id="api", adapter="api", revision="test").total_params is None
-    model = ModelInfo(id="local", adapter="local", revision="test", total_params=112,
-                      active_params=12, parameter_count_method=METHOD)
+    model = ModelInfo(
+        id="local",
+        adapter="local",
+        revision="test",
+        total_params=112,
+        active_params=12,
+        parameter_count_method=METHOD,
+    )
     assert ModelInfo.model_validate_json(model.model_dump_json()) == model

@@ -29,11 +29,88 @@ source hashes, rendering, attention backend, precision and input limits.
 | Luce | Standalone inference with recurrent backbone and typed criteria |
 | Verdict2 | Requires a compatible `model.pt` checkpoint |
 | Openvons | Requires a trained text checkpoint with `head.pt` |
+| Lumma (`lumma`) | Released native backbone, decision head and rounded typed readout |
+| TinyJev (`tinyjev`) | Native Torch backbone and NumPy pointer head |
+| Nimble (`nimble`) | Packaged schema rendering, hashes and candidate logits |
+| Bosun (`bosun`) | Stable candidate slots, trained decision embeddings and LoRA |
+| Manchego (`manchego`) | Native short prompt and extended contract-v2 codebook |
+| NeoHorse (`neohorse`) | Native branch engine, one question per call |
+| Jebadiah (`jebadiah`) | Native AINode renderer and saved per-task temperatures |
+| OpenThai (`openthai`) | Native typed client with one candidate permutation |
+| Kotoba (`kotoba`) | Released DeBERTa backbone plus trained span-pooling head |
+| Jeff (`jeff`) | Native prompt and automatic first-token or whole-label scoring |
+| Pngwn (`pngwn`) | Trained scalar option head and native split tokenization |
+| Mini-Jev (`mini-jev`) | Released NF4 backbone and joint candidate head |
+| Eikos (`eikos`) | Native SemIf prompt, candidate letters and temperature |
+| Openjev shim (`openjev-shim`) | Native calibrated shim with local exact candidate logits |
+| Verdict encoder (`verdict-encoder`) | Native GLiClass labels and calibration, conditioned on non-abstention |
+| APUS (`apus`) | Native high-effort choice probabilities with an explicit enum bridge |
+| Winnow (`winnow`) | Independently built native CUDA server and verified Q8 GGUF |
 
 Support for an adapter does not imply that a checkpoint is publicly available or
 that every benchmark fits its context limit. Failed or partial runs remain visibly
 incomplete. Do not interpret arbitrary upstream truncation or unavailable weights
 as successful evaluation. Model and source licenses must be reviewed separately.
+
+## Additional English model runtimes
+
+The typed-decision ecosystem directory tracks model families, candidate entries,
+and implementations with different readiness levels. Being listed there does not
+establish runnable weights, English coverage, or support for all three S1MB tasks.
+Use the pinned references in `upstream-models.json` and inspect each release's
+model card and runtime. XERON uses the existing Laya adapter; Decider 2B uses the
+existing Decider adapter.
+
+The additional bridges use bounded, independent questions and preserve the
+dataset's authored instructions. Choice IDs are anonymous. Native Noul criteria
+are retained where supported. Kotoba, Nimble, APUS and Verdict use explicit enum
+representations to retain authored Noul descriptions and numeric Score levels
+when their convenience interfaces cannot express these values. This is a recorded
+evaluation condition, not a claim that APUS's binary `score_level` is S1MB Score.
+Mini-Jev receives all state as its summary field, preventing its tool-state
+whitelist from dropping arbitrary S1MB evidence.
+
+Lumma, TinyJev and Mini-Jev retain their native input limits and reject overflow
+before upstream truncation. Kotoba retains both its state and total-token limits.
+Nimble supports up to 255 candidates and 8192 tokens. APUS retains its 16-candidate,
+8192-token limits. Verdict admits up to 24 substantive candidates and 8192 tokens,
+an extended-input condition compared with its runtime's 512-token default. Its
+native abstention probability is removed by conditioning on the supplied S1MB
+candidates; this is recorded in model metadata.
+
+Manchego, NeoHorse, Jebadiah, OpenThai, Jeff, Pngwn and Eikos admit full inputs up
+to 32768 tokens, recording where this extends native defaults or training
+conditions. Pngwn retains the demo's separate state/suffix tokenization and
+temperature 1.75, but removes its field slicing and 32-option cap. OpenThai uses
+one declared-order permutation, and its native readout conditions on the supplied
+candidates. Jeff uses a recorded codebook of anonymous uppercase Choice labels
+with distinct native leading-space tokens. It retains automatic whole-label
+scoring when labels share their first token, including numeric Score labels.
+Openjev's shim preserves its native composition above 52 candidates,
+choice temperature 0.85 and Noul temperature 1.829074 with zero bias. Its local
+transport returns exact candidate logits instead of top-vocabulary approximations.
+
+Install `.[mini-jev]` for Mini-Jev's bitsandbytes dependency. Verdict additionally
+requires the upstream `gliclass` package. APUS requires its audited
+`transformers==5.16.1`; use a separate environment instead of modifying an active
+model evaluation environment. Eikos and Openjev distribute contiguous decoder
+layers over the explicitly visible GPUs, reserving room for the output head and
+rejecting CPU placement. Other bridges use one GPU. Openjev's upstream helper
+requires the `openai` package to import; the adapter replaces its HTTP transport
+with local inference.
+Install NeoHorse's matching release wheel with `pip install --no-deps
+dist/neohorse_decision-1.0.0-py3-none-any.whl`; its runtime reads installed package
+metadata even when `--source` points directly to the source tree.
+
+Winnow requires building the pinned checkout with `scripts/build.py` and CUDA.
+Its adapter verifies the GGUF against the checkout's release manifest, starts the
+native server, and closes it after evaluation. Use `--server-host` with the
+machine's Tailscale IPv4 address, or localhost if unavailable, and an unused
+`--server-port` (default 8091). Expose exactly one GPU explicitly. The recorded
+condition is Q8 weights and KV cache, selected output head, 65536 context positions,
+one decision branch, and native prefix reuse. Its 64-candidate bound is retained.
+No native source, model weights, local audit reports or measurements belong in
+the source repository.
 
 ## CLM and Tev
 

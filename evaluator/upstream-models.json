@@ -146,5 +146,159 @@
     "model": "AlexWortega/openjev",
     "revision": "26de23c44b67586b4bea31c0ef2e016e3068ae66",
     "subfolder": "qwen3.5-0.8b-nli-v2s-long"
+  },
+  {
+    "adapter": "tinyjev",
+    "repository": "ssh://git@github.com/ankit-aglawe/tinyjev",
+    "commit": "b49b43b20d982a36150cf15001700a66c779b7c5",
+    "model": "AnkitAI/tinyjev-0.6b",
+    "revision": "c559c2f7ea95069f92af8b999f512345bbb87d22"
+  },
+  {
+    "adapter": "bosun",
+    "repository": "https://huggingface.co/Hanno-Labs/bosun-v3.1-1.7b",
+    "commit": "1d8dc82a20e4a32ed60927a47272d6efff48eed2",
+    "model": "Hanno-Labs/bosun-v3.1-1.7b",
+    "revision": "1d8dc82a20e4a32ed60927a47272d6efff48eed2"
+  },
+  {
+    "adapter": "nimble",
+    "repository": "https://huggingface.co/bespokelabs/Bespoke-Nimble-9B",
+    "commit": "bd792f44ec8e265be861bfcdf4e05967ffe0e858",
+    "model": "bespokelabs/Bespoke-Nimble-9B",
+    "revision": "bd792f44ec8e265be861bfcdf4e05967ffe0e858"
+  },
+  {
+    "adapter": "manchego",
+    "repository": "https://huggingface.co/oraculumai/Manchego",
+    "commit": "39ecbbd993520fe43133b6b60f437811effe32b9",
+    "model": "oraculumai/Manchego",
+    "revision": "39ecbbd993520fe43133b6b60f437811effe32b9"
+  },
+  {
+    "adapter": "neohorse",
+    "repository": "https://huggingface.co/TokenRhythm/NeoHorse-Jev-4B",
+    "commit": "434cb21d3a994a953d3ae5788405fcb2c4970554",
+    "model": "TokenRhythm/NeoHorse-Jev-4B",
+    "revision": "434cb21d3a994a953d3ae5788405fcb2c4970554"
+  },
+  {
+    "adapter": "jebadiah",
+    "repository": "https://huggingface.co/frontier-infra/jebadiah-9b-v0",
+    "commit": "d5bd08e441c098a8160b2c4211b90cd2e5d38351",
+    "model": "frontier-infra/jebadiah-9b-v0",
+    "revision": "d5bd08e441c098a8160b2c4211b90cd2e5d38351"
+  },
+  {
+    "adapter": "openthai",
+    "repository": "ssh://git@github.com/iapp-technology/openthai-systemone",
+    "commit": "5d04bcca0c58bd10e7dac2d3d369d8f760bea6cf",
+    "model": "iapp/OpenThai-SystemOne",
+    "revision": "f3709948b5e3cc9606a57e74ba62b7a639d17dd3"
+  },
+  {
+    "adapter": "kotoba",
+    "repository": "https://huggingface.co/com-kotobalabs/open-jev-deberta-v3-large",
+    "commit": "188ee67a5c93122b916e5acd5bdb0cb3623e380a",
+    "model": "com-kotobalabs/open-jev-deberta-v3-large",
+    "revision": "188ee67a5c93122b916e5acd5bdb0cb3623e380a"
+  },
+  {
+    "adapter": "jeff",
+    "repository": "ssh://git@github.com/Gestalt-Lab/jeff",
+    "commit": "14ee67e2814a19ebd0a67f508ac1b0f424ba1ebc",
+    "model": "GestaltLabs/Jeff-1",
+    "revision": "6071dda782e1e45873f9f1ac001d7d7d47582ed3"
+  },
+  {
+    "adapter": "pngwn",
+    "repository": "https://huggingface.co/spaces/pngwn/open-jev",
+    "commit": "d41dc3cd1d2fbff2646c97195a10c13af367416a",
+    "model": "pngwn/system-one-qwen3.5-4b-scorer",
+    "revision": "e6464dce15f013c2ef641593a85cc6afcdaea928"
+  },
+  {
+    "adapter": "mini-jev",
+    "repository": "https://huggingface.co/samatv256/mini-Jev",
+    "commit": "cfa671508bdfb2a65419bd7be536cf5cc793e047",
+    "model": "samatv256/mini-Jev",
+    "revision": "cfa671508bdfb2a65419bd7be536cf5cc793e047"
+  },
+  {
+    "adapter": "verdict-encoder",
+    "repository": "ssh://git@github.com/Heman10x-NGU/Verdict-open-jev",
+    "commit": "30f15564821626ca5c1ad5b2638c4eb7078787dd",
+    "model": "heman10x/rlcd-modernbert-151m",
+    "revision": "8af2496eb63c7fa66d7d234e1f62629380030eb4"
+  },
+  {
+    "adapter": "eikos",
+    "repository": "https://huggingface.co/caiovicentino1/Eikos-27B",
+    "commit": "103a5647c0131fd00abc165675fcee243d33a789",
+    "model": "caiovicentino1/Eikos-27B",
+    "revision": "103a5647c0131fd00abc165675fcee243d33a789"
+  },
+  {
+    "adapter": "openjev-shim",
+    "repository": "https://huggingface.co/openjev/openjev",
+    "commit": "0b6bb6e571bc7bcd6f1eb68de706f592f29c6483",
+    "model": "openjev/openjev",
+    "revision": "0b6bb6e571bc7bcd6f1eb68de706f592f29c6483"
+  },
+  {
+    "adapter": "winnow",
+    "repository": "ssh://git@github.com/EldanRing/winnow-inference",
+    "commit": "77d14580c6732ca2f3745750c1dc1fd446d8bcee",
+    "model": "EldanRing/Winnow-12B",
+    "revision": "b2b14213dfa252e6d6b543c8b334762e51772d29"
+  },
+  {
+    "adapter": "apus",
+    "repository": "https://huggingface.co/apus-ailab/APUS-OpenJev-v1",
+    "commit": "af276da53a2e7a6d0fbdbafc9280bf9982b2d3a6",
+    "model": "apus-ailab/APUS-OpenJev-v1-4B",
+    "revision": "422b3741f8b5c092eeefef847c1ca89d78337d45"
+  },
+  {
+    "adapter": "tinyjev",
+    "repository": "ssh://git@github.com/ankit-aglawe/tinyjev",
+    "commit": "b49b43b20d982a36150cf15001700a66c779b7c5",
+    "model": "AnkitAI/TinyJev-4B",
+    "revision": "29c6fb10a28c5da2f0e7cf12fe52c9373baa41db"
+  },
+  {
+    "adapter": "decider",
+    "repository": "https://github.com/Mapika/decider",
+    "commit": "15ab28e8d8e4ec49728165b3426d81de5b77f864",
+    "model": "Mapika/decider-4b",
+    "revision": "eb5fbdfc9448473ec25e399882912863afbdb70e"
+  },
+  {
+    "adapter": "eikos",
+    "repository": "https://huggingface.co/caiovicentino1/Eikos-4B",
+    "commit": "2b0f4d13c0eda1225eaccd6a7e3f09eb07ae38f4",
+    "model": "caiovicentino1/Eikos-4B",
+    "revision": "2b0f4d13c0eda1225eaccd6a7e3f09eb07ae38f4"
+  },
+  {
+    "adapter": "apus",
+    "repository": "https://huggingface.co/apus-ailab/APUS-OpenJev-v1",
+    "commit": "af276da53a2e7a6d0fbdbafc9280bf9982b2d3a6",
+    "model": "apus-ailab/APUS-OpenJev-v1-9B",
+    "revision": "82c9c56cfa9de8d36704ed91948d4726ef111635"
+  },
+  {
+    "adapter": "decider",
+    "repository": "https://github.com/Mapika/decider",
+    "commit": "15ab28e8d8e4ec49728165b3426d81de5b77f864",
+    "model": "Mapika/decider-2b",
+    "revision": "533964dae8be954c5b5e19fa4948e48408094c1e"
+  },
+  {
+    "adapter": "laya",
+    "repository": "https://huggingface.co/PIXELZX/XERON-0.1",
+    "commit": "a077ab80d30a6c4c595de7cf0b725fddf7dc07a8",
+    "model": "PIXELZX/XERON-0.1",
+    "revision": "a077ab80d30a6c4c595de7cf0b725fddf7dc07a8"
   }
 ]

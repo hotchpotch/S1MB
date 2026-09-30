@@ -60,6 +60,9 @@ def checkpoint_path(model: str, revision: str, subfolder: str | None = None) -> 
 class UpstreamAdapter:
     attention_model: Any
     engine: Any
+    native: Any
+    tokenizer: Any
+    settings: dict[str, Any]
 
     def setup(self, name: str, model: str, revision: str, source: str, device: str, subfolder=None):
         if not device.startswith("cuda"):
@@ -137,6 +140,37 @@ class UpstreamAdapter:
 
 def state_text(state) -> str:
     return state if isinstance(state, str) else json.dumps(state, ensure_ascii=False)
+
+
+def decoder_device_map(model_path, device, torch, transformers):
+    """Place complete decoder layers contiguously without offloading the output head."""
+    count = torch.cuda.device_count()
+    if count == 1:
+        return {"": device}
+    accelerate = importlib.import_module("accelerate")
+    config = transformers.AutoConfig.from_pretrained(str(model_path))
+    with accelerate.init_empty_weights():
+        template = transformers.AutoModelForCausalLM.from_config(config, dtype=torch.bfloat16)
+    if set(dict(template.named_children())) != {"model", "lm_head"} or set(
+        dict(template.model.named_children())
+    ) != {"embed_tokens", "layers", "norm", "rotary_emb"}:
+        raise ValueError("Unsupported decoder structure for explicit GPU placement")
+    layers = len(template.model.layers)
+    if layers < count:
+        raise ValueError("There must be at least one decoder layer per visible GPU")
+    placement = {
+        "model.embed_tokens": 0,
+        **{f"model.layers.{i}": i * count // layers for i in range(layers)},
+        "model.norm": count - 1,
+        "model.rotary_emb": count - 1,
+        "lm_head": count - 1,
+    }
+    sizes = accelerate.utils.compute_module_sizes(template, dtype=torch.bfloat16)
+    for gpu in range(count):
+        required = sum(sizes[name] for name, target in placement.items() if target == gpu)
+        if required > int(torch.cuda.mem_get_info(gpu)[0] * 0.88):
+            raise ValueError(f"Decoder weights exceed the reserved GPU {gpu} memory budget")
+    return placement
 
 
 def candidate_batches(items, lengths, max_batch=8, token_budget=4096):

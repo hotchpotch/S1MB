@@ -3,6 +3,7 @@
 import argparse
 import importlib
 import json
+import math
 from types import FunctionType, ModuleType
 from typing import Any
 
@@ -47,9 +48,22 @@ def parameter_metadata(model: Any) -> dict[str, Any]:
             parameters[id(parameter)] = parameter
             (lookup if is_lookup and name == "weight" else active).add(id(parameter))
     excluded = lookup - active
+
+    def logical_size(parameter: Any) -> int:
+        # Packed NF4 storage has fewer elements than the original weight matrix.
+        quantization = getattr(parameter, "quant_state", None)
+        shape = getattr(quantization, "shape", None)
+        if shape is not None:
+            if not shape or any(int(size) <= 0 for size in shape):
+                raise ValueError("Invalid quantized parameter shape")
+            return math.prod(int(size) for size in shape)
+        return parameter.numel()
+
     return {
-        "total_params": sum(p.numel() for p in parameters.values()),
-        "active_params": sum(p.numel() for key, p in parameters.items() if key not in excluded),
+        "total_params": sum(logical_size(p) for p in parameters.values()),
+        "active_params": sum(
+            logical_size(p) for key, p in parameters.items() if key not in excluded
+        ),
         "parameter_count_method": METHOD,
     }
 

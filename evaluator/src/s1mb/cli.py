@@ -62,6 +62,23 @@ def main() -> None:
             "alex-openjev",
             "clm",
             "tev",
+            "lumma",
+            "tinyjev",
+            "nimble",
+            "bosun",
+            "manchego",
+            "neohorse",
+            "jebadiah",
+            "openthai",
+            "kotoba",
+            "jeff",
+            "pngwn",
+            "eikos",
+            "mini-jev",
+            "apus",
+            "winnow",
+            "openjev-shim",
+            "verdict-encoder",
         ],
         required=True,
     )
@@ -69,6 +86,10 @@ def main() -> None:
     run.add_argument("--revision", default="main")
     run.add_argument("--subfolder", help="Alex Openjev checkpoint subfolder")
     run.add_argument("--device", default="cpu")
+    run.add_argument(
+        "--server-host", default="127.0.0.1", help="Winnow bind IPv4: localhost or Tailscale"
+    )
+    run.add_argument("--server-port", type=int, default=8091, help="Winnow server port")
     run.add_argument("--dtype", choices=["float32", "bfloat16"], help="Minojev backbone precision")
     run.add_argument(
         "--attention",
@@ -300,6 +321,23 @@ def execute(args, parser):
 
         adapter = TypeSafeAdapter(args.model)
     elif args.adapter in {
+        "lumma",
+        "tinyjev",
+        "nimble",
+        "bosun",
+        "manchego",
+        "neohorse",
+        "jebadiah",
+        "openthai",
+        "kotoba",
+        "jeff",
+        "pngwn",
+        "eikos",
+        "mini-jev",
+        "apus",
+        "winnow",
+        "openjev-shim",
+        "verdict-encoder",
         "von",
         "jevforge",
         "kev",
@@ -319,6 +357,23 @@ def execute(args, parser):
         import importlib
 
         classes = {
+            "lumma": "LummaAdapter",
+            "tinyjev": "TinyJevAdapter",
+            "nimble": "NimbleAdapter",
+            "bosun": "BosunAdapter",
+            "manchego": "ManchegoAdapter",
+            "neohorse": "NeoHorseAdapter",
+            "jebadiah": "JebadiahAdapter",
+            "openthai": "OpenThaiAdapter",
+            "kotoba": "KotobaAdapter",
+            "jeff": "JeffAdapter",
+            "pngwn": "PngwnAdapter",
+            "eikos": "EikosAdapter",
+            "mini-jev": "MiniJevAdapter",
+            "apus": "ApusAdapter",
+            "winnow": "WinnowAdapter",
+            "openjev-shim": "OpenjevShimAdapter",
+            "verdict-encoder": "VerdictEncoderAdapter",
             "von": "VonAdapter",
             "jevforge": "JevForgeAdapter",
             "kev": "KevAdapter",
@@ -333,9 +388,13 @@ def execute(args, parser):
             "clm": "CLMAdapter",
             "tev": "TevAdapter",
         }
-        module_name = {"open-jev": "open_jev", "alex-openjev": "alex_openjev"}.get(
-            args.adapter, args.adapter
-        )
+        module_name = {
+            "open-jev": "open_jev",
+            "alex-openjev": "alex_openjev",
+            "mini-jev": "mini_jev",
+            "openjev-shim": "openjev_shim",
+            "verdict-encoder": "verdict_encoder",
+        }.get(args.adapter, args.adapter)
         module = importlib.import_module(f"s1mb.adapters.{module_name}")
         options = {"dtype": args.dtype} if args.dtype is not None else {}
         if args.context_limit is not None:
@@ -344,6 +403,8 @@ def execute(args, parser):
             options["subfolder"] = args.subfolder
         if args.case_batch_size is not None:
             options["case_batch_size"] = args.case_batch_size
+        if args.adapter == "winnow":
+            options.update(server_host=args.server_host, server_port=args.server_port)
         adapter = getattr(module, classes[args.adapter])(
             args.model, args.revision, args.source, args.device, **options
         )

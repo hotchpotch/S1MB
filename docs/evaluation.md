@@ -42,6 +42,11 @@ See [the evaluator guide](../evaluator/README.md#real-adapters),
 [`upstream-models.json`](../evaluator/upstream-models.json). The base installation
 does not include every model's runtime. Install the selected adapter's supported
 dependencies and obtain any required checkpoint and upstream source checkout.
+Additional English typed-decision runtimes and their input limits are documented
+in [external model conditions](../evaluator/OPEN_MODELS.md#additional-english-model-runtimes).
+Winnow also requires a separately built CUDA server; its `--server-host` must be
+the machine's Tailscale IPv4 address or localhost when unavailable, and
+`--server-port` must be unused. APUS needs its own pinned Transformers environment.
 For example, Laya has the `laya` extra; several upstream adapters use the
 `open-models` extra. Kev and Open-Jev also accept `--case-batch-size` (default 16);
 use 1 for their audited 9B conditions to avoid the cross-case BF16 drift observed
