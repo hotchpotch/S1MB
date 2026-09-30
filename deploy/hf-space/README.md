@@ -18,3 +18,11 @@ This private Space runs an immutable viewer image built from the source
 repository's `hf-space-docker` branch. Results are read from a managed, read-only Dataset volume; the browser receives
 compact summaries only. Evaluation inputs are not needed by this viewer. Dataset rights are
 separate from the source code's MIT license.
+
+## Models represented in the leaderboard
+
+[models.py](models.py) lists Hugging Face model repositories with published S1MB
+results. These literal references support the Hub's automatic model/Space
+linking. The file is generated from published model metadata on each deployment and
+updated when its contents change; it is not an inference
+entry point. The viewer displays saved measurements without loading model weights.

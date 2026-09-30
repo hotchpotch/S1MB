@@ -83,7 +83,7 @@ jobs:
           if not os.environ.get("HF_TOKEN"):
               raise SystemExit("Configure the Space deployment secret")
           module = runpy.run_path("../deploy/hf-space/deploy.py")
-          module["payload"](os.environ["S1MB_SPACE_IMAGE"] + "@sha256:" + "0" * 64, os.environ["GITHUB_SHA"])
+          module["payload"](os.environ["S1MB_SPACE_IMAGE"] + "@sha256:" + "0" * 64, os.environ["GITHUB_SHA"], [])
           module["check_space"](HfApi(), os.environ["S1MB_SPACE_REPO"])
           PY
       - uses: docker/setup-buildx-action@v3

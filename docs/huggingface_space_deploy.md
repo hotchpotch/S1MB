@@ -132,6 +132,57 @@ inspect the new history and reconcile it rather than resetting someone else's
 changes. If `main` advances during validation, merge it again in the deployment
 worktree and revalidate the combined result before publishing.
 
+## Automatically generated model links
+
+On every normal deployment, the deploy script resolves the published results
+Dataset (`hotchpotch/s1mb-result` by default) to one exact commit and reads only
+its model-folder `metadata.json` files. It generates `models.py` at the Space
+repository root alongside `README.md` and the digest-pinned `Dockerfile`.
+The generated file is not maintained or committed in the source repository.
+
+Like [HAKARI-Bench's model list](https://huggingface.co/spaces/hakari-bench/leaderboard/blob/main/models.py),
+it contains a literal `MODEL_NAMES = [...]` list for Hub discovery. Hugging Face
+documents automatic linking from Python files in
+[Linking Models and Datasets](https://huggingface.co/docs/hub/spaces-overview#linking-models-and-datasets-on-the-hub).
+The file is not imported by the viewer: it describes models represented in saved
+results and does not load weights or run inference.
+
+Generation follows these rules:
+
+- Include model folders with at least one published benchmark `.json.xz` file.
+  This is a reference list, not a declaration of complete evaluation coverage.
+- Use `hf_url`, falling back to `url` when no explicit HF link exists. Skip
+  API-only models and non-Hub links; do not infer a checkpoint from display names.
+- Normalize checkpoint subfolders and revisions to `owner/model`. Deduplicate
+  and sort IDs for deterministic output, without timestamps or changing result SHAs
+  in the generated file.
+- Read metadata at the same resolved SHA, validate its schema and folder identity,
+  and reject missing, malformed, or oversized metadata. No results or weights are
+  downloaded. Any fetch or validation failure stops deployment before Space writes.
+
+Deployment compares all three generated files with the current Space revision
+and commits only changed files, retaining the parent-SHA check. A model-list-only
+change is included even when the image is unchanged. If every file is unchanged,
+no Space commit is created. Removed model references disappear on the next deploy.
+
+This runs on normal deployments, including manually dispatched deployments; there
+is no scheduled Dataset watcher. Dataset synchronization alone does not update
+`models.py`. Hub indexing and Space visibility determine whether visitors can see
+the association; adding references does not make a private Space public.
+
+To preview without modifying the Space, run from `evaluator/` with an actual image
+digest and source SHA:
+
+```sh
+uv run python ../deploy/hf-space/deploy.py \
+  --space hotchpotch/S1MB-leaderboard \
+  --image ghcr.io/hotchpotch/s1mb-leaderboard@sha256:IMAGE_DIGEST \
+  --source-sha SOURCE_COMMIT_SHA --output ../tmp/space-preview
+```
+
+Preview still reads public results metadata from the Hub. `--results-repo` can
+select another results repository for an explicit preview or deployment.
+
 ## Mounted results
 
 Configure a read-only Dataset volume using the Hub SDK from an administrative
