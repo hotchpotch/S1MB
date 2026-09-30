@@ -60,6 +60,7 @@ def main() -> None:
             "luce",
             "open-jev",
             "alex-openjev",
+            "openjev-org",
             "clm",
             "tev",
             "lumma",
@@ -245,7 +246,17 @@ def execute(args, parser):
     if args.context_limit is not None and (
         args.context_limit < 1
         or args.adapter
-        not in {"von", "jevforge", "kev", "open-jev", "alex-openjev", "clm", "tev", "bekko-v0"}
+        not in {
+            "von",
+            "jevforge",
+            "kev",
+            "open-jev",
+            "alex-openjev",
+            "openjev-org",
+            "clm",
+            "tev",
+            "bekko-v0",
+        }
     ):
         parser.error(
             "--context-limit must be positive and applies only to supported upstream adapters"
@@ -260,6 +271,7 @@ def execute(args, parser):
         "luce",
         "open-jev",
         "alex-openjev",
+        "openjev-org",
         "clm",
         "tev",
     }:
@@ -349,6 +361,7 @@ def execute(args, parser):
         "luce",
         "open-jev",
         "alex-openjev",
+        "openjev-org",
         "clm",
         "tev",
     }:
@@ -385,6 +398,7 @@ def execute(args, parser):
             "luce": "LuceAdapter",
             "open-jev": "OpenJevAdapter",
             "alex-openjev": "AlexOpenJevAdapter",
+            "openjev-org": "OpenJevOrgAdapter",
             "clm": "CLMAdapter",
             "tev": "TevAdapter",
         }
@@ -394,6 +408,7 @@ def execute(args, parser):
             "mini-jev": "mini_jev",
             "openjev-shim": "openjev_shim",
             "verdict-encoder": "verdict_encoder",
+            "openjev-org": "openjev_org",
         }.get(args.adapter, args.adapter)
         module = importlib.import_module(f"s1mb.adapters.{module_name}")
         options = {"dtype": args.dtype} if args.dtype is not None else {}

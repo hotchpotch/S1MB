@@ -300,5 +300,11 @@
     "commit": "a077ab80d30a6c4c595de7cf0b725fddf7dc07a8",
     "model": "PIXELZX/XERON-0.1",
     "revision": "a077ab80d30a6c4c595de7cf0b725fddf7dc07a8"
+  },
+  {
+    "adapter": "openjev-org",
+    "repository": "https://huggingface.co/openjev/openjev",
+    "model": "openjev/openjev",
+    "revision": "0b6bb6e571bc7bcd6f1eb68de706f592f29c6483"
   }
 ]

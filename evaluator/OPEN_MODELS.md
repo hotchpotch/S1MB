@@ -23,6 +23,7 @@ source hashes, rendering, attention backend, precision and input limits.
 | JevK5 | Native calibrated letter logits and candidate selection |
 | Minojev | Native decision head and calibrated candidate scores |
 | Open-Jev | Zefan Cai's pinned Qwen backbone, LoRA, scalar head and saved temperature |
+| OpenJev 27B (openjev organization) | Native text prompt, exact letter logits and fixed calibration |
 | Alex Openjev | Alex Wortega's NLI head, native overlapping windows and normalized entailment |
 | CLM | Native typed rendering and contrastive heads with local last-token Qwen3 embeddings |
 | Tev | Native decision JSON and A–X letter probabilities, with an explicit large-menu extension |
@@ -199,7 +200,7 @@ validation, metadata and metric calculation, but excludes dataset loading and
 result serialization. It is throughput evaluation time, not isolated request
 latency. Store timing diagnostics outside result roots.
 
-## The two Open-Jev implementations
+## Other Open-Jev implementations
 
 [Zefan Cai's Open-Jev](https://github.com/Zefan-Cai/Open-Jev) uses a LoRA adapter,
 a scalar head and a saved calibration temperature. The model loader resolves the
@@ -225,3 +226,46 @@ The Alex Wortega v5 model card explicitly discloses training on test splits of
 several public benchmarks. Consult its `panel_manifest.json` and model card when
 interpreting overlapping evaluations; these scores do not establish unseen-task
 generalization. Model and source licenses remain separate from S1MB's license.
+
+## OpenJev 27B from the openjev organization
+
+`openjev-org` evaluates `openjev/openjev`. This is a different model and interface
+from `open-jev` and `alex-openjev`. Use an unambiguous display name such as
+**OpenJev 27B (openjev/openjev, BF16)** and model folder
+`openjev__openjev_27b_bf16`; never merge its results into another Open-Jev row.
+
+Install the `open-models` extra. Pin the model to an exact Hub SHA and point
+`--source` at that snapshot's `helper/` directory to record the reference source
+hash. On the shared workspace, select physical GPU 1 as described in the
+[evaluation guide](../docs/evaluation.md), then run:
+
+```sh
+uv run --extra open-models s1mb run \
+  --adapter openjev-org --model openjev/openjev --revision MODEL_SHA \
+  --source /path/to/pinned/snapshot/helper --device cuda:0 \
+  --category smoke-v1 --limit 2 --run-id openjev-org-27b-smoke-001
+```
+
+The adapter uses Transformers BF16 and SDPA, with supported hybrid attention
+kernels. This is a text-only evaluation of the complete checkpoint. It is not the
+model card's vLLM on-load FP8 serving condition. The native chat template disables
+thinking, and one forward pass reads exact candidate-letter logits. Calibration
+is fixed to the published settings: temperature 0.85, Noul temperature 1.829074,
+zero Noul bias, and the native boolean clipping interval. Probabilities retain
+full precision instead of the HTTP helper's four-decimal output rounding.
+
+Structured instructions use the published Python-representation convention;
+structured states and descriptions use JSON. Choice keys are anonymous, Noul
+retains authored positive/negative definitions, and Score options are ordered by
+their numeric values for the native lowest-first menu, then mapped back to their
+original IDs for scoring. No targets or provenance enter prompts.
+
+Above 52 options, the adapter uses native near-equal chunks and a final readout
+of chunk winners, anchoring each chunk's entire distribution on its winner.
+This is an approximation, not a single global softmax. At most 2704 options are
+supported. Each prompt must leave room for one readout token within the default
+16384-token limit; overflow raises an error without truncation. The context limit
+may be lowered with `--context-limit`. Inference runs one question at a time.
+
+Weights and the upstream helper have separate licenses; see the model repository.
+The source adapter does not redistribute either artifact.
