@@ -26,7 +26,7 @@ def test_reject_mutable_or_injected_image(image):
         deployment.payload(image, SHA, [])
 
 
-@pytest.mark.parametrize("private,sdk", [(False, "docker"), (True, "gradio")])
+@pytest.mark.parametrize("private,sdk", [(False, "gradio"), (True, "gradio")])
 def test_wrong_space_is_never_modified(private, sdk):
     api = Mock()
     api.space_info.return_value = SimpleNamespace(private=private, sdk=sdk, sha=SHA)
@@ -35,11 +35,12 @@ def test_wrong_space_is_never_modified(private, sdk):
     api.create_commit.assert_not_called()
 
 
-def test_deploy_preserves_history_and_checks_parent(monkeypatch):
+@pytest.mark.parametrize("private", [True, False])
+def test_deploy_preserves_history_and_checks_parent(monkeypatch, private):
     monkeypatch.setattr(deployment, "hf_hub_download",
                         Mock(side_effect=deployment.EntryNotFoundError("missing")))
     api = Mock()
-    api.space_info.return_value = SimpleNamespace(private=True, sdk="docker", sha=SHA,
+    api.space_info.return_value = SimpleNamespace(private=private, sdk="docker", sha=SHA,
         runtime=SimpleNamespace(raw={"volumes": [{"type": "dataset", "source": "hotchpotch/s1mb-result",
             "mountPath": "/mnt/results", "readOnly": True},
             {"type": "bucket", "mountPath": "/mnt/cache", "readOnly": False}]}))
@@ -63,20 +64,24 @@ def test_old_running_image_is_not_success(monkeypatch):
     request = Mock()
     monkeypatch.setattr(deployment.httpx, "get", request)
     with pytest.raises(TimeoutError):
-        deployment.wait_ready(api, "example/S1MB-leaderboard", SHA, 1)
+        deployment.wait_ready(api, "example/S1MB-leaderboard", SHA, 1, private=True)
     request.assert_not_called()
 
 
-def test_private_space_readiness(monkeypatch):
+@pytest.mark.parametrize("private", [True, False])
+def test_space_readiness(monkeypatch, private):
     api = Mock(token="synthetic-token")
-    api.space_info.return_value = SimpleNamespace(private=True, sha=SHA,
+    api.space_info.return_value = SimpleNamespace(private=private, sha=SHA,
                                                   host="https://example-s1mb-leaderboard.hf.space")
     api.get_space_runtime.return_value = SimpleNamespace(stage="RUNNING", raw={"sha": SHA})
     request = Mock(return_value=SimpleNamespace(status_code=200, text="S1MB"))
     monkeypatch.setattr(deployment.httpx, "get", request)
-    deployment.wait_ready(api, "example/S1MB-leaderboard", SHA, 1)
+    deployment.wait_ready(api, "example/S1MB-leaderboard", SHA, 1, private=private)
     assert request.call_args.kwargs["follow_redirects"] is False
-    assert request.call_args.kwargs["headers"]["authorization"] == "Bearer synthetic-token"
+    if private:
+        assert request.call_args.kwargs["headers"]["authorization"] == "Bearer synthetic-token"
+    else:
+        assert "authorization" not in request.call_args.kwargs["headers"]
 
 
 @pytest.mark.parametrize("url,expected", [
@@ -209,3 +214,25 @@ def test_space_read_failure_never_commits(monkeypatch):
         deployment.deploy(api, "example/S1MB-leaderboard",
                           deployment.payload(IMAGE, SHA, ["example/model"]), SHA)
     api.create_commit.assert_not_called()
+
+
+def test_card_model_metadata_matches_generated_list():
+    import ast
+    files = deployment.payload(IMAGE, SHA, ["z/model", "A/model", "z/model"])
+    card = deployment.SpaceCard(files["README.md"].decode())
+    names = ast.literal_eval(ast.parse(files["models.py"]).body[1].value)
+    assert card.data.models == names == ["A/model", "z/model"]
+    assert card.data.sdk == "docker"
+    assert card.data.app_port == 7860
+    assert "# S1MB Leaderboard" in card.text
+    empty = deployment.payload(IMAGE, SHA, [])
+    assert deployment.SpaceCard(empty["README.md"].decode()).data.models == []
+
+
+@pytest.mark.parametrize("private", [True, False])
+def test_visibility_changes_during_startup_are_rejected(monkeypatch, private):
+    api = Mock()
+    api.space_info.return_value = SimpleNamespace(private=not private, sha=SHA)
+    with pytest.raises(RuntimeError, match="visibility changed"):
+        deployment.wait_ready(api, "example/S1MB-leaderboard", SHA, 1, private=private)
+    api.get_space_runtime.assert_not_called()

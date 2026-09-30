@@ -1,4 +1,4 @@
-name: Deploy private HF Space
+name: Deploy HF Space
 
 on:
   push:
@@ -70,7 +70,7 @@ jobs:
           python-version: '3.11'
       - run: uv sync --locked --no-dev
         working-directory: evaluator
-      - name: Check private Space configuration before publishing
+      - name: Check Space configuration before publishing
         working-directory: evaluator
         env:
           HF_TOKEN: ${{ secrets.S1MB_SPACE_DEPLOY_TOKEN }}
@@ -111,7 +111,7 @@ jobs:
           registry_config=$(mktemp -d)
           trap 'rm -rf "$registry_config"' EXIT
           docker --config "$registry_config" manifest inspect "$IMAGE" > /dev/null
-      - name: Deploy digest and verify the private Space
+      - name: Deploy digest and verify the Space
         working-directory: evaluator
         env:
           HF_TOKEN: ${{ secrets.S1MB_SPACE_DEPLOY_TOKEN }}

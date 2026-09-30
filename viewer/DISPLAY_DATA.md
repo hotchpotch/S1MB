@@ -143,7 +143,7 @@ passing `--cache-dir` for its container path. Without a persistent cache volume,
 recreating the container can require a full initial load. See the runnable
 [Docker example](../docs/viewer.md#local-docker).
 
-The private `hotchpotch/S1MB-leaderboard` Space uses the public
+The public `hotchpotch/S1MB-leaderboard` Space uses the public
 `hotchpotch/s1mb-result` Dataset mounted read-only at `/mnt/results`, and the
 private `hotchpotch/s1mb-leaderboard-cache` Bucket mounted at `/mnt/cache`.
 The managed Dataset mount handles Hub/Xet reads. The viewer itself reads only the

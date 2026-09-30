@@ -1,4 +1,4 @@
-"""Deploy a digest-pinned image to an existing private Docker Space."""
+"""Deploy a digest-pinned image to an existing Docker Space."""
 
 import argparse
 import json
@@ -8,7 +8,7 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit
 
 import httpx
-from huggingface_hub import CommitOperationAdd, HfApi, hf_hub_download
+from huggingface_hub import CommitOperationAdd, HfApi, SpaceCard, hf_hub_download
 from huggingface_hub.utils import EntryNotFoundError, build_hf_headers, validate_repo_id
 
 from s1mb.result_repository import ModelMetadata
@@ -89,10 +89,13 @@ def payload(image: str, source_sha: str, models: list[str]) -> dict[str, bytes]:
         raise ValueError("Use a GHCR image pinned by SHA-256 digest")
     if not re.fullmatch(r"[a-f0-9]{40}", source_sha):
         raise ValueError("Use the full source commit SHA")
+    model_file = render_models(models)
+    card = SpaceCard(Path(__file__).with_name("README.md").read_text())
+    card.data.models = sorted(set(models), key=lambda name: (name.casefold(), name))
     return {
-        "README.md": Path(__file__).with_name("README.md").read_bytes(),
+        "README.md": str(card).encode(),
         "Dockerfile": f"# Source commit: {source_sha}\nFROM {image}\n".encode(),
-        "models.py": render_models(models),
+        "models.py": model_file,
     }
 
 
@@ -100,8 +103,8 @@ def check_space(api: HfApi, space: str):
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*/S1MB-leaderboard", space):
         raise ValueError("Configure OWNER/S1MB-leaderboard as the Space repository")
     info = api.space_info(space)
-    if info.private is not True or info.sdk != "docker":
-        raise ValueError("Deployment requires an existing private Docker Space")
+    if info.sdk != "docker":
+        raise ValueError("Deployment requires an existing Docker Space")
     volumes = info.runtime.raw.get("volumes", []) if info.runtime else []
     if not any(v.get("type") == "dataset" and v.get("source") == "hotchpotch/s1mb-result"
                and v.get("mountPath") == "/mnt/results" and v.get("readOnly") is True
@@ -135,12 +138,12 @@ def deploy(api: HfApi, space: str, files: dict[str, bytes], source_sha: str) -> 
     return commit.oid
 
 
-def wait_ready(api: HfApi, space: str, revision: str, timeout: int) -> None:
+def wait_ready(api: HfApi, space: str, revision: str, timeout: int, private: bool) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         info = api.space_info(space)
-        if info.private is not True:
-            raise RuntimeError("Space is no longer private")
+        if info.private != private:
+            raise RuntimeError("Space visibility changed during deployment")
         if info.sha != revision:
             raise RuntimeError("Space was updated by another deployment")
         runtime = api.get_space_runtime(space)
@@ -154,13 +157,13 @@ def wait_ready(api: HfApi, space: str, revision: str, timeout: int) -> None:
             if not host or not re.fullmatch(r"https://[a-z0-9-]+\.hf\.space", host):
                 raise RuntimeError("Space did not return a supported application URL")
             try:
-                response = httpx.get(host + "/", headers=build_hf_headers(token=api.token),
+                response = httpx.get(host + "/", headers=build_hf_headers(token=api.token if private else False),
                                      timeout=60, follow_redirects=False)
             except httpx.TransportError:
                 time.sleep(15)
                 continue
             if response.status_code == 200 and "S1MB" in response.text:
-                print(f"Verified private Space revision {revision}", flush=True)
+                print(f"Verified Space revision {revision}", flush=True)
                 return
         time.sleep(15)
     raise TimeoutError("Space did not become ready before the deployment deadline")
@@ -185,9 +188,10 @@ def main() -> None:
         for name, data in files.items():
             (args.output / name).write_bytes(data)
         return
+    private = check_space(api, args.space).private
     revision = deploy(api, args.space, files, args.source_sha)
     print(f"Deployment target Space commit: {revision}", flush=True)
-    wait_ready(api, args.space, revision, args.timeout)
+    wait_ready(api, args.space, revision, args.timeout, private)
 
 
 if __name__ == "__main__":

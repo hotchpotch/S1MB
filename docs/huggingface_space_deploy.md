@@ -1,4 +1,4 @@
-# Private Hugging Face Space deployment
+# Hugging Face Space deployment
 
 This is the maintainer runbook for deployment permissions, worktrees, branch
 synchronization, managed volumes, and verification. For ordinary source changes,
@@ -9,7 +9,7 @@ The deployment workflow builds a code-only image. Keep datasets, measurements,
 and credentials out of its build inputs. Deployment preserves Space history,
 checks the parent SHA, and pins the running image to an immutable digest.
 
-## Deploying the private Space
+## Deploying the Space
 
 **Deployment currently requires a maintainer with the relevant permissions.**
 Contributors without permission should submit their source changes for review and
@@ -22,13 +22,13 @@ The current arrangement is:
 | --- | --- | --- |
 | GitHub `hotchpotch/S1MB` | Source and deployment workflow | Private |
 | GHCR `ghcr.io/hotchpotch/s1mb-leaderboard` | Code-only Docker image | Public |
-| HF Space `hotchpotch/S1MB-leaderboard` | Hosted viewer | Private |
+| HF Space `hotchpotch/S1MB-leaderboard` | Hosted viewer | Public |
 | HF Dataset `hotchpotch/s1mb-result` | Published measurements | Public |
 | HF Bucket `hotchpotch/s1mb-leaderboard-cache` | Persistent display JSON | Private |
 
 A maintainer needs permission to push or trigger the repository's deployment
 workflow. Its configured credentials must permit publishing the GHCR package and
-updating the private Space. Initial setup or changes to secrets, Space volumes,
+updating the Space. Initial setup or changes to secrets, Space volumes,
 and Bucket permissions require corresponding administrative access. The viewer
 itself does not need an application HF token for managed mounts.
 
@@ -48,13 +48,15 @@ To redeploy the current deployment branch without a new source commit:
 gh workflow run deploy-space.yml --ref hf-space-docker
 ```
 
-Keep the Space private. The results Dataset is mounted read-only at `/mnt/results`
+Preserve the Space's existing visibility. Deployment supports public and private
+Docker Spaces and never changes their visibility. Readiness checks reject a
+visibility change during deployment and use anonymous HTTP for public Spaces. The results Dataset is mounted read-only at `/mnt/results`
 and the cache Bucket read-write at `/mnt/cache`. Hub/Xet synchronization is handled
 by the managed mount, independently of the viewer's hourly check. Dataset changes
 become visible after both mount synchronization and an eligible request; an exact
 one-hour publication-to-display deadline is not guaranteed.
 
-After a successful workflow, verify the authenticated leaderboard at
+After a successful workflow, verify the leaderboard at
 [the Space](https://huggingface.co/spaces/hotchpotch/S1MB-leaderboard), not just
 that an image was published. If deployment fails, inspect the failed job before
 retrying; a pushed branch alone is not evidence that the new app is running.
@@ -63,7 +65,7 @@ retrying; a pushed branch alone is not evidence that the new app is running.
 
 The deployment branch's exact name is **`hf-space-docker`**, not `hf_docker`.
 `main` is the main development branch. Pushes to `hf-space-docker` trigger the
-**Deploy private HF Space** GitHub Actions workflow. A push to `main` alone does
+**Deploy HF Space** GitHub Actions workflow. A push to `main` alone does
 not deploy the Space.
 
 Developers may keep the deployment branch in a separate worktree, for example
@@ -138,7 +140,8 @@ On every normal deployment, the deploy script resolves the published results
 Dataset (`hotchpotch/s1mb-result` by default) to one exact commit and reads only
 its model-folder `metadata.json` files. It generates `models.py` at the Space
 repository root alongside `README.md` and the digest-pinned `Dockerfile`.
-The generated file is not maintained or committed in the source repository.
+The same list is written to the README YAML `models` metadata using the Hub card
+serializer. Generated model references are not maintained by hand in source.
 
 Like [HAKARI-Bench's model list](https://huggingface.co/spaces/hakari-bench/leaderboard/blob/main/models.py),
 it contains a literal `MODEL_NAMES = [...]` list for Hub discovery. Hugging Face
@@ -222,6 +225,6 @@ one-hour publication-to-display deadline is not guaranteed.
 
 Configure workflow variables and the deployment secret using the names in
 [`.env.sample`](../.env.sample). The deployment credential needs write access to
-the private Space; it is not passed into the viewer runtime.
+the Space; it is not passed into the viewer runtime.
 
 Official reference: [Space volumes](https://huggingface.co/docs/huggingface_hub/guides/manage-spaces#mount-volumes-in-your-space).
