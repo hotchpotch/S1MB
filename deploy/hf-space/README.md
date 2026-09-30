@@ -11,14 +11,37 @@ license: mit
 
 # S1MB Leaderboard
 
-System One Mosaic Benchmark combines specialized Choice, Noul, and Score tasks.
-It does not establish unseen-task generalization or training-data non-overlap.
+### Comparing System One Decision Models across 100+ benchmarks
 
-This Space runs an immutable viewer image built from the source
-repository's `hf-space-docker` branch. The image contains a prepared display JSON from the public results Dataset.
-New measurements appear after preparation and redeployment; there is no runtime
-Dataset mount or remote cache. The browser receives compact summaries only. Evaluation inputs are not needed by this viewer. Dataset rights are
-separate from the source code's MIT license.
+**S1MB (System One Mosaic Benchmark)** evaluates **System One Decision Models**:
+models that turn text and instructions into structured decisions. It brings three
+decision types into a shared evaluation workflow:
+
+- **Choice:** select an option from a set of alternatives.
+- **Noul:** make a yes/no judgment using the supplied definition.
+- **Score:** assign a numeric score using the supplied criteria.
+
+The mosaic combines tasks from public NLP datasets with synthetic tasks that vary
+instructions, contexts, and decision criteria. Use this leaderboard to compare
+models across tasks, explore individual benchmark results, and see where a model
+performs well or struggles. Missing or failed measurements remain visibly incomplete.
+
+S1MB provides a practical reference point for comparison within these tasks.
+Its scores do not establish unseen-task generalization or training-data non-overlap.
+
+[Read the benchmark introduction](https://huggingface.co/blog/hotchpotch/system-one-mosaic-benchmark/)
+· [Explore the evaluation dataset](https://huggingface.co/datasets/hotchpotch/s1mb-dataset)
+· [Browse published results](https://huggingface.co/datasets/hotchpotch/s1mb-result)
+
+## About this Space
+
+This is an interactive viewer of saved benchmark measurements; it does not load
+model weights or run inference. The Docker image includes compact display data
+prepared from the public results Dataset. New results appear after the display
+data is regenerated and the Space is redeployed.
+
+The viewer's source code is MIT-licensed. Evaluation datasets and model checkpoints
+retain their own licenses and redistribution terms.
 
 ## Models represented in the leaderboard
 
