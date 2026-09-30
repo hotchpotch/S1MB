@@ -8,6 +8,12 @@ Evaluation results belong in the Hugging Face results dataset. Changes to adapte
 scoring code, or documentation belong in a separate source-code PR. Link that PR
 when a submission depends on code that has not been merged yet.
 
+If you created an adapter for the evaluation, we recommend opening a corresponding
+GitHub PR in the S1MB source repository at the same time as the Dataset PR. Include
+the adapter, its tests and setup instructions, and link the two PRs. Publishing
+results alone leaves others unable to reproduce the evaluation in a different
+environment without access to your local adapter code.
+
 The results repository is [hotchpotch/s1mb-result](https://huggingface.co/datasets/hotchpotch/s1mb-result). It is public;
 a Hugging Face account is required to submit PRs. Do not upload results to the
 [benchmark input dataset](https://huggingface.co/datasets/hotchpotch/s1mb-dataset)
@@ -271,6 +277,7 @@ results and execution logs; do not infer missing settings from model names.
 - Model/checkpoint and model card URL:
 - Exact model revision, or API-resolved version:
 - Adapter and upstream source revision, if applicable:
+- Corresponding GitHub adapter PR, if a new adapter was created:
 - Evaluator version / Git commit (include uncommitted changes, if any):
 
 ## Evaluation

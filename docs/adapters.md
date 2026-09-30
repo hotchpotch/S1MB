@@ -95,5 +95,7 @@ On the shared workspace use physical GPU 1 after inspecting free memory; do not
 silently fall back to CPU. Keep measurements and reports outside source control.
 
 Document installation, supported tasks, exact invocation and inference limitations
-in the adapter notes. Submit code in a source PR and measured results in a
-separate [HF Dataset PR](contributing_results.md), linking them when appropriate.
+in the adapter notes. For a new adapter, we recommend opening its GitHub source PR
+at the same time as the separate [HF Dataset PR](contributing_results.md) and
+linking the two. Include the adapter, tests and setup instructions so others can
+reproduce the evaluation in a different environment without your local code.
