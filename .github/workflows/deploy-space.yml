@@ -15,6 +15,8 @@ concurrency:
 
 jobs:
   validate:
+    outputs:
+      results_revision: ${{ steps.results.outputs.revision }}
     runs-on: ubuntu-latest
     env:
       S1MB_TEST_NO_DATASET: '1'
@@ -33,24 +35,37 @@ jobs:
         working-directory: viewer
       - run: uv sync --locked && uv run tox
         working-directory: evaluator
-      - run: uv run pytest ../deploy/hf-space/test_deploy.py
+      - run: uv run pytest ../deploy/hf-space
         working-directory: evaluator
-      - run: uv run ruff check ../deploy/hf-space
+      - run: uv run ruff check ../deploy/hf-space ../viewer/scripts/publish-display.py
         working-directory: evaluator
+      - name: Resolve public display Dataset revision
+        id: results
+        working-directory: evaluator
+        run: |
+          uv run --no-dev python - <<'PYCODE' >> "$GITHUB_OUTPUT"
+          from huggingface_hub import HfApi
+          import re
+          info = HfApi(token=False).dataset_info("hotchpotch/s1mb-result")
+          assert info.sha and re.fullmatch(r"[a-f0-9]{40}", info.sha)
+          assert any(f.rfilename == "viewer-summary.json" for f in info.siblings)
+          print(f"revision={info.sha}")
+          PYCODE
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
           context: .
           file: viewer/Dockerfile
           target: space
+          build-args: RESULTS_REVISION=${{ steps.results.outputs.revision }}
           load: true
           tags: s1mb-space:test
           cache-from: type=gha,scope=space
           cache-to: type=gha,scope=space,mode=max
-      - name: Check runtime dependencies without credentials or data
+      - name: Check bundled display without credentials or mounts
         run: |
           docker run --rm --workdir /app/viewer --entrypoint node s1mb-space:test -e 'require("next"); require("tsx")'
-          docker run --rm --entrypoint xz s1mb-space:test --version
+          docker run --rm --workdir /app/viewer --entrypoint node s1mb-space:test --import tsx -e 'import("./src/lib/display-data.ts").then(m => m.readDisplay("display/viewer-summary.json")).then(d => console.log(d.snapshot.results.length))'
 
   publish-and-deploy:
     needs: validate
@@ -98,6 +113,7 @@ jobs:
           context: .
           file: viewer/Dockerfile
           target: space
+          build-args: RESULTS_REVISION=${{ needs.validate.outputs.results_revision }}
           push: true
           tags: ${{ vars.S1MB_SPACE_IMAGE }}:${{ github.sha }}
           labels: |
@@ -120,4 +136,4 @@ jobs:
         run: >-
           uv run --no-dev python ../deploy/hf-space/deploy.py
           --space "$S1MB_SPACE_REPO" --image "$IMAGE"
-          --source-sha "$GITHUB_SHA" --deploy
+          --source-sha "$GITHUB_SHA" --results-revision "${{ needs.validate.outputs.results_revision }}" --deploy

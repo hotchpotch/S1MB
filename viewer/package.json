@@ -9,7 +9,9 @@
     "start": "tsx scripts/start.ts",
     "build-storybook": "storybook build --output-dir public/storybook --disable-telemetry",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/lib/*.test.ts"
+    "test": "tsx --test src/lib/*.test.ts",
+    "prepare-display": "tsx scripts/generate-display.ts",
+    "fetch-display": "tsx scripts/fetch-display.ts"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.3",

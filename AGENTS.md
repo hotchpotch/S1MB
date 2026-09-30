@@ -74,14 +74,12 @@ reject a result solely because its dataset revision differs.
 Use `export-results` to package results, `validate-results` for published folders,
 and `sync-results` to install a verified Hub snapshot. Keep incomplete results
 visibly incomplete. Synchronization must leave the installed snapshot unchanged
-on failure. The viewer reads saved metrics from local or mounted result files without evaluation
-inputs. Publication validation remains the evaluator's responsibility. On requests,
-a separate Node process checks filesystem metadata (every access locally, at most
-hourly in Spaces), reads changed files, and swaps summaries atomically. Existing
-requests receive cached data immediately; refresh failures preserve that cache.
-Persist display-only JSON snapshots in two verified generations. Restore them
-before a full background rebuild after restart; in-process checks remain incremental.
-An external mount or synchronization process must make Hub updates visible locally.
+on failure. The viewer reads prepared display JSON bundled into its image, without
+runtime Hub access, XZ parsing, mounted volumes or background refresh. Generate
+from latest public results offline, compare with the published summary, require
+human approval of reductions, then publish only viewer-summary.json to the results
+Dataset with a parent-SHA guard. Rebuild/redeploy to update the Space. Local use
+also explicitly generates or fetches a summary and restarts to load new data.
 
 ## Score presentation
 

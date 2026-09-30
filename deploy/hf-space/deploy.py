@@ -29,9 +29,9 @@ def model_name(url: str) -> str | None:
     return name
 
 
-def published_models(api: HfApi, repo: str) -> list[str]:
+def published_models(api: HfApi, repo: str, revision: str = "main") -> list[str]:
     """Read only bounded display metadata at one resolved results revision."""
-    info = api.dataset_info(repo, revision="main", files_metadata=True)
+    info = api.dataset_info(repo, revision=revision, files_metadata=True)
     if not info.sha or not re.fullmatch(r"[a-f0-9]{40}", info.sha):
         raise ValueError("Results dataset must resolve to an exact commit SHA")
     files = {file.rfilename: file for file in info.siblings}
@@ -63,6 +63,19 @@ def published_models(api: HfApi, repo: str) -> list[str]:
                 names.add(name)
     print(f"Read model references from {repo}@{info.sha}", flush=True)
     return sorted(names, key=lambda name: (name.casefold(), name))
+
+
+def display_source_revision(api: HfApi, repo: str, revision: str) -> str:
+    """Keep model references consistent with the measurements bundled into the image."""
+    file = Path(hf_hub_download(repo, "viewer-summary.json", repo_type="dataset",
+                              revision=revision, token=api.token))
+    if file.stat().st_size > 32 * 1024 * 1024:
+        raise ValueError("Oversized display artifact")
+    data = json.loads(file.read_bytes())
+    source = data.get("source") or {}
+    if data.get("version") != 1 or source.get("repo") != repo or not re.fullmatch(r"[a-f0-9]{40}", source.get("revision", "")):
+        raise ValueError("Invalid display source revision")
+    return source["revision"]
 
 
 def render_models(names: list[str]) -> bytes:
@@ -105,14 +118,6 @@ def check_space(api: HfApi, space: str):
     info = api.space_info(space)
     if info.sdk != "docker":
         raise ValueError("Deployment requires an existing Docker Space")
-    volumes = info.runtime.raw.get("volumes", []) if info.runtime else []
-    if not any(v.get("type") == "dataset" and v.get("source") == "hotchpotch/s1mb-result"
-               and v.get("mountPath") == "/mnt/results" and v.get("readOnly") is True
-               for v in volumes):
-        raise ValueError("Mount the read-only results Dataset at /mnt/results before deploying")
-    if not any(v.get("type") == "bucket" and v.get("mountPath") == "/mnt/cache"
-               and v.get("readOnly") is not True for v in volumes):
-        raise ValueError("Mount a writable cache Bucket at /mnt/cache before deploying")
     return info
 
 
@@ -162,7 +167,7 @@ def wait_ready(api: HfApi, space: str, revision: str, timeout: int, private: boo
             except httpx.TransportError:
                 time.sleep(15)
                 continue
-            if response.status_code == 200 and "S1MB" in response.text:
+            if response.status_code == 200 and "About S1MB" in response.text:
                 print(f"Verified Space revision {revision}", flush=True)
                 return
         time.sleep(15)
@@ -176,13 +181,17 @@ def main() -> None:
     parser.add_argument("--source-sha", required=True)
     parser.add_argument("--output", type=Path, help="Render files locally without modifying the Space")
     parser.add_argument("--results-repo", default="hotchpotch/s1mb-result")
+    parser.add_argument("--results-revision", required=True, help="Exact Dataset SHA used by the image")
     parser.add_argument("--deploy", action="store_true")
     parser.add_argument("--timeout", type=int, default=1800)
     args = parser.parse_args()
     if bool(args.output) == args.deploy:
         parser.error("Choose exactly one of --output or --deploy")
+    if not re.fullmatch(r"[a-f0-9]{40}", args.results_revision):
+        parser.error("Use an exact results Dataset SHA")
     api = HfApi()
-    files = payload(args.image, args.source_sha, published_models(api, args.results_repo))
+    results_sha = display_source_revision(api, args.results_repo, args.results_revision)
+    files = payload(args.image, args.source_sha, published_models(api, args.results_repo, results_sha))
     if args.output:
         args.output.mkdir(parents=True, exist_ok=True)
         for name, data in files.items():

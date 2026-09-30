@@ -31,7 +31,7 @@ and component READMEs instead of maintaining duplicate procedures.
 | Inference interface and integration requirements | [Adapter development](adapters.md) |
 | Supported runtimes and model-specific settings | [Evaluator reference](../evaluator/README.md) and [external model notes](../evaluator/OPEN_MODELS.md) |
 | Metrics, baseline eligibility, Task Avg, and Borda | [Scoring specification](../evaluator/SCORING.md) |
-| Display refresh, persistence, and recovery | [Cache architecture](../viewer/DISPLAY_DATA.md) |
+| Display generation, reduction review, and image bundling | [Prepared display data](../viewer/DISPLAY_DATA.md) |
 | Source checks and generated-file conventions | [Developer workflow](developer_workflow.md) |
 | Deployment permissions, branches/worktrees, workflow, and volumes | [Space deployment](huggingface_space_deploy.md) |
 | Environment configuration names | [`.env.sample`](../.env.sample) |

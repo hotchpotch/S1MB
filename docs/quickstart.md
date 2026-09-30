@@ -25,6 +25,7 @@ uv sync --locked
 uv run s1mb sync-results --repo-id hotchpotch/s1mb-result
 cd ../viewer
 npm ci
+npm run prepare-display -- --results-dir ../evaluator/data/hub-results
 npm run build
 npm start
 ```
@@ -37,7 +38,8 @@ run `uv run hf auth login` from `evaluator/`, then retry synchronization.
 
 The viewer itself requires no evaluation inputs or Python runtime. If you already
 have a fully downloaded, validated results folder, skip synchronization and pass
-`npm start -- --results-dir /absolute/path/to/results` after installation and build.
+`npm run prepare-display -- --results-dir /absolute/path/to/results`, then
+`npm start` after installation and build.
 Git/Xet pointer files are not usable results. See the [viewer guide](viewer.md)
 for multiple sources, updates, Docker, and troubleshooting.
 
@@ -93,7 +95,8 @@ smoke run does not establish that full-length inputs will fit.
 After installing and building the viewer, run from `viewer/`:
 
 ```sh
-npm start -- --results-dir ../evaluator/data/results/jev-full-001
+npm run prepare-display -- --results-dir ../evaluator/data/results/jev-full-001
+npm start
 ```
 
 Validation success does not imply complete coverage. Inspect missing or failed

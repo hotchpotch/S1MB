@@ -926,10 +926,10 @@ export function Dashboard({
             onClose={() => setRun("")}
           />
         )}
-        {snapshot.cache && (
-          <section aria-label="Results cache" className="text-xs text-muted-foreground space-y-1 break-all">
-            <p>Last checked: {snapshot.cache.checkedAt}</p>
-            {snapshot.cache.refreshFailed && <p role="status" className="text-destructive">The latest results could not be refreshed. Showing the last validated snapshot; the server will retry after the cache interval.</p>}
+        {snapshot.display && (
+          <section aria-label="Display data" className="text-xs text-muted-foreground space-y-1 break-all">
+            <p>Results prepared: {snapshot.display.generatedAt}</p>
+            {snapshot.display.source && <a className="underline" href={`https://huggingface.co/datasets/${snapshot.display.source.repo}/tree/${snapshot.display.source.revision}`} target="_blank" rel="noreferrer">Results source · {snapshot.display.source.revision.slice(0, 12)}</a>}
           </section>
         )}
         {snapshot.issues.length > 0 && (

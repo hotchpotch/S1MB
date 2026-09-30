@@ -23,8 +23,12 @@
 /output/
 /evaluator/output/
 
-# Persistent viewer summary cache
+# Legacy viewer cache (no longer read)
 /viewer/.cache/
 
 # Downloaded remote leaderboard snapshots and synchronization artifacts
 /cache/
+
+/viewer/display/
+
+/viewer/scripts/__pycache__/

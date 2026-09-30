@@ -74,7 +74,7 @@ def test_space_readiness(monkeypatch, private):
     api.space_info.return_value = SimpleNamespace(private=private, sha=SHA,
                                                   host="https://example-s1mb-leaderboard.hf.space")
     api.get_space_runtime.return_value = SimpleNamespace(stage="RUNNING", raw={"sha": SHA})
-    request = Mock(return_value=SimpleNamespace(status_code=200, text="S1MB"))
+    request = Mock(return_value=SimpleNamespace(status_code=200, text="About S1MB"))
     monkeypatch.setattr(deployment.httpx, "get", request)
     deployment.wait_ready(api, "example/S1MB-leaderboard", SHA, 1, private=private)
     assert request.call_args.kwargs["follow_redirects"] is False
@@ -236,3 +236,16 @@ def test_visibility_changes_during_startup_are_rejected(monkeypatch, private):
     with pytest.raises(RuntimeError, match="visibility changed"):
         deployment.wait_ready(api, "example/S1MB-leaderboard", SHA, 1, private=private)
     api.get_space_runtime.assert_not_called()
+
+
+def test_model_references_use_bundled_measurement_revision(tmp_path, monkeypatch):
+    import json
+    file = tmp_path / "summary.json"
+    file.write_text(json.dumps({"version": 1, "source": {"repo": "example/results", "revision": SHA}}))
+    fetch = Mock(return_value=str(file))
+    monkeypatch.setattr(deployment, "hf_hub_download", fetch)
+    assert deployment.display_source_revision(Mock(token=False), "example/results", "c" * 40) == SHA
+    assert fetch.call_args.kwargs["revision"] == "c" * 40
+    file.write_text(json.dumps({"version": 1, "source": {"repo": "other/results", "revision": SHA}}))
+    with pytest.raises(ValueError):
+        deployment.display_source_revision(Mock(token=False), "example/results", "c" * 40)

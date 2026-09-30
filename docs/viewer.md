@@ -1,134 +1,103 @@
 # Viewing the leaderboard locally
 
-The viewer needs Node.js 22.22.2, npm and the `xz` executable (`xz-utils` on
-Debian/Ubuntu). It reads saved metrics, not evaluation inputs, and does not run
-models. See the [results dataset](https://huggingface.co/datasets/hotchpotch/s1mb-result)
-for published measurements.
+Use Node.js 22.22.2 and npm. The viewer reads a prepared display JSON; it requires
+no Python, XZ, evaluation inputs, Hub token or network access at runtime. Offline
+conversion of original results additionally requires `xz` (`xz-utils` on Debian/Ubuntu).
 
-## Download and display published results
+## Display published results
 
-From the repository root, install the evaluator and synchronize a verified snapshot:
-
-```sh
-cd evaluator
-uv sync --locked
-uv run s1mb sync-results --repo-id hotchpotch/s1mb-result
-```
-
-Synchronization validates predictions against their recorded dataset revisions;
-it may download evaluation data and require access to that dataset. A failed
-synchronization leaves the installed snapshot unchanged. The viewer itself can
-read a previously validated, fully downloaded results folder without dataset access.
-Git/Xet pointer files are not usable measurements.
-
-In another terminal, from the repository root:
+Obtain the exact public results Dataset commit SHA containing `viewer-summary.json`
+from the Hub history or the maintainer's publication output. From `viewer/`:
 
 ```sh
-cd viewer
 npm ci
+npm run fetch-display -- --revision DATASET_COMMIT_SHA
 npm run build
 npm start
 ```
 
-Open the URL printed by the server (port 3000 by default). The wrapper binds to
-the machine's Tailscale IPv4 address when available, otherwise localhost. To
-explicitly use localhost, run `npm start -- --host 127.0.0.1` and open
-<http://127.0.0.1:3000>. Do not bind local services to all interfaces.
+The default artifact path is `viewer/display/viewer-summary.json`, ignored by Git.
+Use `npm run dev` for development. The wrapper prints its Tailscale IPv4 or
+localhost URL; local services must not listen on all interfaces.
 
-`viewer/data` is a relative symlink to `../evaluator/data`. By default, the viewer
-selects `data/hub-results` if present, otherwise `data/results`. An empty checkout
-contains definitions but no measured leaderboard rows.
+## Convert local results
 
-## Inspect your own evaluation or a Dataset PR
-
-After building, run from `viewer/` to select a raw run explicitly:
+Generate the same JSON format before starting the viewer:
 
 ```sh
-npm start -- --results-dir ../evaluator/data/results/MY_RUN
+# From viewer/; install xz before conversion.
+npm run prepare-display -- --results-dir ../evaluator/data/results/MY_RUN
+npm run dev
 ```
 
-Repeat `--results-dir` to compare published results and a local run:
+Repeat `--results-dir` on the conversion command to combine existing sources:
 
 ```sh
-npm start -- --results-dir ../evaluator/data/hub-results \
-  --results-dir ../evaluator/data/results/MY_RUN
+npm run prepare-display -- --results-dir ../evaluator/data/hub-results \
+  --results-dir ../evaluator/data/results/MY_RUN \
+  --output ../tmp/local-viewer.json
+npm start -- --display-file ../tmp/local-viewer.json
 ```
 
-Each directory must exist. Local runs keep their run IDs; published model folders
-use their metadata identity. Conflicting results reject a refresh instead of
-silently overwriting another source. To preview a Dataset PR, follow the separate
-snapshot instructions in [the submission guide](contributing_results.md#synchronize-the-leaderboard)
-and pass that snapshot path with `--results-dir`.
+Local runs retain their run IDs; published model folders use their metadata IDs.
+Conflicting measurements fail conversion. Fully downloaded JSON/XZ files are
+required; Git/Xet pointers are not data. Definitions come from `viewer/data`,
+the tracked symlink to `../evaluator/data`. `--data-dir` overrides that path on
+the converter. To compare with an existing artifact, pass `--previous FILE`;
+reductions block output unless its reviewed digest is explicitly approved.
 
-## Read scores and refresh data
+For original public results, the evaluator's `sync-results` command installs a
+verified snapshot; see [submission instructions](contributing_results.md).
+Its validation may require access to recorded evaluation dataset revisions.
+The viewer itself needs only the generated JSON. Generation from latest public
+measurements and upload are described in [Space deployment](huggingface_space_deploy.md).
+
+## Updating the display
+
+Regenerate or fetch a new JSON, then restart the local viewer. Browsing the page
+does not check the filesystem or Hub for updates. There is no background process,
+Bucket cache or polling interval. The Docker image contains a fixed artifact;
+rebuild and redeploy it to update the hosted leaderboard.
+
+Runtime options for `npm start --` and `npm run dev --` are `--display-file PATH`,
+`--host 127.0.0.1`, and `--port N`. Old `--results-dir`, `--cache-dir` and
+`--check-seconds` startup options have been removed. Environment configuration is
+listed only in [`.env.sample`](../.env.sample).
+
+## Scores
 
 Task scores and **Task Avg** are baseline-adjusted scores multiplied by 100;
-higher is better. Task Avg weights the three tasks equally. The default sort is
-**Borda Score**, which averages relative rank points with equal weight per
-benchmark and depends on the complete model roster. Its endpoints are relative
-ranks, not a baseline and ceiling. Complete coverage in the selected scope is
-required for each displayed aggregate. Details retain raw
-metric directions: Choice target mass is higher-better, while Noul Brier and
-Score normalized expected-value MAE are lower-better. See [scoring](../evaluator/SCORING.md).
-Missing aggregates are not zero scores. **Generalization tasks only** restricts
-coverage and ranking to the active Diverse and Contextual benchmarks across all
-three tasks. Models complete only in that subset can rank there; unavailable
-full-category scores remain blank. See [benchmark scope](benchmark_scope.md).
-The subset name does not establish unseen-task generalization or training-data
-non-overlap.
-
-To update Hub results, rerun `sync-results`, then restart the local viewer after
-data/results changes. The viewer does not fetch Hub updates itself. Requests
-trigger filesystem checks in a separate process; existing requests receive cached
-summaries while changed files load. Failed refreshes preserve the previous cache.
-Two verified display-only disk snapshots support recovery after restart.
-See [cache details](../viewer/DISPLAY_DATA.md) for implementation and recovery.
-
-If rows are missing, check the selected results directory, coverage, server logs,
-and whether compressed files are real data and `xz` is installed. Validate raw
-runs with `s1mb validate` or published folders with `s1mb validate-results` as
-explained in the submission guide. Browser refresh alone cannot download Hub data.
-
-## Runtime options
-
-Pass these options to `npm start --` or `npm run dev --`:
-
-| Option | Purpose |
-| --- | --- |
-| `--results-dir PATH` | Select an existing results directory; repeat to combine sources |
-| `--cache-dir PATH` | Override the default `viewer/.cache/results` display cache |
-| `--check-seconds N` | Minimum interval between request-driven source checks; local default is 0 |
-| `--host 127.0.0.1` | Explicitly bind to localhost |
-| `--port N` | Override port 3000 |
-
-Environment-based configuration is listed in [`.env.sample`](../.env.sample).
-Source selection happens at startup. Restart after data/results changes,
-especially when changing paths or creating the default Hub snapshot for the first
-time. Existing source files are also checked in the background on eligible
-requests; the browser needs a later request or reload to see a refreshed snapshot.
+higher is better. Task Avg weights the three tasks equally. **Borda Score** uses
+relative benchmark ranks and depends on the displayed model roster. Complete
+coverage in the selected scope is required. Generalization-only results can rank
+in their complete subset; this does not establish unseen-task generalization.
+Details retain primary metric directions. See [scoring](../evaluator/SCORING.md)
+and [benchmark scope](benchmark_scope.md).
 
 ## Local Docker
 
-Build from the repository root, then use a read-only bind mount and host networking
-(on Linux) so the same safe address selection works:
+Build from the repository root with the published Dataset SHA:
 
 ```sh
-docker build -f viewer/Dockerfile -t s1mb-viewer .
-docker run --rm --network host \
-  --mount type=bind,src=/absolute/path/to/results,dst=/mnt/results,readonly \
-  --mount type=volume,src=s1mb-viewer-cache,dst=/mnt/cache \
-  s1mb-viewer npm start -- --results-dir /mnt/results --cache-dir /mnt/cache --port 3000
+docker build -f viewer/Dockerfile --build-arg RESULTS_REVISION=DATASET_COMMIT_SHA \
+  -t s1mb-viewer .
+docker run --rm --network host s1mb-viewer
 ```
 
-Both Docker targets contain Node.js and `xz`, with no Python or Arrow dependency.
-Only source, UI assets and benchmark/category definitions are in the image.
+On Linux, host networking lets the wrapper select the host's Tailscale IPv4 or
+localhost. No result or cache mounts are needed. To override with your own prepared
+JSON, mount just that file read-only and select it with `--display-file`.
+The image contains public display data; never bake private raw measurements or
+credentials into it. Runtime is Node.js only, with no Python or XZ dependency.
 
-## Develop the viewer
+## Checks and troubleshooting
 
-From `viewer/`, run `npm run dev -- --results-dir /absolute/path/to/results`.
-Run `npm test`, `npm run typecheck`, and `npm run build` for viewer changes.
-Build includes synthetic Storybook examples, available at `/storybook/` after
-building. Public checks do not require datasets, tokens, models or GPUs.
+From `viewer/`, run `npm test`, `npm run typecheck`, and `npm run build`.
+The build includes synthetic Storybook examples at `/storybook/`. Ordinary tests
+and Next.js builds are offline; the Docker bundling step deliberately fetches a
+public artifact. Missing or corrupt display JSON is an error, not a silent empty
+leaderboard. Check the selected file, converter report and server logs.
 
-See [developer workflow](developer_workflow.md) for source changes and
-[HF Space deployment](huggingface_space_deploy.md) for managed hosting.
+See [display data architecture](../viewer/DISPLAY_DATA.md) for integrity checks,
+publication safeguards and recovery, and [developer workflow](developer_workflow.md)
+for source contribution guidance.

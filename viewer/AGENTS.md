@@ -10,7 +10,7 @@ design. Review primary screens at desktop and mobile widths, including selected
 comparison runs and the details dialog. Keep screenshots under ignored `../tmp/`.
 
 Use shared shadcn/ui components. Clearly label all Storybook measurements as
-synthetic. Read saved metrics from result JSON/XZ files; do not download evaluation
+synthetic. The offline converter reads saved metrics from result JSON/XZ files; do not download evaluation
 inputs, load Arrow, or run Python in the viewer. Publication validation belongs to
 the evaluator. Check metric ranges, saved baseline adjustment, counts, membership
 and display metadata before exposing a candidate snapshot.
@@ -20,16 +20,13 @@ Follow `../docs/contributing_results.md` for publication layout. Published folde
 supply row identity and display metadata. Preserve raw run identity for local runs.
 Keep complete coverage requirements and per-result baseline eligibility.
 
-Use one filesystem loader for local startup, Docker and HF mounted volumes.
-A separate Node child process scans metadata and decodes changed files. Cached
-requests must not wait for refresh. Coalesce concurrent checks, replace the entire
-candidate atomically, and keep the last good snapshot on failure. Local checks
-are request-driven with zero interval by default; managed Spaces default to one
-hour. Restore a versioned display-only JSON cache on first access, then rebuild
-all sources in the background after every restart. Keep only two verified immutable
-generations per source/format namespace; no write when summary content is unchanged.
-Never persist inode-based indexes across restarts. Definitions participate in the same filesystem check. Never serve raw
-inputs, predictions, environment settings or credentials to the browser.
+Use one prepared display format for local startup and Docker. Runtime loads a local
+JSON once; do not add source scans, worker IPC, mounted Dataset/Bucket dependencies
+or background refresh. Offline conversion validates a full snapshot. Publication
+compares against the last published artifact and stops for human approval when
+measurements or coverage decrease. Preserve atomic writes, bounded decoding,
+immutable source SHAs and parent-commit checks. Never serve raw inputs, predictions,
+full environment settings or credentials to the browser.
 
 The start wrapper binds to Tailscale IPv4 or localhost and rejects public/all-interface
 addresses. Verify the actual listening address when starting a service.

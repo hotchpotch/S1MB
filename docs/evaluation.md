@@ -219,7 +219,8 @@ Optional local preview, from `viewer/`:
 ```sh
 npm ci
 npm run build
-npm start -- --results-dir ../evaluator/data/results/jev-full-001
+npm run prepare-display -- --results-dir ../evaluator/data/results/jev-full-001
+npm start
 ```
 
 The viewer requires Node.js 22.22.2; compressed published results also require

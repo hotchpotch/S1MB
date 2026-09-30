@@ -258,19 +258,9 @@ export const RepeatedModelComparison: Story = { args: {
   ...RepeatedModelRuns.args, initialView: 'compare', initialCompare: ['synthetic-layout-0', 'synthetic-layout-1'],
 } };
 
-export const CachedResults: Story = {
-  args: {
-    snapshot: {
-      ...fixture,
-      cache: {
-        checkedAt: '2026-09-29T00:00:00.000Z', refreshFailed: false,
-      },
-    },
-  },
-};
-export const CacheRefreshFailed: Story = {
-  args: { snapshot: { ...CachedResults.args!.snapshot!, cache: { ...CachedResults.args!.snapshot!.cache!, refreshFailed: true } } },
-};
+export const PreparedResults: Story = { args: { snapshot: { ...fixture,
+  display: { generatedAt: '2026-09-30T00:00:00.000Z', source: null, digest: 'synthetic' },
+} } };
 
 // Six-axis sharing fixtures are entirely synthetic, including their measured-format rows.
 const radarBenchmarks = ['specialized', 'generalization'].flatMap(group => benchmarks.map(b => ({

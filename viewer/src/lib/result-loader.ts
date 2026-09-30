@@ -89,7 +89,7 @@ async function scan(dataDir: string, resultDirs: string[]): Promise<Entry[]> {
     if (depth > 4) throw new Error('Result directory nesting exceeds limit');
     const children = await readdir(directory, { withFileTypes: true });
     const published = children.some(e => e.isFile() && e.name === 'metadata.json');
-    await boundedMap(children.filter(e => !e.name.startsWith('.')), async e => {
+    await boundedMap(children.filter(e => !e.name.startsWith('.') && !(depth === 0 && e.name === 'viewer-summary.json')), async e => {
       const file = path.join(directory, e.name);
       if (e.isDirectory()) await walk(file, depth + 1);
       else if (e.isFile()) {
@@ -106,19 +106,14 @@ async function scan(dataDir: string, resultDirs: string[]): Promise<Entry[]> {
 }
 function signature(entries: Entry[]): string { return JSON.stringify(entries); }
 
-/** Per-file summaries stay in the worker, so unchanged XZ files are never decoded again. */
+/** Offline conversion: read a complete candidate and reject concurrent source edits. */
 export class FilesystemResults {
-  private previous = new Map<string, { stamp: string; value: Parsed }>();
-  private fingerprint = '';
   constructor(private dataDir: string, private resultDirs: string[], private read = readResultJson) {}
-  async refresh(): Promise<Snapshot | null> {
+  async refresh(): Promise<Snapshot> {
     const entries = await scan(this.dataDir, this.resultDirs);
     const fingerprint = signature(entries);
-    if (fingerprint === this.fingerprint) return null;
     const next = new Map<string, { stamp: string; value: Parsed }>();
     await boundedMap(entries, async e => {
-      const old = this.previous.get(e.file);
-      if (old?.stamp === e.stamp) { next.set(e.file, old); return; }
       try {
         const raw = await this.read(e.file);
         const value = e.kind === 'benchmark' ? benchmarkSchema.parse(raw) : e.kind === 'category' ? categorySchema.parse(raw)
@@ -164,8 +159,6 @@ export class FilesystemResults {
     }
     // Never publish a mixture if files changed while the candidate was being loaded.
     if (signature(await scan(this.dataDir, this.resultDirs)) !== fingerprint) throw new Error('Results changed during refresh; keeping previous snapshot');
-    this.previous = next;
-    this.fingerprint = fingerprint;
     return { categories, benchmarks: definitions, results: [...results.values()], issues: [], sources: this.resultDirs.map(d => ({ name: path.basename(d), files: entries.filter(e => e.kind === 'result' && e.file.startsWith(path.resolve(d) + path.sep)).length })) };
   }
 }

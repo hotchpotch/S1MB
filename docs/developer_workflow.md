@@ -33,14 +33,15 @@ Ordinary source contributions require no deployment access or deployment worktre
 | Model integration | [Adapter contract and testing](adapters.md) |
 | Evaluation behavior | [Evaluation runbook](evaluation.md) and [scoring specification](../evaluator/SCORING.md) |
 | UI or local result comparison | [Viewer setup](viewer.md) |
-| Display loading and recovery | [Cache architecture](../viewer/DISPLAY_DATA.md) |
+| Display loading and recovery | [Prepared display data](../viewer/DISPLAY_DATA.md) |
 | Result publication | [Dataset PR workflow](contributing_results.md) |
 | Deployment branch or hosted viewer | [Space deployment](huggingface_space_deploy.md) |
 
 To develop against an existing results folder, run from `viewer/`:
 
 ```sh
-npm run dev -- --results-dir /absolute/path/to/results
+npm run prepare-display -- --results-dir /absolute/path/to/results
+npm run dev
 ```
 
 The wrapper prints a Tailscale IPv4 or localhost URL. See the [viewer guide](viewer.md)
@@ -59,7 +60,7 @@ reports out of source commits. Standard ignored locations include:
 | Verified Hub snapshots | `evaluator/data/hub-results` and `evaluator/data/.hub-results*` |
 | Recorded dataset revisions for validation | `evaluator/data/result-datasets/` |
 | Audits and scratch reports | `evaluator/audits/`, `tmp/`, `output/`, `evaluator/output/` |
-| Viewer display cache | `viewer/.cache/results/` |
+| Prepared display JSON and reports | `viewer/display/` |
 
 Keep reports and auxiliary JSON outside result roots. Custom output destinations
 must be outside the checkout or have their own ignore rules. Keep benchmark and

@@ -1,85 +1,12 @@
-/** The web process holds compact summaries; a child process reads and parses files. */
-import { spawn, type ChildProcess } from 'node:child_process';
-import path from 'node:path';
+/** One immutable, bundled display artifact per server lifetime. No source scans or remote I/O. */
+import { readDisplay } from './display-data';
 import type { Snapshot } from './types';
-
-export type Refresh = () => Promise<Snapshot | null>;
-export class SnapshotCache {
-  private current?: Snapshot;
-  private pending?: Promise<Snapshot>;
-  private nextCheck = 0;
-  constructor(private refresh: Refresh, private intervalMs: number, private now = Date.now, private restore?: Refresh) {}
-  get(): Promise<Snapshot> {
-    if (!this.current) return this.pending ?? (this.restore ? this.load() : this.start());
-    // Do not await refresh: the same request and concurrent requests get the old snapshot.
-    if (!this.pending && this.now() >= this.nextCheck) void this.start().catch(() => {});
-    return Promise.resolve(this.current);
-  }
-  private load(): Promise<Snapshot> {
-    this.pending = this.restore!().catch(() => null).then(snapshot => {
-      this.pending = undefined;
-      this.restore = undefined;
-      if (!snapshot) return this.start();
-      this.current = snapshot;
-      // Return the restored snapshot while a full source scan starts separately.
-      void this.start().catch(() => {});
-      return snapshot;
-    });
-    return this.pending;
-  }
-  private start(): Promise<Snapshot> {
-    this.nextCheck = this.now() + this.intervalMs;
-    this.pending = this.refresh().then(snapshot => {
-      if (!snapshot && !this.current) throw new Error('Worker returned no initial snapshot');
-      this.current = { ...(snapshot ?? this.current!), cache: { checkedAt: new Date(this.now()).toISOString(), refreshFailed: false } };
-      return this.current;
-    }).catch(error => {
-      console.error('Results refresh failed:', error instanceof Error ? error.message : 'unknown error');
-      if (!this.current) throw error;
-      this.current = { ...this.current, cache: { ...this.current.cache!, refreshFailed: true } };
-      return this.current;
-    }).finally(() => { this.pending = undefined; this.nextCheck = this.now() + this.intervalMs; });
-    return this.pending;
-  }
-}
-
-export class ResultsWorker {
-  private child?: ChildProcess;
-  constructor(private dataDir: string, private dirs: string[], private cacheDir?: string) {}
-  restore(): Promise<Snapshot | null> { return this.request('restore'); }
-  refresh(): Promise<Snapshot | null> { return this.request('refresh'); }
-  private request(action: 'restore' | 'refresh'): Promise<Snapshot | null> {
-    if (this.child && !this.child.connected) this.child = undefined;
-    const child = this.child ??= spawn(process.execPath, ['--import', 'tsx', path.join(process.cwd(), 'scripts/results-worker.ts')], {
-      stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
-    });
-    return new Promise((resolve, reject) => {
-      const cleanup = () => { clearTimeout(timer); child.off('message', message); child.off('exit', exit); child.off('error', error); };
-      const error = () => { cleanup(); this.child = undefined; child.kill(); reject(new Error('Results worker failed')); };
-      const exit = () => { cleanup(); this.child = undefined; reject(new Error('Results worker exited')); };
-      const message = (value: { snapshot?: Snapshot | null; error?: string }) => {
-        cleanup();
-        if (value.error) reject(new Error(value.error)); else resolve(value.snapshot ?? null);
-      };
-      const timer = setTimeout(error, action === 'restore' ? 30_000 : 15 * 60_000);
-      child.once('message', message); child.once('exit', exit); child.once('error', error);
-      child.send({ action, dataDir: this.dataDir, dirs: this.dirs, cacheDir: this.cacheDir }, e => { if (e) error(); });
-    });
-  }
-  close() { this.child?.kill(); this.child = undefined; }
-}
-
-const shared = globalThis as typeof globalThis & { s1mbFiles?: SnapshotCache };
+const shared = globalThis as typeof globalThis & { s1mbDisplay?: Promise<Snapshot> };
 export function getSnapshot(): Promise<Snapshot> {
-  if (!shared.s1mbFiles) {
-    const dataDir = process.env.S1MB_DATA_DIR;
-    if (!dataDir) throw new Error('Start with npm start so the runtime directories are configured');
-    const dirs: unknown = JSON.parse(process.env.S1MB_RESULTS_DIRS ?? '[]');
-    if (!Array.isArray(dirs) || !dirs.length || dirs.some(d => typeof d !== 'string')) throw new Error('Configure at least one results directory');
-    const seconds = Number(process.env.S1MB_RESULTS_CHECK_SECONDS ?? 0);
-    if (!Number.isSafeInteger(seconds) || seconds < 0 || seconds > 86400) throw new Error('Invalid filesystem check interval');
-    const worker = new ResultsWorker(dataDir, dirs, process.env.S1MB_RESULTS_CACHE_DIR);
-    shared.s1mbFiles = new SnapshotCache(() => worker.refresh(), seconds * 1000, Date.now, () => worker.restore());
-  }
-  return shared.s1mbFiles.get();
+  const file = process.env.S1MB_DISPLAY_FILE;
+  if (!file) throw new Error('Start with npm start -- --display-file /path/to/viewer-summary.json');
+  return shared.s1mbDisplay ??= readDisplay(file).then(({ snapshot }) => snapshot).catch(error => {
+    shared.s1mbDisplay = undefined;
+    throw error;
+  });
 }

@@ -273,23 +273,25 @@ For a locally downloaded repository, prepare and validate its dataset revisions:
 uv run s1mb validate-results /path/to/results --download-datasets
 ```
 
-From `viewer/`, start with `npm start`. When `data/hub-results` exists, it is the
-default result source; otherwise local `data/results` is used. Explicit
-`--results-dir /path/to/results` selects another source. The viewer needs the
-`xz` executable (`xz-utils` on Debian/Ubuntu); decompressed JSON is limited to
-64 MiB per file. It reads saved metrics without downloading evaluation inputs.
-Publication validation above remains responsible for prediction/target checks.
+From `viewer/`, convert the installed snapshot before starting:
+
+```sh
+npm run prepare-display -- --results-dir ../evaluator/data/hub-results
+npm start
+```
+
+Offline conversion needs `xz`; the viewer runtime reads only the prepared JSON.
+Publication validation remains responsible for prediction/target checks.
 Public builds and unit tests need no Hub account, private data, model, or GPU.
 
 ## After merge
 
-Synchronize local results with `sync-results`, or use a managed Dataset mount
-that exposes remote updates. The viewer checks filesystem metadata in a separate
-Node process, triggered by requests (every access locally, at most hourly in
-Spaces). Existing requests receive cached summaries immediately. Changed files
-are loaded and the candidate cache is swapped atomically; failure keeps the old
-cache. A later request sees the updated data. A regular local directory does not
-synchronize itself with the Hub. See [viewer cache behavior](../viewer/DISPLAY_DATA.md).
+A maintainer generates display JSON from the latest public results, checks the
+reduction report, publishes the reserved root artifact `viewer-summary.json`,
+and rebuilds/deploys the Space. Dataset publication alone does not update the
+running viewer. Follow [the deployment runbook](huggingface_space_deploy.md#prepare-and-publish-display-data).
+The generated artifact is not a measurement submission; do not put it inside a
+model folder. Local users regenerate or download it and restart their viewer.
 
 Missing or partial benchmarks remain visible and cannot claim complete aggregate
 coverage. Detailed provenance remains in original result files and Hub history.

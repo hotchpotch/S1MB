@@ -13,7 +13,7 @@ export type ResultSummary = {
   counts: { cases: number; expected: number; succeeded: number; failed: number };
   metrics: Record<string, number | null>;
 };
-export type Snapshot = { cache?: { checkedAt: string; refreshFailed: boolean }; scoring?: Record<string, { eligible: boolean; reason: string | null }>; categories: Category[]; benchmarks: Benchmark[]; results: ResultSummary[]; issues: string[]; sources: { name: string; files: number }[] };
+export type Snapshot = { display?: { generatedAt: string; source: { repo: string; revision: string } | null; digest: string }; scoring?: Record<string, { eligible: boolean; reason: string | null }>; categories: Category[]; benchmarks: Benchmark[]; results: ResultSummary[]; issues: string[]; sources: { name: string; files: number }[] };
 export const TASKS: Task[] = ['choice', 'noul', 'score'];
 export const METRICS: Record<Task, { name: string; label: string; direction: 'up' | 'down'; description: string }> = {
   choice: { name: 'target_mass_at_prediction', label: 'Target mass at prediction', direction: 'up', description: 'Target probability assigned to the selected option. Equal to accuracy for hard labels.' },

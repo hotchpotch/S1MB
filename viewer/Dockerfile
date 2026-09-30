@@ -1,22 +1,21 @@
 FROM node:22.22.2-bookworm-slim AS build
 WORKDIR /app/viewer
-RUN apt-get update && apt-get install -y --no-install-recommends xz-utils && rm -rf /var/lib/apt/lists/*
 COPY viewer/package.json viewer/package-lock.json ./
 RUN npm ci
 COPY viewer/ ./
 RUN npm run build
 
+# Public, immutable display data is downloaded only during image construction.
+FROM build AS bundled
+ARG RESULTS_REVISION
+RUN npm run fetch-display -- --revision "$RESULTS_REVISION"
+
 FROM node:22.22.2-bookworm-slim AS runtime
-RUN apt-get update && apt-get install -y --no-install-recommends xz-utils && rm -rf /var/lib/apt/lists/*
 WORKDIR /app/viewer
-COPY --from=build --chown=node:node /app/viewer ./
-COPY --chown=node:node evaluator/data/benchmarks /app/evaluator/data/benchmarks
-COPY --chown=node:node evaluator/data/categories /app/evaluator/data/categories
-RUN mkdir -p /app/viewer/.cache/results /mnt/cache && chown -R node:node /app/viewer/.cache /mnt/cache
+COPY --from=bundled --chown=node:node /app/viewer ./
 USER node
 CMD ["npm", "start"]
 
-# The managed Dataset volume supplies results through the filesystem.
 FROM runtime AS space
 EXPOSE 7860
 CMD ["npm", "start", "--", "--space"]

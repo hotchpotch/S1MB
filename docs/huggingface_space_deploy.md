@@ -1,12 +1,12 @@
 # Hugging Face Space deployment
 
 This is the maintainer runbook for deployment permissions, worktrees, branch
-synchronization, managed volumes, and verification. For ordinary source changes,
+synchronization, prepared display data, and verification. For ordinary source changes,
 use the [developer workflow](developer_workflow.md); for local hosting, use the
 [viewer guide](viewer.md).
 
-The deployment workflow builds a code-only image. Keep datasets, measurements,
-and credentials out of its build inputs. Deployment preserves Space history,
+The deployment workflow bundles a public display JSON into the image. Keep raw
+measurements, evaluation datasets and credentials out of its build inputs. Deployment preserves Space history,
 checks the parent SHA, and pins the running image to an immutable digest.
 
 ## Deploying the Space
@@ -21,16 +21,14 @@ The current arrangement is:
 | Resource | Purpose | Visibility |
 | --- | --- | --- |
 | GitHub `hotchpotch/S1MB` | Source and deployment workflow | Private |
-| GHCR `ghcr.io/hotchpotch/s1mb-leaderboard` | Code-only Docker image | Public |
+| GHCR `ghcr.io/hotchpotch/s1mb-leaderboard` | Docker image with public display JSON | Public |
 | HF Space `hotchpotch/S1MB-leaderboard` | Hosted viewer | Public |
 | HF Dataset `hotchpotch/s1mb-result` | Published measurements | Public |
-| HF Bucket `hotchpotch/s1mb-leaderboard-cache` | Persistent display JSON | Private |
 
 A maintainer needs permission to push or trigger the repository's deployment
 workflow. Its configured credentials must permit publishing the GHCR package and
-updating the Space. Initial setup or changes to secrets, Space volumes,
-and Bucket permissions require corresponding administrative access. The viewer
-itself does not need an application HF token for managed mounts.
+updating the Space. Publishing prepared JSON additionally requires write access to the results Dataset.
+The viewer itself needs no application HF token or mounted volumes.
 
 After cross-merging and passing checks, push `hf-space-docker`. The workflow
 validates the code, builds and publishes the image, checks anonymous image access,
@@ -50,11 +48,9 @@ gh workflow run deploy-space.yml --ref hf-space-docker
 
 Preserve the Space's existing visibility. Deployment supports public and private
 Docker Spaces and never changes their visibility. Readiness checks reject a
-visibility change during deployment and use anonymous HTTP for public Spaces. The results Dataset is mounted read-only at `/mnt/results`
-and the cache Bucket read-write at `/mnt/cache`. Hub/Xet synchronization is handled
-by the managed mount, independently of the viewer's hourly check. Dataset changes
-become visible after both mount synchronization and an eligible request; an exact
-one-hour publication-to-display deadline is not guaranteed.
+visibility change during deployment and use anonymous HTTP for public Spaces.
+Images contain a fixed display artifact; new measurements require preparation,
+publication and a new deployment. There is no live Dataset mount or Bucket cache.
 
 After a successful workflow, verify the leaderboard at
 [the Space](https://huggingface.co/spaces/hotchpotch/S1MB-leaderboard), not just
@@ -137,7 +133,7 @@ worktree and revalidate the combined result before publishing.
 ## Automatically generated model links
 
 On every normal deployment, the deploy script resolves the published results
-Dataset (`hotchpotch/s1mb-result` by default) to one exact commit and reads only
+Dataset at the measurement source revision recorded in the bundled JSON and reads only
 its model-folder `metadata.json` files. It generates `models.py` at the Space
 repository root alongside `README.md` and the digest-pinned `Dockerfile`.
 The same list is written to the README YAML `models` metadata using the Hub card
@@ -180,51 +176,71 @@ digest and source SHA:
 uv run python ../deploy/hf-space/deploy.py \
   --space hotchpotch/S1MB-leaderboard \
   --image ghcr.io/hotchpotch/s1mb-leaderboard@sha256:IMAGE_DIGEST \
-  --source-sha SOURCE_COMMIT_SHA --output ../tmp/space-preview
+  --source-sha SOURCE_COMMIT_SHA --results-revision DATASET_COMMIT_SHA --output ../tmp/space-preview
 ```
 
 Preview still reads public results metadata from the Hub. `--results-repo` can
 select another results repository for an explicit preview or deployment.
 
-## Mounted results
+## Prepare and publish display data
 
-Configure a read-only Dataset volume using the Hub SDK from an administrative
-machine (this replaces the volume list, so inspect existing volumes first):
+Install viewer dependencies (`npm ci` in `viewer/`) and `xz` on the maintainer's
+machine. From `evaluator/`, use the existing uv environment for the Hub SDK/Xet:
 
-```python
-from huggingface_hub import HfApi, Volume
-api = HfApi()
-api.create_bucket("hotchpotch/s1mb-leaderboard-cache", private=True, exist_ok=True)
-api.set_space_volumes("hotchpotch/S1MB-leaderboard", [
-    Volume(type="dataset", source="hotchpotch/s1mb-result",
-           mount_path="/mnt/results", read_only=True),
-    Volume(type="bucket", source="hotchpotch/s1mb-leaderboard-cache",
-           mount_path="/mnt/cache", read_only=False),
-])
+```sh
+uv sync --locked
+uv run python ../viewer/scripts/publish-display.py
 ```
 
-The managed filesystem supplies Xet-backed results. The runtime is Node.js plus
-`xz`; no Python bootstrap, private evaluation dataset, Arrow, or application HF
-token is required. Defaults are `/mnt/results` and an hourly check. Space variable
-names and configuration are listed in [`.env.sample`](../.env.sample).
-The dedicated `--space` startup mode requires the managed Space environment and
-binds to `0.0.0.0:7860` for the managed proxy. Local Docker uses normal startup
-and safe host binding instead.
+This resolves the latest `hotchpotch/s1mb-result` commit, downloads only model
+metadata and compressed measurements, validates their summaries and writes
+`viewer/display/viewer-summary.json` plus a local `.report.json`. It does not need
+private evaluation inputs. Publication validation of original predictions remains
+the result submitter's responsibility. Review the reported source SHA and counts.
 
-When a valid display snapshot exists in the cache Bucket, the first request
-restores it, then starts a full source rebuild in the background. Without a valid
-cache, the first request waits for a full source load. Subsequent checks are
-incremental within the worker's lifetime. Refresh failures preserve the last good
-snapshot; two verified generations support recovery. Use one viewer writer per
-cache namespace. See [cache architecture](../viewer/DISPLAY_DATA.md) for persistence,
-mount durability, and recovery details.
+To generate from the latest data and publish in one command:
 
-The app does not force the Dataset mount to synchronize. Remote updates appear
-only after the mount exposes them and a request triggers a source check. An exact
-one-hour publication-to-display deadline is not guaranteed.
+```sh
+uv run python ../viewer/scripts/publish-display.py --publish
+```
 
-Configure workflow variables and the deployment secret using the names in
-[`.env.sample`](../.env.sample). The deployment credential needs write access to
-the Space; it is not passed into the viewer runtime.
+A reduction against the previously published JSON stops generation and publication.
+Review removed results, definitions, completion regressions and count/size changes.
+Only after human confirmation, rerun with the exact candidate digest:
 
-Official reference: [Space volumes](https://huggingface.co/docs/huggingface_hub/guides/manage-spaces#mount-volumes-in-your-space).
+```sh
+uv run python ../viewer/scripts/publish-display.py --publish \
+  --approve-reduction REVIEWED_CANDIDATE_DIGEST
+```
+
+Do not automatically approve this warning in CI. A changed candidate requires a
+new digest. Empty results always fail. First publication explicitly reports that
+there is no previous artifact; source inventory is still checked. Upload adds only
+the reserved root file `viewer-summary.json`. It preserves original measurements
+and uses the resolved Dataset parent SHA to reject concurrent updates.
+
+After publication, push `hf-space-docker` or dispatch the workflow on that branch.
+CI resolves one Dataset commit for both Docker builds. `RESULTS_REVISION` is a
+required build argument; the build downloads and validates just the public JSON
+at that SHA. Repeating a deployment after publishing new data resolves a new SHA,
+so Docker cannot reuse an older artifact layer by accident.
+
+## Remove legacy mounts
+
+After deploying an image containing prepared JSON, a Space administrator should
+remove the old results Dataset and cache Bucket mounts. Inspect the volume list
+first and preserve unrelated mounts. For a Space with only these two old mounts:
+
+```python
+from huggingface_hub import HfApi
+api = HfApi()
+api.set_space_volumes("hotchpotch/S1MB-leaderboard", [])
+```
+
+The Bucket is no longer used; this detaches it without deleting its contents.
+A new process needs only its image, so it no longer waits for remote cache reads.
+Preserve the Space's existing public/private visibility.
+
+Configuration names and credentials are documented in [`.env.sample`](../.env.sample).
+See [display data architecture](../viewer/DISPLAY_DATA.md) for the format and
+[local viewer instructions](viewer.md) for local conversion and Docker commands.

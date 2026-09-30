@@ -1,5 +1,4 @@
-/** Resolve filesystem sources before starting Next. */
-import { existsSync } from 'node:fs';
+/** Resolve the prepared display file before starting Next. */
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -7,7 +6,6 @@ import { networkInterfaces } from 'node:os';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const env = { ...process.env };
-const dirs: string[] = [];
 let dev = false, space = false;
 let port = '3000';
 let host = '127.0.0.1';
@@ -16,11 +14,9 @@ for (let i = 0; i < args.length; i++) {
   const arg = args[i];
   if (arg === '--dev') dev = true;
   else if (arg === '--space') space = true;
-  else if (['--results-dir', '--cache-dir', '--check-seconds', '--port', '--host'].includes(arg) && args[i + 1] && !args[i + 1].startsWith('--')) {
+  else if (['--display-file', '--port', '--host'].includes(arg) && args[i + 1] && !args[i + 1].startsWith('--')) {
     const value = args[++i];
-    if (arg === '--results-dir') dirs.push(path.resolve(value));
-    else if (arg === '--cache-dir') env.S1MB_RESULTS_CACHE_DIR = path.resolve(value);
-    else if (arg === '--check-seconds') env.S1MB_RESULTS_CHECK_SECONDS = value;
+    if (arg === '--display-file') env.S1MB_DISPLAY_FILE = path.resolve(value);
     else if (arg === '--port') port = value;
     else host = value;
   } else throw new Error(`Unknown or incomplete option: ${arg}`);
@@ -31,13 +27,9 @@ if (space) {
 }
 const allowed = ['127.0.0.1', ...(networkInterfaces().tailscale0 ?? []).filter(a => a.family === 'IPv4').map(a => a.address)];
 if (!space && !allowed.includes(host)) throw new Error('Bind to localhost or this machine’s Tailscale IPv4 address.');
-const seconds = Number(env.S1MB_RESULTS_CHECK_SECONDS ?? (space ? 3600 : 0));
-if (!Number.isSafeInteger(seconds) || seconds < 0 || seconds > 86400) throw new Error('Invalid filesystem check interval');
-const dataDir = path.resolve(env.S1MB_DATA_DIR || path.join(root, 'data'));
-if (!dirs.length) dirs.push(path.resolve(env.S1MB_RESULTS_DIR || (space ? '/mnt/results' : path.join(dataDir, existsSync(path.join(dataDir, 'hub-results')) ? 'hub-results' : 'results'))));
-const cacheDir = path.resolve(env.S1MB_RESULTS_CACHE_DIR || (space ? '/mnt/cache' : path.join(root, '.cache/results')));
+const displayFile = path.resolve(env.S1MB_DISPLAY_FILE || path.join(root, 'display/viewer-summary.json'));
 const child = spawn(process.execPath, [path.join(root, 'node_modules/next/dist/bin/next'), dev ? 'dev' : 'start', '--hostname', host, '--port', port], {
-  cwd: root, stdio: 'inherit', env: { ...env, S1MB_DATA_DIR: dataDir, S1MB_RESULTS_CACHE_DIR: cacheDir, S1MB_RESULTS_DIRS: JSON.stringify(dirs), S1MB_RESULTS_CHECK_SECONDS: String(seconds), NEXT_TELEMETRY_DISABLED: '1' },
+  cwd: root, stdio: 'inherit', env: { ...env, S1MB_DISPLAY_FILE: displayFile, NEXT_TELEMETRY_DISABLED: '1' },
 });
 for (const signal of ['SIGINT', 'SIGTERM'] as const) process.on(signal, () => child.kill(signal));
 child.on('exit', code => { process.exitCode = code ?? 1; });
