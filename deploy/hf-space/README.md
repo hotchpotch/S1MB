@@ -1,7 +1,7 @@
 ---
 title: S1MB Leaderboard
 emoji: 📊
-short_description: Compare System One models across 100+ specialized benchmarks.
+short_description: Compare System One models across 100+ specialized benchmarks
 colorFrom: blue
 colorTo: purple
 sdk: docker
