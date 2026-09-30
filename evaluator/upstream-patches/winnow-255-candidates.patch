@@ -1,0 +1,61 @@
+diff --git a/native/engine.h b/native/engine.h
+index 6971b36..be2bc49 100644
+--- a/native/engine.h
++++ b/native/engine.h
+@@ -294,7 +294,7 @@ class Engine {
+                 continue;
+             labels.push_back(label);
+             answer_ids.push_back(ids[0]);
+-            if (labels.size() == 64)
++            if (labels.size() == 255)
+                 break;
+         }
+         if (labels.size() < 2)
+diff --git a/native/protocol.h b/native/protocol.h
+index 4e42cfa..0c01314 100644
+--- a/native/protocol.h
++++ b/native/protocol.h
+@@ -127,7 +127,7 @@ inline Compiled compile(const json &body, const std::vector<std::string> &labels
+         } else
+             throw std::invalid_argument("Unknown question type");
+         if (q.keys.size() < 2 || q.keys.size() > labels.size())
+-            throw std::invalid_argument("Questions require 2–64 alternatives");
++            throw std::invalid_argument("Questions require 2–" + std::to_string(labels.size()) + " alternatives");
+         if (q.instruction.is_null() && !source.contains("criteria"))
+             throw std::invalid_argument("Question has no instructions or criteria");
+         std::string suffix =
+diff --git a/patches/llama-classifier-head.patch b/patches/llama-classifier-head.patch
+index b1a3414..727c806 100644
+--- a/patches/llama-classifier-head.patch
++++ b/patches/llama-classifier-head.patch
+@@ -83,7 +83,7 @@
+ +// Winnow's small classifier head is copied once. The tied input table remains resident.
+ +int32_t llama_model_classifier_rows(const llama_model * model, const llama_token * ids,
+ +        int32_t count, float * dst, size_t dst_count, float * softcap) {
+-+    if (!model || !ids || !dst || !softcap || count < 2 || count > 64 ||
+++    if (!model || !ids || !dst || !softcap || count < 2 || count > 255 ||
+ +            model->arch != LLM_ARCH_GEMMA4 || !model->output || model->output_s) return 0;
+ +    const auto * tensor = model->output;
+ +    const auto width = tensor->ne[0];
+diff --git a/runtime.lock.json b/runtime.lock.json
+index d444f78..8bcc004 100644
+--- a/runtime.lock.json
++++ b/runtime.lock.json
+@@ -8,7 +8,7 @@
+     },
+     {
+       "file": "patches/llama-classifier-head.patch",
+-      "sha256": "0c381d753cdf5705cd55e8b72d07904241ae45e3d6005010545031774594237d"
++      "sha256": "cb53b8da8f2cfbb3e2ea6d36bc8e40abdf72cac31e06e452b1ea08bd9ce9f62d"
+     },
+     {
+       "file": "patches/llama-gemma4-tied-embedding.patch",
+@@ -27,7 +27,7 @@
+     "src/llama-cparams.h": "028d3a6e703d16cbece4711982f451649fa5d490f2e88b0a06b598b8ec5d8f46",
+     "src/llama-kv-cache-iswa.cpp": "8c23b37835568b532198f3a48832bacc0af91987da6bcd4d670d675553448ab6",
+     "src/llama-kv-cache-iswa.h": "cb0919cce0603a301eaa5af2ede1560e2857320f710004ddaed4adf5725a2925",
+-    "src/llama-model.cpp": "1cc729d55ae47088698035c561af4286fee8c5a0be6a7261d6591042809369cb",
++    "src/llama-model.cpp": "fe7a9b63b20e8dd9cbb4534b4b7795001d1a125e8e7a0cb6957099893d7b5290",
+     "src/models/gemma4.cpp": "07a2043ea44e4519571b7b834a99b3ee8b0b20770fab81eec660045ea804c02b",
+     "tools/server/server-context.cpp": "d97a0704ff4826b5ef811497a51806cdfcd57574d3fb14d8e0c09cb6f55c6018",
+     "tools/server/server-context.h": "d38e35c35bdd49ea68297df14ea45d76248c53391a9197cf71b851fec21a4da0",

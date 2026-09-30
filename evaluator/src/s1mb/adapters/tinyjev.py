@@ -9,11 +9,18 @@ from .upstream import UpstreamAdapter
 class TinyJevAdapter(UpstreamAdapter):
     case_batch_size = 1
 
-    def __init__(self, model, revision, source, device):
+    def __init__(self, model, revision, source, device, context_limit=None):
         self.setup("tinyjev", model, revision, source, device)
         native = importlib.import_module("tinyjev")
         self.engine = native.load(str(self.path), backend="torch", device=device)
         self.attention_model = self.engine.backbone.model
+        original_limits = [self.engine.family.max_state, self.engine.family.max_branch]
+        if context_limit is not None:
+            maximum = self.attention_model.config.max_position_embeddings
+            if not 1 <= context_limit <= maximum:
+                raise ValueError(f"TinyJev context limit must be within 1..{maximum}")
+            self.engine.family.max_state = context_limit
+            self.engine.family.max_branch = context_limit
         self.settings = {
             "dtype": "float16",
             "attention_implementation": "sdpa",
@@ -23,6 +30,7 @@ class TinyJevAdapter(UpstreamAdapter):
             "max_row_tokens": self.engine.family.max_branch,
             "temperature": self.engine.family.temperature,
             "renderer": "native-independent-structured-anonymous-choice-v1",
+            "checkpoint_runtime_limits": original_limits,
         }
 
     def predict(self, case):

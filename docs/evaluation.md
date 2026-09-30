@@ -253,3 +253,10 @@ generalization benchmarks (currently six in `english-v1`). This intersects with
 Use a fresh run ID. These runs retain normal per-benchmark completeness, but do
 not provide full-category coverage. The viewer lists them with General scores
 and leaves unavailable full-category aggregates blank.
+
+
+Capacity-limited decision adapters can be retried under explicitly extended
+conditions. See [capacity extensions](../evaluator/OPEN_MODELS.md#explicit-capacity-extensions)
+for `--context-limit`, `--max-candidates`, native runtime patching and extrapolation
+metadata. Use fresh run IDs, smoke-test each model/configuration, preserve all
+original measurements, and validate complete coverage before reporting totals.

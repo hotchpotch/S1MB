@@ -36,7 +36,7 @@ source hashes, rendering, attention backend, precision and input limits.
 | Bosun (`bosun`) | Stable candidate slots, trained decision embeddings and LoRA |
 | Manchego (`manchego`) | Native short prompt and extended contract-v2 codebook |
 | NeoHorse (`neohorse`) | Native branch engine, one question per call |
-| Jebadiah (`jebadiah`) | Native AINode renderer and saved per-task temperatures |
+| Jebadiah (`jebadiah`) | LoRA or merged BF16 checkpoints, native AINode renderer and saved per-task temperatures |
 | OpenThai (`openthai`) | Native typed client with one candidate permutation |
 | Kotoba (`kotoba`) | Released DeBERTa backbone plus trained span-pooling head |
 | Jeff (`jeff`) | Native prompt and automatic first-token or whole-label scoring |
@@ -269,3 +269,57 @@ may be lowered with `--context-limit`. Inference runs one question at a time.
 
 Weights and the upstream helper have separate licenses; see the model repository.
 The source adapter does not redistribute either artifact.
+
+## Explicit capacity extensions
+
+The default limits above remain the released serving conditions. For a separate
+full-input evaluation, `--context-limit` also supports TinyJev, Nimble, Lumma,
+Mini-Jev, APUS, Verdict encoder and Kotoba. Use fresh run IDs and retain original
+measurements. These options never truncate inputs or discard candidates.
+
+| Adapter | Extended condition | Preserved computation |
+| --- | --- | --- |
+| TinyJev | Up to the backbone position limit (32K for the evaluated releases) | Native pointer renderer, head and calibration |
+| Nimble | Up to the backbone position limit | Native candidate prompt and logits; the 8K training contract is recorded separately |
+| Mini-Jev | Up to the backbone position limit (32K) | Summary tokens are inserted at the exact native summary boundary; suffix pooling and joint head are unchanged |
+| Lumma | Explicit row/state limit up to 32K | Native delimiters, pointer head and RoPE frequencies |
+| Verdict encoder | Explicit context up to 32K and `--max-candidates 255` | Full dynamic-label forward, original abstention conditioning and released calibration |
+| APUS | Backbone-supported context and `--max-candidates 255` | Original A–P prefix, additional unique single-token uppercase codes, native full-head logits |
+| Kotoba | Explicit context up to 32K | Full relative attention, authored spans and head; query blocks of 128 bound temporary attention memory |
+| Winnow | `--max-candidates 255` with the patch below | Native single-token codebook order, selected output rows and joint candidate softmax |
+
+Lumma's checkpoint position limit is 12,288, ModernBERT's is 8,192, and Kotoba's
+published DeBERTa setting is 512. Larger requested contexts are explicit position
+extrapolation, recorded in model metadata; weights and positional frequencies are
+not retrained or rescaled. Completing inference does not establish long-context
+accuracy. Verdict's larger menus also extrapolate beyond its calibration scope.
+APUS and Winnow's additional letter slots exceed their released menu conditions.
+Keep these conditions visible when comparing or publishing results.
+
+Mini-Jev's extension applies to the summary-only state mapping used by this adapter.
+Its native token boundaries and option masks match the original encoder exactly
+for inputs within the original budget. The native GPU method is rebound with an
+instance-local encoder; other loaded modules are not modified.
+
+Kotoba uses relative-only positional embeddings. Its extension tiles queries while
+retaining all keys and both content-to-position and position-to-content terms.
+It does not split documents into independent windows or average window predictions.
+Synthetic tests compare tiled and original attention with padding and sequences
+beyond the configured position length. Actual long-input GPU smoke checks remain
+necessary before a full run.
+
+For Winnow, apply `upstream-patches/winnow-255-candidates.patch` at the pinned
+inference checkout root before the first runtime build, then build with its CUDA
+script before requesting more than 64 candidates. The patch raises codebook
+enumeration capacity and the limit on selected output rows; token uniqueness and
+native request validation remain active. The adapter records
+a hash of the native sources in addition to Python source and runtime-lock hashes.
+Use the Tailscale/localhost binding instructions above when starting its server.
+
+Jebadiah merged releases such as `frontier-infra/jebadiah-9b-v2` load their own
+weights, tokenizer and chat template without applying another adapter. Set
+`--source` to the `scripts` directory from the same pinned model snapshot. The
+released `temperatures.json` supplies all three task temperatures, including the
+v2 Score calibration update. The existing 32K full-input condition and overflow
+rejection also apply to merged releases; checkpoint format and base revision are
+recorded in result metadata.

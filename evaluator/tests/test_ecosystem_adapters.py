@@ -9,6 +9,7 @@ from s1mb.adapters.bosun import bosun_candidates
 from s1mb.adapters.lumma import LummaAdapter
 from s1mb.adapters.nimble import NimbleAdapter, nimble_field
 from s1mb.adapters.tinyjev import TinyJevAdapter
+from s1mb.data import ModelInfo
 
 
 def test_nimble_preserves_authored_options_and_numeric_levels():
@@ -116,7 +117,8 @@ def test_verdict_rejects_candidate_overflow_before_native_truncation():
     case = cases()
     q = case.questions[0].model_copy(update={"options": case.questions[0].options * 13})
     adapter = VerdictEncoderAdapter.__new__(VerdictEncoderAdapter)
-    with pytest.raises(ValueError, match="24 candidates"):
+    adapter.settings = {"max_candidates": 24}
+    with pytest.raises(ValueError, match="capacity exceeded"):
         adapter.predict(case.model_copy(update={"questions": [q]}))
 
 
@@ -140,6 +142,9 @@ def test_winnow_keeps_structured_state_and_authored_questions(monkeypatch):
     from s1mb.adapters.winnow import WinnowAdapter
 
     adapter = WinnowAdapter.__new__(WinnowAdapter)
+    adapter.info = ModelInfo(
+        id="test", adapter="winnow", revision="test", settings={"max_candidates": 64}
+    )
     requests = []
 
     def request(path, body=None):

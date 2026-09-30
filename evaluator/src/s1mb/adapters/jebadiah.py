@@ -15,21 +15,27 @@ class JebadiahAdapter(UpstreamAdapter):
     def __init__(self, model, revision, source, device):
         self.setup("jebadiah", model, revision, source, device)
         self.native = importlib.import_module("jebadiah_model")
-        base = json.loads((self.path / "adapter_config.json").read_text())[
-            "base_model_name_or_path"
-        ]
-        base_revision = "68c46c4b3498877f3ef123c856ecfde50c39f404"
-        tokenizer = self.native.load_tokenizer(base, base_revision)
-        model_object = self.native.load_adapter(
-            self.native.load_base(
-                base,
-                base_revision,
-                attn_implementation="sdpa",
-                dtype=self.torch.bfloat16,
-                device=device,
-            ),
-            str(self.path),
+        adapter_config = self.path / "adapter_config.json"
+        if adapter_config.exists():
+            base = json.loads(adapter_config.read_text())["base_model_name_or_path"]
+            base_revision = "68c46c4b3498877f3ef123c856ecfde50c39f404"
+            load_path, load_revision = base, base_revision
+            checkpoint_format = "lora-adapter"
+        else:
+            manifest = json.loads((self.path / "jebadiah.json").read_text())
+            base, base_revision = manifest["base"].rsplit("@", 1)
+            load_path, load_revision = str(self.path), None
+            checkpoint_format = "merged-bfloat16"
+        tokenizer = self.native.load_tokenizer(load_path, load_revision)
+        model_object = self.native.load_base(
+            load_path,
+            load_revision,
+            attn_implementation="sdpa",
+            dtype=self.torch.bfloat16,
+            device=device,
         )
+        if checkpoint_format == "lora-adapter":
+            model_object = self.native.load_adapter(model_object, str(self.path))
         self.engine = self.native.Scorer(
             model_object,
             tokenizer,
@@ -46,6 +52,7 @@ class JebadiahAdapter(UpstreamAdapter):
             "case_batch_size": 1,
             "base_model": base,
             "base_revision": base_revision,
+            "checkpoint_format": checkpoint_format,
             "temperatures": self.engine.temperatures,
             "renderer": "native-ainode-extended-alphabet-anonymous-choice-v1",
             "extended_input_condition": "32768 tokens instead of runtime 2048 default",

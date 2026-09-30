@@ -30,7 +30,19 @@ def check_port_available(host, port):
 class WinnowAdapter:
     case_batch_size = 1
 
-    def __init__(self, model, revision, source, device, server_host="127.0.0.1", server_port=8091):
+    def __init__(
+        self,
+        model,
+        revision,
+        source,
+        device,
+        server_host="127.0.0.1",
+        server_port=8091,
+        max_candidates=None,
+    ):
+        capacity = 64 if max_candidates is None else max_candidates
+        if not 2 <= capacity <= 255:
+            raise ValueError("Winnow candidate capacity must be within 2..255")
         address = ipaddress.ip_address(server_host)
         if address.version != 4 or not (
             address.is_loopback or address in ipaddress.ip_network("100.64.0.0/10")
@@ -42,6 +54,13 @@ class WinnowAdapter:
         if not gpu or "," in gpu or device not in {"cuda", "cuda:0"}:
             raise ValueError("Winnow requires exactly one explicitly visible GPU")
         root, digest = source_path(source)
+        native_digest = hashlib.sha256()
+        for file in sorted((root / "native").rglob("*")):
+            if file.is_file():
+                native_digest.update(str(file.relative_to(root)).encode())
+                native_digest.update(file.read_bytes())
+        with (root / ".build/bin/winnow-server").open("rb") as binary:
+            binary_digest = hashlib.file_digest(binary, "sha256").hexdigest()
         manifest = json.loads((root / "manifests/models.json").read_text())
         artifact = manifest["release"]["model"]
         hub = importlib.import_module("huggingface_hub")
@@ -63,13 +82,16 @@ class WinnowAdapter:
                 "device": device,
                 "cuda_visible_devices": gpu,
                 "source_python_sha256": digest,
+                "source_native_sha256": native_digest.hexdigest(),
+                "server_binary_sha256": binary_digest,
                 "runtime_lock": json.loads((root / "runtime.lock.json").read_text()),
                 "weights_sha256": artifact["sha256"],
                 "dtype": "Q8_0-weights-Q8_0-KV",
                 "attention_implementation": "llama.cpp-flash-attention",
                 "input_length_policy": "reject-overflow",
                 "max_input_tokens": 65536,
-                "max_candidates": 64,
+                "max_candidates": capacity,
+                "checkpoint_max_candidates": 64,
                 "case_batch_size": 1,
                 "questions_per_call": 1,
                 "renderer": "native-systemone-structured-anonymous-choice-v1",
@@ -142,8 +164,8 @@ class WinnowAdapter:
         for key, question in questions_for_api(
             case.questions, structured=True, anonymous_choice=True
         ).items():
-            if len(question["criteria"]) > 64:
-                raise ValueError("Winnow supports at most 64 candidates; refusing truncation")
+            if len(question["criteria"]) > self.info.settings["max_candidates"]:
+                raise ValueError("Winnow candidate capacity exceeded; refusing truncation")
             result = self.request(
                 "/v1/systemone",
                 {"state": case.state, "questions": {"decision": question}},

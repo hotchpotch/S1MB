@@ -3,6 +3,7 @@
 import importlib
 import json
 import math
+from typing import Any, cast
 
 from s1mb.data import Prediction
 
@@ -12,28 +13,40 @@ from .upstream import UpstreamAdapter, state_text
 class VerdictEncoderAdapter(UpstreamAdapter):
     case_batch_size = 1
 
-    def __init__(self, model, revision, source, device):
+    def __init__(self, model, revision, source, device, context_limit=None, max_candidates=None):
         self.setup("verdict-encoder", model, revision, source, device)
         self.schema = importlib.import_module("core.primitives")
-        self.formatting = importlib.import_module("core.formatting")
-        native = importlib.import_module("core.engine_encoder")
+        self.formatting = cast(Any, importlib.import_module("core.formatting"))
+        native = cast(Any, importlib.import_module("core.engine_encoder"))
         calibration = json.loads((self.path / "calibrator.json").read_text())
+        limit = 8192 if context_limit is None else context_limit
+        capacity = 24 if max_candidates is None else max_candidates
+        if not 1 <= limit <= 32768 or not 24 <= capacity <= 255:
+            raise ValueError("Verdict requires context 1..32768 and candidate capacity 24..255")
         self.engine = native.DecisionEngine(
-            model_name_or_path=str(self.path), device=device, max_length=8192
+            model_name_or_path=str(self.path), device=device, max_length=limit
         )
+        self.formatting.MAX_SUBSTANTIVE_CANDIDATES = capacity
+        self.formatting.MAX_SUPPORTED_CANDIDATES = capacity + 1
+        native.MAX_SUPPORTED_CANDIDATES = capacity + 1
+        self.engine.model.config.max_num_classes = capacity + 1
         if self.engine.calibrator is None:
             raise ValueError("Verdict failed to load its released calibration")
         self.attention_model = self.engine.model.model.encoder_model
         self.settings = {
             "dtype": "float32",
             "input_length_policy": "reject-overflow",
-            "max_input_tokens": 8192,
-            "max_candidates": 24,
+            "max_input_tokens": limit,
+            "max_candidates": capacity,
+            "checkpoint_max_candidates": 24,
+            "checkpoint_position_limit": 8192,
+            "position_extrapolation": limit > 8192,
+            "candidate_calibration_extrapolation": capacity > 24,
             "case_batch_size": 1,
             "calibration": calibration,
             "renderer": "native-choice-enum-authored-noul-numeric-score-v1",
             "probability_condition": "conditional-on-non-abstention",
-            "extended_input_condition": "8192 instead of runtime 512 tokens",
+            "checkpoint_runtime_limit": 512,
         }
         self.set_attention("sdpa")
 
@@ -41,8 +54,8 @@ class VerdictEncoderAdapter(UpstreamAdapter):
         predictions = []
         state = state_text(case.state)
         for q in case.questions:
-            if len(q.options) > 24:
-                raise ValueError("Verdict supports at most 24 candidates; refusing truncation")
+            if len(q.options) > self.settings["max_candidates"]:
+                raise ValueError("Verdict candidate capacity exceeded; refusing truncation")
             options = []
             for i, option in enumerate(q.options):
                 description = option.description_json or option.description
@@ -51,7 +64,12 @@ class VerdictEncoderAdapter(UpstreamAdapter):
                 elif q.task == "score":
                     description = f"{option.value}: {description}"
                 options.append(self.schema.Option(id=f"option_{i}", description=description))
-            query = self.schema.Choice(
+            # Inputs already passed S1MB validation. The native schema's 24-label
+            # restriction is a serving limit, not a learned head dimension.
+            constructor = (
+                self.schema.Choice.model_construct if len(options) > 24 else self.schema.Choice
+            )
+            query = constructor(
                 id="decision",
                 question="\n\n".join(
                     x for x in (q.system_prompt, q.instructions_json or q.instructions) if x
@@ -60,7 +78,10 @@ class VerdictEncoderAdapter(UpstreamAdapter):
             )
             _, labels, _ = self.formatting.format_query(state, query)
             prompt = self.formatting.build_model_input(query.question, state, labels)
-            if len(self.engine.tokenizer(prompt, truncation=False)["input_ids"]) > 8192:
+            if (
+                len(self.engine.tokenizer(prompt, truncation=False)["input_ids"])
+                > self.settings["max_input_tokens"]
+            ):
                 raise ValueError("Verdict input exceeds context limit; refusing truncation")
             raw = self.engine.evaluate(state, [query]).results[0].probabilities
             values = [raw[f"option_{i}"] for i in range(len(q.options))]

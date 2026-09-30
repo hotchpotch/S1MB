@@ -43,17 +43,25 @@ def nimble_field(question):
 class NimbleAdapter(UpstreamAdapter):
     case_batch_size = 1
 
-    def __init__(self, model, revision, source, device):
+    def __init__(self, model, revision, source, device, context_limit=None):
         self.setup("nimble", model, revision, source, device)
         self.native = importlib.import_module("inference")
         self.engine = self.native.NimbleModel(str(self.path))
         self.attention_model = self.engine.model
+        original_limit = self.engine.contract["max_length"]
+        if context_limit is not None:
+            config = self.engine.model.config
+            maximum = getattr(config, "text_config", config).max_position_embeddings
+            if not 1 <= context_limit <= maximum:
+                raise ValueError(f"Nimble context limit must be within 1..{maximum}")
+            self.engine.contract = {**self.engine.contract, "max_length": context_limit}
         self.settings = {
             "dtype": "bfloat16",
             "attention_implementation": "sdpa",
             "input_length_policy": "reject-overflow",
             "case_batch_size": 1,
             "max_input_tokens": self.engine.contract["max_length"],
+            "checkpoint_runtime_limit": original_limit,
             "base_model": self.engine.contract["model"],
             "base_revision": self.engine.contract["revision"],
             "temperature": self.engine.temperature,

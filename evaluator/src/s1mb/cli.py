@@ -91,6 +91,9 @@ def main() -> None:
         "--server-host", default="127.0.0.1", help="Winnow bind IPv4: localhost or Tailscale"
     )
     run.add_argument("--server-port", type=int, default=8091, help="Winnow server port")
+    run.add_argument(
+        "--max-candidates", type=int, help="Explicit APUS, Verdict or Winnow candidate capacity"
+    )
     run.add_argument("--dtype", choices=["float32", "bfloat16"], help="Minojev backbone precision")
     run.add_argument(
         "--attention",
@@ -243,6 +246,11 @@ def execute(args, parser):
         parser.error("--subfolder applies only to alex-openjev")
     if args.dtype is not None and args.adapter != "minojev":
         parser.error("--dtype applies only to the Minojev adapter")
+    if args.max_candidates is not None and (
+        args.adapter not in {"apus", "verdict-encoder", "winnow"}
+        or not 2 <= args.max_candidates <= 255
+    ):
+        parser.error("--max-candidates requires APUS, Verdict or Winnow and a value in 2..255")
     if args.context_limit is not None and (
         args.context_limit < 1
         or args.adapter
@@ -256,6 +264,13 @@ def execute(args, parser):
             "clm",
             "tev",
             "bekko-v0",
+            "tinyjev",
+            "nimble",
+            "lumma",
+            "mini-jev",
+            "apus",
+            "verdict-encoder",
+            "kotoba",
         }
     ):
         parser.error(
@@ -414,6 +429,8 @@ def execute(args, parser):
         options = {"dtype": args.dtype} if args.dtype is not None else {}
         if args.context_limit is not None:
             options["context_limit"] = args.context_limit
+        if args.max_candidates is not None:
+            options["max_candidates"] = args.max_candidates
         if args.subfolder is not None:
             options["subfolder"] = args.subfolder
         if args.case_batch_size is not None:
