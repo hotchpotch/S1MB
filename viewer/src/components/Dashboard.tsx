@@ -571,6 +571,10 @@ export function Dashboard({
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] sm:text-xs text-muted-foreground">
                 <Badge variant="outline" className="rounded-md border-primary/20 bg-primary/5 font-mono text-[10px] text-primary sm:text-[11px]">{category.id}</Badge>
+                <a href="https://huggingface.co/blog/hotchpotch/system-one-mosaic-benchmark/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 transition-colors hover:text-primary">
+                  <span className="underline underline-offset-2">Explainer article</span>
+                  <ArrowUpRight aria-hidden="true" className="size-3" />
+                </a>
                 <a href="https://github.com/hotchpotch/S1MB" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 transition-colors hover:text-primary">
                   <GitHubIcon />
                   <span className="underline underline-offset-2">hotchpotch/S1MB</span>

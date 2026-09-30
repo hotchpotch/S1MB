@@ -2,6 +2,7 @@
 
 ### A benchmark for typed decisions across Choice, Noul, and Score tasks
 
+[Explainer article](https://huggingface.co/blog/hotchpotch/system-one-mosaic-benchmark/) ·
 [Quick start](docs/quickstart.md) ·
 [Leaderboard results](https://huggingface.co/datasets/hotchpotch/s1mb-result) ·
 [Evaluation dataset](https://huggingface.co/datasets/hotchpotch/s1mb-dataset) ·

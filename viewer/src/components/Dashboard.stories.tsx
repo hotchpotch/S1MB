@@ -54,7 +54,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {};
 export const EnglishScope: Story = {
   parameters: {
-    docs: { description: { story: "Hero tasks ordered Noul, Choice, Score with short descriptions, an English category badge, and an underlined GitHub repository link. All measurements are synthetic." } },
+    docs: { description: { story: "Hero tasks ordered Noul, Choice, Score with short descriptions, an English category badge, an explainer article link, and an underlined GitHub repository link. All measurements are synthetic." } },
   },
 };
 export const Empty: Story = { args: { snapshot: { ...fixture, results: [] } } };
