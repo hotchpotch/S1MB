@@ -423,10 +423,26 @@ export const OrganizedRunDetails: Story = { args: {
   snapshot: radarFixture, initialRun: 'synthetic-radar-0',
 }, parameters: { docs: { description: { story: 'Synthetic model details: results first, with identity, settings and per-benchmark provenance grouped below the table.' } } } };
 
-export const GeneralizationCoverageOnly: Story = { args: { snapshot: {
-  ...radarFixture,
-  results: radarFixture.results.filter(result => result.run_id !== 'synthetic-radar-0' || result.benchmark.dataset.startsWith('datasets/s1mb-generalization-')),
-} }, parameters: { docs: { description: { story: 'Synthetic results. A model with only general benchmarks remains listed, with General scores and unavailable full-category aggregates.' } } } };
+const coverageBenchmarks = [...benchmarks, ...generalizationBenchmarks];
+const coverageFixture: Snapshot = {
+  ...generalizationFixture,
+  benchmarks: coverageBenchmarks,
+  categories: [{ ...fixture.categories[0], benchmarks: coverageBenchmarks.map(b => b.id) }],
+  scoring: Object.fromEntries(coverageBenchmarks.map(b => [b.id, { eligible: true, reason: null }])),
+  results: ['Synthetic Full', 'Synthetic General Only', 'Synthetic Missing General'].flatMap((name, model) =>
+    coverageBenchmarks.filter(b => model === 0 || (b.dataset.startsWith('datasets/s1mb-generalization-') && (model === 1 || b.id !== generalizationBenchmarks[0].id))).map(b => ({
+      ...fixture.results[0], benchmark: b, run_id: `synthetic-coverage-${model}`,
+      model: { id: name, adapter: 'storybook-fixture', settings: {} },
+      provenance: 'measured' as const, status: 'complete' as const,
+      metrics: { [METRICS[b.task].name]: 0.5, baseline_adjusted_score: 0.8 - model * 0.1 },
+    }))),
+};
+export const GeneralizationCoverageOnly: Story = { args: { snapshot: coverageFixture },
+  parameters: { docs: { description: { story: 'Synthetic results. Only the full-coverage model is listed until Generalization tasks only is checked. The model missing one general benchmark remains hidden.' } } },
+};
+export const GeneralizationCoverageChecked: Story = { args: { snapshot: coverageFixture, initialGeneralizationOnly: true },
+  parameters: { docs: { description: { story: 'Synthetic results. Both full and six-benchmark general-only models are listed in generalization scope.' } } },
+};
 
 export const LeaderboardHeadingActions: Story = {
   args: { snapshot: radarFixture, initialCompare: ['synthetic-radar-0'], initialCheckedOnly: true },

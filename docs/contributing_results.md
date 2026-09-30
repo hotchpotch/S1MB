@@ -388,7 +388,29 @@ generated a prediction.
 
 Runs made with `s1mb run --generalization-only` use the same export and validation
 workflow. Publish only the completed benchmarks; do not fill missing measurements.
-The viewer lists models with complete active Generalization coverage (currently
-six benchmarks), shows their General scores, and leaves full-category aggregates
-unavailable until full coverage exists. See [the viewer guide](viewer.md)
+The viewer includes these models only when **Generalization tasks only** is
+checked and all six active Generalization benchmarks are complete. The default
+leaderboard requires full-category coverage. See [the viewer guide](viewer.md)
 for combining a verified remote snapshot with local runs before publication.
+
+### Liquid decision models
+
+Configure Liquid credentials in the local `.env` using [`.env.sample`](../.env.sample).
+From `evaluator/`, run a smoke check before evaluating the complete category:
+
+```sh
+uv run --env-file ../.env s1mb run --adapter liquid --model d1:free \
+  --category smoke-v1 --limit 2 --run-id liquid-d1-smoke-001
+uv run s1mb validate data/results/liquid-d1-smoke-001
+uv run --env-file ../.env s1mb run --adapter liquid --model d1:free \
+  --category english-v1 --run-id liquid-d1-full-001
+uv run s1mb validate data/results/liquid-d1-full-001
+```
+
+The adapter preserves structured questions and authored Noul criteria, maps Score
+levels in ascending numeric order, and records the model identity returned by the
+API. An alias returned unchanged does not identify an immutable model revision.
+Inputs are sent without local truncation. Probability distributions are normalized
+only within four-decimal rounding tolerance. Use fresh run IDs for subsequent runs.
+Use `--case-batch-size 8` for up to eight concurrent independent requests; the
+default is one and the maximum is 32. Smoke-test the chosen concurrency first.

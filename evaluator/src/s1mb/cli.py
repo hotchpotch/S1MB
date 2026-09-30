@@ -47,6 +47,7 @@ def main() -> None:
             "dummy",
             "laya",
             "typesafe",
+            "liquid",
             "system-ichi",
             "bekko-v0",
             "von",
@@ -122,7 +123,7 @@ def main() -> None:
     run.add_argument(
         "--case-batch-size",
         type=int,
-        help="Case window size for Bekko v0, Kev, Open-Jev, CLM or Tev",
+        help="Case window size for Bekko v0, Kev, Open-Jev, CLM, Tev or Liquid",
     )
     run.add_argument("--compile", action="store_true", help="Compile Bekko v0 tensor execution")
     run.add_argument("--microbatch-tokens", type=int, help="Bekko complete-question work budget")
@@ -216,11 +217,11 @@ def execute(args, parser):
     ):
         parser.error("--microbatch-tokens must be positive and applies only to Bekko")
     if args.case_batch_size is not None and (
-        args.adapter not in {"bekko-v0", "kev", "open-jev", "clm", "tev"}
+        args.adapter not in {"bekko-v0", "kev", "open-jev", "clm", "tev", "liquid"}
         or args.case_batch_size < 1
     ):
         parser.error(
-            "--case-batch-size must be positive and applies only to Bekko v0, Kev, Open-Jev, CLM or Tev"
+            "--case-batch-size must be positive and applies only to Bekko v0, Kev, Open-Jev, CLM, Tev or Liquid"
         )
     if args.compile and args.adapter != "bekko-v0":
         parser.error("--compile applies only to Bekko v0")
@@ -342,6 +343,12 @@ def execute(args, parser):
             revision=args.revision,
             compile_model=args.compile,
             cpu_smoke=args.device == "cpu",
+        )
+    elif args.adapter == "liquid":
+        from .adapters.liquid import LiquidAdapter
+
+        adapter = LiquidAdapter(
+            args.model, case_batch_size=args.case_batch_size if args.case_batch_size is not None else 1
         )
     elif args.adapter == "typesafe":
         from .adapters.typesafe import TypeSafeAdapter

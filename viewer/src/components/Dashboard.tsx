@@ -50,7 +50,7 @@ import {
   benchmarkName,
   categoryRuns,
   compareRuns,
-  hasLeaderboardCoverage,
+  hasCompleteCoverage,
   compareResultMetric,
   comparisonSpread,
   comparisonDelta,
@@ -473,7 +473,7 @@ export function Dashboard({
   const rawRows = leaderboard(snapshot, rankingCategory, task);
   const allRows = rawRows.map(row => ({ ...row, score: overallIndex(snapshot, rankingCategory, row.results) }))
     .sort((a, b) => Number(a.demo) - Number(b.demo) || Number(a.score === null) - Number(b.score === null) || (b.score ?? 0) - (a.score ?? 0) || a.runId.localeCompare(b.runId));
-  const rows = allRows.filter(row => hasLeaderboardCoverage(snapshot, rankingCategory, row.results));
+  const rows = allRows.filter(row => hasCompleteCoverage(rankingCategory, row.results));
   const borda = bordaScores(snapshot, rankingCategory);
   const leaderboardValue = (row: typeof rows[number]) => leaderboardSort === 'borda' ? borda.get(row.runId) ?? null : leaderboardSort === 'overall' ? row.score
     : diagnosticMean(snapshot, leaderboardSort.startsWith('general-') ? generalizationCategory(snapshot, category) : rankingCategory,

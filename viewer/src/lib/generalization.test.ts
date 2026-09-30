@@ -45,18 +45,30 @@ test('a changed or incomplete set of definitions cannot silently reduce the aver
   assert.equal(result.rows[0].average, null);
 });
 
-test('general-only coverage permits listing without inventing full-category aggregates', async () => {
-  const { hasLeaderboardCoverage } = await import('./comparison');
-  const { overallIndex } = await import('./types');
+test('six-benchmark coverage admits a model only in the selected generalization scope', async () => {
+  const { hasCompleteCoverage } = await import('./comparison');
+  const { generalizationCategory, overallIndex } = await import('./types');
   const data = fixture();
   const extra = { ...data.benchmarks[0], id: 'specialized', dataset: 'datasets/specialized' };
   data.benchmarks.push(extra);
   data.categories[0].benchmarks.push(extra.id);
-  assert.equal(hasLeaderboardCoverage(data, data.categories[0], data.results), true);
-  assert.equal(overallIndex(data, data.categories[0], data.results), null);
+  const full = data.categories[0];
+  const general = generalizationCategory(data, full);
+  assert.equal(general.benchmarks.length, 6);
+  assert.equal(hasCompleteCoverage(full, data.results), false);
+  assert.equal(hasCompleteCoverage(general, data.results), true);
+  assert.equal(overallIndex(data, full, data.results), null);
+  assert.equal(overallIndex(data, general, data.results), 0.5);
+  for (const missing of general.benchmarks) {
+    assert.equal(hasCompleteCoverage(general, data.results.filter(r => r.benchmark.id !== missing)), false);
+  }
   data.results[0].status = 'partial';
-  assert.equal(hasLeaderboardCoverage(data, data.categories[0], data.results), false);
+  assert.equal(hasCompleteCoverage(general, data.results), false);
   data.results[0].status = 'complete';
   data.results[0].provenance = 'demo';
-  assert.equal(hasLeaderboardCoverage(data, data.categories[0], data.results), false);
+  assert.equal(hasCompleteCoverage(general, data.results), false);
+  data.results[0].provenance = 'measured';
+  data.results.push({ ...data.results[0], benchmark: extra });
+  assert.equal(hasCompleteCoverage(full, data.results), true);
+  assert.equal(hasCompleteCoverage(general, data.results), true);
 });

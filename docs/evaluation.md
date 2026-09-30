@@ -251,8 +251,8 @@ Add `--generalization-only` to `s1mb run` to evaluate only the active category's
 generalization benchmarks (currently six in `english-v1`). This intersects with
 `--task` and repeated `--benchmark` filters; an empty selection is an error.
 Use a fresh run ID. These runs retain normal per-benchmark completeness, but do
-not provide full-category coverage. The viewer lists them with General scores
-and leaves unavailable full-category aggregates blank.
+not provide full-category coverage. The viewer lists them when **Generalization tasks only** is checked and all six
+benchmarks are complete. The default leaderboard requires full-category coverage.
 
 
 Capacity-limited decision adapters can be retried under explicitly extended
@@ -260,3 +260,25 @@ conditions. See [capacity extensions](../evaluator/OPEN_MODELS.md#explicit-capac
 for `--context-limit`, `--max-candidates`, native runtime patching and extrapolation
 metadata. Use fresh run IDs, smoke-test each model/configuration, preserve all
 original measurements, and validate complete coverage before reporting totals.
+
+### Liquid decision models
+
+Configure Liquid credentials in the local `.env` using [`.env.sample`](../.env.sample).
+From `evaluator/`, run a smoke check before evaluating the complete category:
+
+```sh
+uv run --env-file ../.env s1mb run --adapter liquid --model d1:free \
+  --category smoke-v1 --limit 2 --run-id liquid-d1-smoke-001
+uv run s1mb validate data/results/liquid-d1-smoke-001
+uv run --env-file ../.env s1mb run --adapter liquid --model d1:free \
+  --category english-v1 --run-id liquid-d1-full-001
+uv run s1mb validate data/results/liquid-d1-full-001
+```
+
+The adapter preserves structured questions and authored Noul criteria, maps Score
+levels in ascending numeric order, and records the model identity returned by the
+API. An alias returned unchanged does not identify an immutable model revision.
+Inputs are sent without local truncation. Probability distributions are normalized
+only within four-decimal rounding tolerance. Use fresh run IDs for subsequent runs.
+Use `--case-batch-size 8` for up to eight concurrent independent requests; the
+default is one and the maximum is 32. Smoke-test the chosen concurrency first.

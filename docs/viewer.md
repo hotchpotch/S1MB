@@ -69,8 +69,10 @@ listed only in [`.env.sample`](../.env.sample).
 Task scores and **Task Avg** are baseline-adjusted scores multiplied by 100;
 higher is better. Task Avg weights the three tasks equally. **Borda Score** uses
 relative benchmark ranks and depends on the displayed model roster. Complete
-coverage in the selected scope is required. Generalization-only results can rank
-in their complete subset; this does not establish unseen-task generalization.
+coverage in the selected scope is required. Models with all six generalization benchmarks complete appear when
+**Generalization tasks only** is checked, even without other benchmark results.
+The default leaderboard lists only models with complete full-category coverage.
+Generalization scope does not establish unseen-task generalization.
 Details retain primary metric directions. See [scoring](../evaluator/SCORING.md)
 and [benchmark scope](benchmark_scope.md).
 

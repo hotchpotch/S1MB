@@ -1,5 +1,4 @@
 import {
-  generalizationCategory,
   METRICS,
   TASKS,
   type Benchmark,
@@ -149,10 +148,4 @@ export function metricRanks(entries: { id: string; value: number | null }[], low
     if (index === 0 || entry.value !== scored[index - 1].value) rank = index + 1;
     return [entry.id, rank];
   }));
-}
-
-/** Listing eligibility does not relax coverage for any displayed aggregate. */
-export function hasLeaderboardCoverage(snapshot: Snapshot, category: Category, results: ResultSummary[]): boolean {
-  return hasCompleteCoverage(category, results) ||
-    hasCompleteCoverage(generalizationCategory(snapshot, category), results);
 }
