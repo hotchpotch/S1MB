@@ -12,6 +12,13 @@ schema, active benchmark definitions, and dataset-default instructions.
 All commands in this guide run from `evaluator/`, except where a different working
 directory is stated. Replace example paths and run IDs with your own values.
 
+The configured [evaluation dataset](https://huggingface.co/datasets/hotchpotch/s1mb-dataset)
+contains the benchmark inputs and targets; published measurements belong in the
+separate [results dataset](https://huggingface.co/datasets/hotchpotch/s1mb-result).
+Consult the dataset card for access, provenance and license terms. For a new
+model interface, follow [adapter development](adapters.md); for display setup,
+see [the viewer guide](viewer.md).
+
 ## 1. Prepare the evaluator and model
 
 Use Python 3.11 and uv. From the project root:

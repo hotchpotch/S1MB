@@ -1,0 +1,47 @@
+name: Request a model evaluation
+description: Suggest a model for community evaluation when contributors have capacity.
+title: "[Model evaluation] "
+labels: [model-evaluation-request]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Contributors may evaluate suggestions when they have spare time and resources.
+        There is no guarantee of evaluation, a response, or a completion date.
+        Search existing requests first. To submit your own measurements, follow
+        [the submission guide](https://github.com/hotchpotch/S1MB/blob/main/docs/contributing_results.md).
+  - type: input
+    id: model
+    attributes:
+      label: Model and version
+      description: Include the model card or API documentation URL and exact revision if known.
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Why evaluate this model?
+      description: Describe what this comparison would help you understand.
+    validations:
+      required: true
+  - type: textarea
+    id: requirements
+    attributes:
+      label: Access, runtime, and adapter requirements
+      description: Mention licensing, gated access, hardware, API costs and compatible adapters if known. Never share credentials.
+    validations:
+      required: true
+  - type: textarea
+    id: contribution
+    attributes:
+      label: Can you help?
+      description: Optional code, evaluation capacity, or public setup instructions you can contribute.
+  - type: checkboxes
+    id: expectations
+    attributes:
+      label: Expectations
+      options:
+        - label: I searched existing model evaluation requests.
+          required: true
+        - label: I understand that evaluation is voluntary and neither evaluation nor a timeline is guaranteed.
+          required: true

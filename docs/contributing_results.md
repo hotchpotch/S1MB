@@ -8,9 +8,13 @@ Evaluation results belong in the Hugging Face results dataset. Changes to adapte
 scoring code, or documentation belong in a separate source-code PR. Link that PR
 when a submission depends on code that has not been merged yet.
 
-The results repository is `hotchpotch/s1mb-result`. It is public;
+The results repository is [hotchpotch/s1mb-result](https://huggingface.co/datasets/hotchpotch/s1mb-result). It is public;
 a Hugging Face account is required to submit PRs. Do not upload results to the
-benchmark input dataset configured in `evaluator/dataset-source.json`.
+[benchmark input dataset](https://huggingface.co/datasets/hotchpotch/s1mb-dataset)
+configured in `evaluator/dataset-source.json`.
+
+If you cannot run a model yourself, you can [request an evaluation](model_requests.md).
+Community evaluations depend on volunteer capacity and are not guaranteed.
 
 All Python/Hub CLI commands below run from `evaluator/` unless stated otherwise.
 

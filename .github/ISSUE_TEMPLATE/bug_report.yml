@@ -1,0 +1,25 @@
+name: Bug report
+description: Report a reproducible evaluator or viewer problem.
+labels: [bug]
+body:
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Include the command, source commit, and minimal reproduction. Remove credentials and private data.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+      description: Include relevant sanitized error output.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python/Node versions, adapter/runtime, and GPU when relevant.
+    validations:
+      required: true

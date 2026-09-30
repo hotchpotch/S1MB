@@ -27,3 +27,8 @@ model configuration and dataset revision for reproducibility instead.
 Describe the problem, resulting behavior and validation in a pull request. Network
 publication, model API calls, and GPU measurements should be explicit; unit tests
 must not perform them implicitly.
+
+See [adapter development](docs/adapters.md) for the inference contract and tests,
+and [viewer setup](docs/viewer.md) for local UI development. GitHub provides a
+bug report form, a [model evaluation request form](docs/model_requests.md), and a
+source PR template. Model requests are voluntary suggestions, not promised work.

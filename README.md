@@ -11,7 +11,25 @@ measurements are submitted separately through Hugging Face Dataset pull requests
 Downloaded datasets, checkpoints, credentials, and generated results are not
 included in the source distribution.
 
+## Datasets and community
+
+- [Evaluation dataset](https://huggingface.co/datasets/hotchpotch/s1mb-dataset):
+  benchmark inputs and targets; see its dataset card for access and licensing.
+- [Leaderboard results](https://huggingface.co/datasets/hotchpotch/s1mb-result):
+  published model measurements and metadata.
+- [Submit your model to the leaderboard](docs/contributing_results.md): evaluate,
+  validate, export, and open a Hugging Face results Dataset PR.
+- [Request a model evaluation](https://github.com/hotchpotch/S1MB/issues/new?template=model_evaluation.yml)
+  or [browse requests](https://github.com/hotchpotch/S1MB/issues?q=is%3Aissue%20label%3Amodel-evaluation-request).
+  Contributors may evaluate suggestions when they have spare time and resources;
+  evaluation, a response, and a timeline are not guaranteed. See the
+  [request policy](docs/model_requests.md).
+
 ## Guides
+
+- [Documentation index](docs/README.md): choose a guide for your task.
+- [Develop an adapter](docs/adapters.md): inference contracts, integration and tests.
+- [Display the viewer](docs/viewer.md): published results, local runs and troubleshooting.
 
 - [Developer workflow](docs/developer_workflow.md): worktrees, branch synchronization,
   local results, checks, and authorized HF deployment.

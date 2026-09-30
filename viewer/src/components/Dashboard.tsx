@@ -690,7 +690,7 @@ export function Dashboard({
                   }}>
                   <TableCell><CheckRun id={row.runId} checked={selectedIds.includes(row.runId)} onToggle={toggle} /></TableCell>
                   <TableCell className="font-mono text-muted-foreground">{leaderboardRanks.get(row.runId) ?? '—'}</TableCell>
-                  <TableCell className="whitespace-normal"><ModelLabel model={row.model} runId={row.runId} distinguish={repeatedName(runs, row.model)} onClick={() => setRun(row.runId)} />{row.score === null && <span className="mt-1 block text-xs text-muted-foreground">Aggregate unavailable · {row.results.filter(r => rankingCategory.benchmarks.includes(r.benchmark.id) && r.status === 'complete').length}/{rankingCategory.benchmarks.length} complete</span>}{row.demo && <Badge variant="secondary">Demo</Badge>}</TableCell>
+                  <TableCell data-export-url={row.model.url} data-export-huggingface={row.model.hf_url} className="whitespace-normal"><ModelLabel model={row.model} runId={row.runId} distinguish={repeatedName(runs, row.model)} onClick={() => setRun(row.runId)} />{row.score === null && <span className="mt-1 block text-xs text-muted-foreground">Aggregate unavailable · {row.results.filter(r => rankingCategory.benchmarks.includes(r.benchmark.id) && r.status === 'complete').length}/{rankingCategory.benchmarks.length} complete</span>}{row.demo && <Badge variant="secondary">Demo</Badge>}</TableCell>
                   <TableCell className="text-right font-mono font-semibold text-primary">{adjustedScore(borda.get(row.runId))}</TableCell>
                   <TableCell className="text-right">
                     <span className="font-mono">{adjustedScore(row.score)}</span>

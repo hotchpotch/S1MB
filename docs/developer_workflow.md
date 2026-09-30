@@ -5,6 +5,14 @@ leaderboard. Read the repository's `AGENTS.md` and the guidance in the component
 you are changing. See [code contributions](../CONTRIBUTING.md) for contribution
 policy and [evaluation](evaluation.md) for running models.
 
+## Component development
+
+For a new model integration, follow [Developing a model adapter](adapters.md).
+For local UI setup and result previews, follow [Viewing the leaderboard](viewer.md).
+The [documentation index](README.md) links evaluation, result submission, scoring,
+and community request guidance. Ordinary source contributions do not require
+Space deployment access or a deployment worktree.
+
 ## Branches and worktrees
 
 The deployment branch's exact name is **`hf-space-docker`**, not `hf_docker`.
