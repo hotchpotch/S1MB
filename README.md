@@ -1,6 +1,6 @@
 # S1MB — System One Mosaic Benchmark
 
-### A benchmark for typed decisions across Choice, Noul, and Score tasks
+### Comparing System One Decision Models across 100+ benchmarks
 
 **[S1MB Leaderboard](https://huggingface.co/spaces/hotchpotch/S1MB-leaderboard)** ·
 [Explainer article](https://huggingface.co/blog/hotchpotch/system-one-mosaic-benchmark/) ·
@@ -10,15 +10,23 @@
 [Documentation](docs/README.md) ·
 [Submit results](docs/contributing_results.md)
 
-S1MB compares models that turn an input and a question into typed probabilities:
-choosing among alternatives, judging an authored true/false condition, or scoring
-against numeric criteria. It brings specialized datasets into one evaluation
-workflow with shared input contracts, validation, and a leaderboard.
+S1MB provides a practical reference point for comparing **System One Decision
+Models** on the same inputs and metrics. These models use text and instructions
+to select an option (**Choice**), make a yes/no judgment (**Noul**), or assign a
+numeric score using supplied criteria (**Score**). The leaderboard lets you
+compare overall results and inspect which tasks each model handles well or
+struggles with.
 
-The **mosaic** is deliberate: different tasks test different abilities. The active
-English category contains **137 benchmarks across 106 dataset subsets**. S1MB
-supports model comparison within these tasks; it does not establish general
-intelligence, unseen-task generalization, or training-data non-overlap.
+The **mosaic** combines tasks from existing public NLP datasets with synthetic
+tasks in a shared evaluation workflow. The English suite contains **137 benchmarks
+across 106 dataset subsets**, including six synthetic benchmarks that probe how
+models respond to varied instructions, contexts, and decision criteria.
+
+S1MB offers a starting point for model comparison and improvement within these
+tasks. Its scores do not establish unseen-task generalization or training-data
+non-overlap. See the [explainer article](https://huggingface.co/blog/hotchpotch/system-one-mosaic-benchmark/)
+for the motivation, example results, and limitations, or [submit your own model's
+results](docs/contributing_results.md) to extend the comparison.
 
 ## Highlights
 
