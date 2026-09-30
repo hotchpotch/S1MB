@@ -180,6 +180,85 @@ resolve that access with the maintainer rather than publishing to a different re
 See the [Hub upload guide](https://huggingface.co/docs/huggingface_hub/guides/upload)
 for the underlying Dataset PR workflow.
 
+### Multiple models in one PR and a reproducible comparison
+
+One Dataset PR may contain multiple model folders. Export each selected run with
+its own metadata into the same staging repository, then validate that repository.
+Keep reference models in a separate directory so they cannot be uploaded by
+accident. To compare with the published Jev 1.13 measurements, download only its
+folder at a recorded results commit (run from `evaluator/`):
+
+```python
+from huggingface_hub import HfApi, snapshot_download
+
+repo = "hotchpotch/s1mb-result"
+sha = HfApi().dataset_info(repo).sha
+print("Comparison source and PR parent:", sha)
+snapshot_download(
+    repo, repo_type="dataset", revision=sha,
+    allow_patterns=["typesafe__jev_1_13/*"],
+    local_dir="../tmp/results-reference", max_workers=4,
+)
+```
+
+Generate a compact review table with the reusable Python script:
+
+```sh
+uv run python scripts/report_results.py \
+  --results-dir ../tmp/results-submission \
+  --reference-dir ../tmp/results-reference \
+  --download-datasets --require-complete \
+  --output ../tmp/results-comparison.md
+```
+
+The script validates every packaged result against its recorded evaluation data
+before writing the report. `--data-dir` selects an alternate data root;
+`--download-datasets` permits acquisition of missing recorded revisions. The table
+starts with Total Params and Active Params, using metadata overrides when present
+and otherwise the consistent saved model counts. Unknown counts remain `N/A`;
+Active Params uses `non_lookup_parameters_v1`, matching the viewer. The six score
+columns are `noul`, `choice`, `score`, `gen-noul`, `gen-choice`, and `gen-score`, all
+baseline-adjusted scores multiplied by 100. It uses current category membership,
+equal benchmark weights and per-result baseline eligibility. Gen columns contain
+the Diverse and Contextual subset already included in the full task columns.
+Missing, partial or demo results cannot produce a complete task aggregate.
+Omit `--require-complete` only for an explicitly partial submission; unavailable
+aggregates remain `N/A`. Repeat `--reference-dir` for more reference repositories.
+
+Put the generated comparison first in the PR body. Follow it with a short summary
+of additions/replacements, validation, the pinned reference commit, and material
+evaluation conditions or uncommitted source changes. Keep detailed execution logs
+locally; exact model settings and provenance remain in the result files. Review
+the staged inventory against the reference commit. The report cannot infer
+execution history or training overlap.
+
+Upload the staging repository in **one** call to create **one** Dataset PR. Save
+the complete reviewed body as `../tmp/results-pr-body.md`. Substitute the exact
+40-character results SHA printed above; the parent guard rejects concurrent
+changes instead of silently using a different base:
+
+```python
+from pathlib import Path
+from huggingface_hub import HfApi
+
+commit = HfApi().upload_folder(
+    repo_id="hotchpotch/s1mb-result", repo_type="dataset",
+    folder_path="../tmp/results-submission", path_in_repo="",
+    allow_patterns=["*/metadata.json", "*/*.json.xz"],
+    commit_message="Add evaluated models with six-column comparison",
+    commit_description=Path("../tmp/results-pr-body.md").read_text(),
+    parent_commit="EXACT_RESULTS_COMMIT_SHA",
+    create_pr=True,
+)
+print(commit.pr_url)
+```
+
+Only model metadata and compressed results are uploaded. Local lock files,
+reference results, reports and source code stay outside the submission. Do not
+use deletion patterns. Verify the returned PR's file inventory and preview its
+revision before merging; the table supports review but does not replace result
+validation. Publish display data and redeploy only after merge.
+
 ### PR description template
 
 Copy this into the PR and replace each placeholder. Record facts from the saved
