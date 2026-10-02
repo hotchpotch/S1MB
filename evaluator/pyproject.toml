@@ -18,6 +18,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+winnow = ["gguf==0.19.0"]
 standardone = ["mistral-common>=1.11,<2"]
 decision-encoders = ["sentence-transformers==6.1.0", "flashdeberta==0.0.7"]
 gliformer-jeff = ["gliformer==0.1.2", "gliner==0.2.29", "flashdeberta==0.0.7", "torch==2.10.0", "transformers==5.16.0"]

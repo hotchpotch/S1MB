@@ -104,6 +104,11 @@ dist/neohorse_decision-1.0.0-py3-none-any.whl`; its runtime reads installed pack
 metadata even when `--source` points directly to the source tree.
 
 Winnow requires building the pinned checkout with `scripts/build.py` and CUDA.
+Install `uv sync --extra winnow` for GGUF parameter counting. Counts use logical
+tensor shapes rather than quantized storage sizes. Shared token/output embeddings
+remain active under `non_lookup_parameters_v1`. The verified Q8 release
+(`b710efc4c0d048ee61eed92c5fef5ce323a4d17e7c51f9f0533cc72ae50818ea`)
+contains 11,907,350,576 total and active parameters across 667 tensors.
 Its adapter verifies the GGUF against the checkout's release manifest, starts the
 native server, and closes it after evaluation. Use `--server-host` with the
 machine's Tailscale IPv4 address, or localhost if unavailable, and an unused
