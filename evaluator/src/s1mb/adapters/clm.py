@@ -3,7 +3,8 @@
 import importlib
 from typing import Any
 
-from .base import decode_answers, questions_for_api
+from .base import decode_answers
+from .firelex_jeff import decision_row
 from .upstream import UpstreamAdapter, candidate_batches, checkpoint_path
 
 BASE_MODEL = "Qwen/Qwen3-8B"
@@ -63,7 +64,7 @@ class CLMAdapter(UpstreamAdapter):
             "max_length": context_limit,
             "input_length_policy": "reject-overflow",
             "pooling": "last-nonpadding-token-l2-normalized-float32",
-            "renderer": "native-clm-structured-anonymous-choice-v1",
+            "renderer": "native-clm-structured-anonymous-choice-numeric-score-v2",
             "probability_rule": "native-scaled-cosine-softmax",
             "logit_scale": self.head.scale,
             "case_batch_size": self.case_batch_size,
@@ -115,7 +116,7 @@ class CLMAdapter(UpstreamAdapter):
         )
 
     def predict(self, case):
-        questions = questions_for_api(case.questions, structured=True, anonymous_choice=True)
+        questions = {q.id: decision_row(case.state, q)["question"] for q in case.questions}
         pairs = self.schema.build_pairs(case.state, questions)
         states = [pair[0] for pair in pairs.values()]
         actions = [text for pair in pairs.values() for text in pair[2]]

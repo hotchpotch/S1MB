@@ -282,3 +282,10 @@ Inputs are sent without local truncation. Probability distributions are normaliz
 only within four-decimal rounding tolerance. Use fresh run IDs for subsequent runs.
 Use `--case-batch-size 8` for up to eight concurrent independent requests; the
 default is one and the maximum is 32. Smoke-test the chosen concurrency first.
+
+For additional public dedicated checkpoints, see the adapter contracts in
+`evaluator/OPEN_MODELS.md`. Candidate-code and context extensions must be explicit
+CLI options and remain visible in the saved model metadata. Run one measured GPU
+job at a time. Preserve failed attempts under their original run IDs, diagnose
+failures from local logs, and use a fresh run ID after each correction. A saved
+partial run passing structural validation is still incomplete coverage.

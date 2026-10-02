@@ -2,7 +2,8 @@
 
 import importlib
 
-from .base import decode_answers, questions_for_api
+from .base import decode_answers
+from .firelex_jeff import decision_row
 from .upstream import UpstreamAdapter, candidate_batches
 
 
@@ -24,7 +25,7 @@ class DeciderAdapter(UpstreamAdapter):
             "cuda_graphs": False,
             "case_batch_size": self.case_batch_size,
             "microbatch_tokens": 4096,
-            "renderer": "native-independent-anonymous-choice-batched-v2",
+            "renderer": "native-independent-anonymous-choice-numeric-score-batched-v3",
             "input_length_policy": "reject-overflow",
         }
 
@@ -40,7 +41,7 @@ class DeciderAdapter(UpstreamAdapter):
         layout = "schema_first" if self.engine.schema_first else "state_first"
         for index, case in enumerate(cases):
             for q in case.questions:
-                request = questions_for_api([q], anonymous_choice=True)
+                request = {q.id: decision_row(case.state, q)["question"]}
                 rqs, mapping, items = self.engine._system_one_items(
                     case.state, request, independent=True, max_state_tokens=10**9, layout=layout
                 )

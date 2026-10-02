@@ -4,7 +4,7 @@ import importlib
 
 from s1mb.data import Prediction
 
-from .base import questions_for_api
+from .firelex_jeff import decision_row
 from .upstream import UpstreamAdapter, candidate_batches
 
 
@@ -19,6 +19,11 @@ class KevAdapter(UpstreamAdapter):
         cp = importlib.import_module("kev.checkpoint")
         self.api = importlib.import_module("kev.api")
         checkpoint = cp.Checkpoint(str(self.path))
+        if not checkpoint.meta.base_revision:
+            hub = importlib.import_module("huggingface_hub")
+            checkpoint.meta.base_revision = hub.model_info(checkpoint.meta.base).sha
+            if not checkpoint.meta.base_revision:
+                raise ValueError("Hub did not resolve Kev's base checkpoint revision")
         self.tokenizer, self.engine = checkpoint.load(
             device,
             cp.LoadOptions(dtype=self.torch.bfloat16, attn="sdpa", cuda_graphs=False, fused=False),
@@ -29,12 +34,14 @@ class KevAdapter(UpstreamAdapter):
         self.settings = {
             "dtype": "bfloat16",
             "temperature": checkpoint.meta.temperature,
+            "base_model": checkpoint.meta.base,
+            "base_revision": checkpoint.meta.base_revision,
             "max_state": self.context_limit,
             "max_branch": self.context_limit,
             "input_policy": "strict native encoding",
             "case_batch_size": self.case_batch_size,
             "microbatch_tokens": 4096,
-            "renderer": "native-anonymous-choice-batched-v2",
+            "renderer": "native-anonymous-choice-numeric-score-batched-v3",
         }
 
         self.enable_kernels()
@@ -54,7 +61,7 @@ class KevAdapter(UpstreamAdapter):
             for q in case.questions:
                 req = self.api.SystemOneRequest(
                     state=case.state,
-                    questions=questions_for_api([q], structured=True, anonymous_choice=True),
+                    questions={"decision": decision_row(case.state, q)["question"]},
                 )
                 record, _ = self.api.to_record(req)
                 enc = self.engine.encode(
