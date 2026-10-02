@@ -4,6 +4,7 @@ import hashlib
 import importlib
 import ipaddress
 import json
+import math
 import os
 import socket
 import subprocess
@@ -15,9 +16,39 @@ import urllib.request
 from pathlib import Path
 
 from s1mb.data import ModelInfo
+from s1mb.parameters import METHOD
 
 from .base import decode_answers, questions_for_api
 from .upstream import source_path
+
+
+def winnow_parameter_metadata(path):
+    """Count logical GGUF elements, retaining tied token/output embeddings.
+
+    The Gemma 4 runtime uses token_embd.weight as output when output.weight is
+    absent. Quantized storage bytes are not parameter counts. This text-only
+    checkpoint has no separate vision projector or per-layer lookup embeddings.
+    """
+    reader = importlib.import_module("gguf").GGUFReader(path)
+    if reader.fields["general.architecture"].contents() != "gemma4":
+        raise ValueError("Winnow parameter counting requires Gemma 4")
+    sizes = {}
+    for tensor in reader.tensors:
+        shape = tuple(int(dimension) for dimension in tensor.shape)
+        if tensor.name in sizes or not shape or any(dimension <= 0 for dimension in shape):
+            raise ValueError("Invalid or duplicate Winnow tensor")
+        if tensor.name == "per_layer_token_embd.weight" or tensor.name.startswith("v."):
+            raise ValueError("Unsupported Winnow lookup or vision tensors")
+        sizes[tensor.name] = math.prod(shape)
+    if "token_embd.weight" not in sizes:
+        raise ValueError("Missing Winnow token embeddings")
+    total = sum(sizes.values())
+    excluded = sizes["token_embd.weight"] if "output.weight" in sizes else 0
+    return {
+        "total_params": total,
+        "active_params": total - excluded,
+        "parameter_count_method": METHOD,
+    }
 
 
 def check_port_available(host, port):
@@ -78,6 +109,7 @@ class WinnowAdapter:
             id=model,
             adapter="winnow",
             revision=resolved,
+            **winnow_parameter_metadata(path),
             settings={
                 "device": device,
                 "cuda_visible_devices": gpu,
