@@ -4,12 +4,50 @@ import gc
 import importlib
 import importlib.metadata
 import json
+import math
 import os
+import re
+from collections.abc import Mapping
 
 from s1mb.data import ModelInfo, Prediction, check_probabilities
+from s1mb.parameters import METHOD
 
 from .nimble import nimble_field
 from .upstream import checkpoint_path, source_path, state_text
+
+
+def needle_parameter_metadata(params):
+    """Count loaded Flax parameters, retaining the tied token/output embedding.
+
+    Engram tables only perform indexed lookups and are excluded from active
+    parameters. Include all loaded heads, matching non_lookup_parameters_v1;
+    this is not a count of operations or parameters used by one input.
+    """
+    sizes = {}
+    lookup = set()
+    active = set()
+
+    def visit(value, path=()):
+        if isinstance(value, Mapping):
+            for key, child in value.items():
+                visit(child, (*path, str(key)))
+            return
+        key = id(value)
+        sizes[key] = math.prod(value.shape)
+        if len(path) == 2 and re.fullmatch(r"engrams_\d+", path[0]) and path[1] == "embedding":
+            lookup.add(key)
+        else:
+            active.add(key)
+
+    visit(params)
+    if not sizes:
+        raise ValueError("No Needle parameters found")
+    excluded = lookup - active
+    return {
+        "total_params": sum(sizes.values()),
+        "active_params": sum(size for key, size in sizes.items() if key not in excluded),
+        "parameter_count_method": METHOD,
+    }
 
 
 class NeedleAdapter:
@@ -32,6 +70,7 @@ class NeedleAdapter:
         tokens = importlib.import_module("needle.model.tokenizer")
         self.renderer = importlib.import_module("needle.model.finetune")
         params, config = runtime.load_checkpoint(str(self.path / "checkpoints/needle3.safetensors"))
+        self.parameter_counts = needle_parameter_metadata(params)
         original_limit = config.max_seq_len
         self.context_limit = context_limit or original_limit
         config.max_seq_len = self.context_limit
@@ -72,7 +111,11 @@ class NeedleAdapter:
 
     def metadata(self):
         return ModelInfo(
-            id=self.model_id, adapter="needle", revision=self.revision, settings=self.settings
+            id=self.model_id,
+            adapter="needle",
+            revision=self.revision,
+            settings=self.settings,
+            **self.parameter_counts,
         )
 
     def predict(self, case):
