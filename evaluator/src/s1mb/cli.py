@@ -74,6 +74,32 @@ def main() -> None:
             "openthai",
             "kotoba",
             "jeff",
+            "firelex-jeff",
+            "jevlite",
+            "certo",
+            "jev-omni",
+            "autojev",
+            "flymy",
+            "lev",
+            "gliner2",
+            "reranker",
+            "metask",
+            "nimble-lora",
+            "spark",
+            "evalengine",
+            "deem",
+            "hopper",
+            "reflex",
+            "verdict-small",
+            "opendecision",
+            "imajev",
+            "smalljev",
+            "plumb",
+            "rune",
+            "standardone",
+            "jevone",
+            "needle",
+            "gliformer-jeff",
             "pngwn",
             "eikos",
             "mini-jev",
@@ -93,7 +119,9 @@ def main() -> None:
     )
     run.add_argument("--server-port", type=int, default=8091, help="Winnow server port")
     run.add_argument(
-        "--max-candidates", type=int, help="Explicit APUS, Verdict or Winnow candidate capacity"
+        "--max-candidates",
+        type=int,
+        help="Explicit candidate capacity for adapters supporting codebook extension",
     )
     run.add_argument("--dtype", choices=["float32", "bfloat16"], help="Minojev backbone precision")
     run.add_argument(
@@ -248,10 +276,27 @@ def execute(args, parser):
     if args.dtype is not None and args.adapter != "minojev":
         parser.error("--dtype applies only to the Minojev adapter")
     if args.max_candidates is not None and (
-        args.adapter not in {"apus", "verdict-encoder", "winnow"}
+        args.adapter
+        not in {
+            "apus",
+            "verdict-encoder",
+            "winnow",
+            "firelex-jeff",
+            "jevlite",
+            "flymy",
+            "metask",
+            "nimble-lora",
+            "smalljev",
+            "plumb",
+            "standardone",
+            "spark",
+            "deem",
+            "hopper",
+            "reflex",
+        }
         or not 2 <= args.max_candidates <= 255
     ):
-        parser.error("--max-candidates requires APUS, Verdict or Winnow and a value in 2..255")
+        parser.error("--max-candidates requires a supported adapter and a value in 2..255")
     if args.context_limit is not None and (
         args.context_limit < 1
         or args.adapter
@@ -272,6 +317,32 @@ def execute(args, parser):
             "apus",
             "verdict-encoder",
             "kotoba",
+            "firelex-jeff",
+            "jevlite",
+            "certo",
+            "jev-omni",
+            "autojev",
+            "flymy",
+            "lev",
+            "gliner2",
+            "reranker",
+            "metask",
+            "nimble-lora",
+            "spark",
+            "evalengine",
+            "deem",
+            "hopper",
+            "reflex",
+            "verdict-small",
+            "opendecision",
+            "imajev",
+            "smalljev",
+            "plumb",
+            "rune",
+            "standardone",
+            "jevone",
+            "needle",
+            "gliformer-jeff",
         }
     ):
         parser.error(
@@ -348,7 +419,8 @@ def execute(args, parser):
         from .adapters.liquid import LiquidAdapter
 
         adapter = LiquidAdapter(
-            args.model, case_batch_size=args.case_batch_size if args.case_batch_size is not None else 1
+            args.model,
+            case_batch_size=args.case_batch_size if args.case_batch_size is not None else 1,
         )
     elif args.adapter == "typesafe":
         from .adapters.typesafe import TypeSafeAdapter
@@ -365,6 +437,32 @@ def execute(args, parser):
         "openthai",
         "kotoba",
         "jeff",
+        "firelex-jeff",
+        "jevlite",
+        "certo",
+        "jev-omni",
+        "autojev",
+        "flymy",
+        "lev",
+        "gliner2",
+        "reranker",
+        "metask",
+        "nimble-lora",
+        "spark",
+        "evalengine",
+        "deem",
+        "hopper",
+        "reflex",
+        "verdict-small",
+        "opendecision",
+        "imajev",
+        "smalljev",
+        "plumb",
+        "rune",
+        "standardone",
+        "jevone",
+        "needle",
+        "gliformer-jeff",
         "pngwn",
         "eikos",
         "mini-jev",
@@ -402,6 +500,32 @@ def execute(args, parser):
             "openthai": "OpenThaiAdapter",
             "kotoba": "KotobaAdapter",
             "jeff": "JeffAdapter",
+            "firelex-jeff": "FirelexJeffAdapter",
+            "jevlite": "JevLiteAdapter",
+            "certo": "CertoAdapter",
+            "jev-omni": "JevOmniAdapter",
+            "autojev": "AutoJevAdapter",
+            "flymy": "FlymyAdapter",
+            "lev": "LevAdapter",
+            "gliner2": "Gliner2Adapter",
+            "reranker": "RerankerAdapter",
+            "metask": "MetaskAdapter",
+            "nimble-lora": "NimbleLoraAdapter",
+            "spark": "SparkAdapter",
+            "evalengine": "EvalEngineAdapter",
+            "deem": "DeemAdapter",
+            "hopper": "HopperAdapter",
+            "reflex": "ReflexAdapter",
+            "verdict-small": "VerdictSmallAdapter",
+            "opendecision": "OpenDecisionAdapter",
+            "imajev": "ImajevAdapter",
+            "smalljev": "SmallJevAdapter",
+            "plumb": "PlumbAdapter",
+            "rune": "RuneAdapter",
+            "standardone": "StandardOneAdapter",
+            "jevone": "JevOneAdapter",
+            "needle": "NeedleAdapter",
+            "gliformer-jeff": "GliformerJeffAdapter",
             "pngwn": "PngwnAdapter",
             "eikos": "EikosAdapter",
             "mini-jev": "MiniJevAdapter",
@@ -426,12 +550,14 @@ def execute(args, parser):
         }
         module_name = {
             "open-jev": "open_jev",
+            "firelex-jeff": "firelex_jeff",
+            "jev-omni": "jev_omni",
             "alex-openjev": "alex_openjev",
             "mini-jev": "mini_jev",
             "openjev-shim": "openjev_shim",
             "verdict-encoder": "verdict_encoder",
             "openjev-org": "openjev_org",
-        }.get(args.adapter, args.adapter)
+        }.get(args.adapter, args.adapter.replace("-", "_"))
         module = importlib.import_module(f"s1mb.adapters.{module_name}")
         options = {"dtype": args.dtype} if args.dtype is not None else {}
         if args.context_limit is not None:

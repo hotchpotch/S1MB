@@ -18,10 +18,22 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+standardone = ["mistral-common>=1.11,<2"]
+decision-encoders = ["sentence-transformers==6.1.0", "flashdeberta==0.0.7"]
+gliformer-jeff = ["gliformer==0.1.2", "gliner==0.2.29", "flashdeberta==0.0.7", "torch==2.10.0", "transformers==5.16.0"]
+firelex-jeff = ["pillow>=12,<13", "torchvision==0.25.0", "torch==2.10.0", "transformers==5.17.0", "kernels==0.16.0"]
 mini-jev = ["bitsandbytes>=0.49,<1"]
 bekko-v0 = ["torch==2.10.0", "transformers==5.17.0", "sentence-transformers==6.1.0", "safetensors>=0.7", "tqdm>=4.67"]
 laya = ["laya==0.3.20", "torch==2.10.0", "transformers==5.17.0"]
 open-models = ["torch==2.10.0", "transformers==5.17.0", "peft>=0.17,<1", "accelerate>=1,<2", "einops>=0.8,<1", "sentencepiece>=0.2,<1", "kernels==0.16.0"]
+
+[tool.uv]
+conflicts = [
+    [{ extra = "gliformer-jeff" }, { extra = "firelex-jeff" }],
+    [{ extra = "gliformer-jeff" }, { extra = "bekko-v0" }],
+    [{ extra = "gliformer-jeff" }, { extra = "laya" }],
+    [{ extra = "gliformer-jeff" }, { extra = "open-models" }],
+]
 
 [[tool.uv.index]]
 name = "torch-cu130"
@@ -30,6 +42,7 @@ explicit = true
 
 [tool.uv.sources]
 torch = { index = "torch-cu130" }
+torchvision = { index = "torch-cu130" }
 
 [project.scripts]
 s1mb = "s1mb:main"

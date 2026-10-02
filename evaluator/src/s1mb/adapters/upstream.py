@@ -124,17 +124,19 @@ class UpstreamAdapter:
             model = model.get_base_model()
         kernels = importlib.import_module("kernels")
         hub = importlib.import_module("transformers.integrations.hub_kernels")
-        # The Hub convolution layer builds require Torch >=2.11. Keep the native
-        # GPU convolution while accelerating the expensive delta-rule recurrence.
+        # Current Hub convolution and rotary builds require Torch >=2.11. Keep
+        # those native GPU operations while accelerating delta-rule recurrence.
         mapping = {
             **hub.get_kernel_mapping_transformers(),
             "causal_conv1d_fn": {},
             "causal_conv1d_update": {},
+            "rotary_pos_emb": {},
         }
-        with kernels.use_kernel_mapping(mapping):
+        with kernels.use_kernel_mapping(mapping, inherit_mapping=False):
             kernels.kernelize(model, device="cuda", mode=kernels.Mode.INFERENCE)
         self.settings["hub_kernels"] = True
         self.settings["convolution_backend"] = "torch-gpu"
+        self.settings["rotary_backend"] = "torch-gpu"
         self.settings["kernels_version"] = importlib.metadata.version("kernels")
 
 

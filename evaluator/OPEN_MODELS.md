@@ -323,3 +323,131 @@ released `temperatures.json` supplies all three task temperatures, including the
 v2 Score calibration update. The existing 32K full-input condition and overflow
 rejection also apply to merged releases; checkpoint format and base revision are
 recorded in result metadata.
+
+## Firelex Jeff (mstrasser checkpoints)
+
+`firelex-jeff` evaluates `mstrasser/Jeff-Qwen3.5-0.8B`,
+`mstrasser/Jeff-Qwen3.5-2B`, `mstrasser/Jeff-Gemma4-E2B`, and
+`mstrasser/Jeff-Qwen3.5-0.8B-Chess` using the pinned
+[firelex/jeff](https://github.com/firelex/jeff) runtime. This is independent of
+`jeff`, the adapter for `GestaltLabs/Jeff-1`.
+
+The upstream runtime requires Python 3.12. Use an isolated environment for it;
+the evaluator's regular development checks still run with Python 3.11:
+
+```sh
+git clone https://github.com/firelex/jeff ../tmp/firelex-jeff
+git -C ../tmp/firelex-jeff checkout f06788292874c21a5b5c41549ac220dd9e15da7f
+UV_PROJECT_ENVIRONMENT=../tmp/firelex-jeff-venv uv sync --locked \
+  --python 3.12 --extra firelex-jeff
+CUDA_VISIBLE_DEVICES=1 ../tmp/firelex-jeff-venv/bin/s1mb run \
+  --adapter firelex-jeff --source ../tmp/firelex-jeff \
+  --model mstrasser/Jeff-Qwen3.5-0.8B \
+  --revision 0f212b3e72acb4dde3f7da61e925d6ab7f819990 \
+  --device cuda:0 --category smoke-v1 --limit 2 \
+  --run-id firelex-jeff-smoke-001
+```
+
+Inference uses the native prompt, backbone and trained readout, checkpoint
+calibration, BF16, SDPA, and one question at a time. Qwen's recurrent layers use
+supported Hub kernels. State and authored criteria retain their structured
+values; anonymous Choice keys omit source identifiers. Score descriptions
+include their numeric levels in declared order. Native Noul false/true order is
+mapped back to the authored option IDs.
+
+The default context limit is 8192 tokens, with overflow rejected before forward
+inference. Candidate limits come from `decision_config.json`: the pinned Qwen
+v1.1 checkpoints declare 254, Gemma declares 26, and Chess declares 101. An
+explicit `--context-limit` or `--max-candidates` (at most 255) can evaluate larger
+inputs with the same native codebook and weights. Metadata records both trained
+and effective limits and whether a capacity extension was used. Such extensions
+do not establish long-context or long-list accuracy. Inputs and options are
+never silently shortened or shortlisted.
+
+The Qwen v1.1 release discloses MASSIVE and CLINC150 training-split use. The Chess
+checkpoint is specialized for chess; its S1MB measurements describe performance
+on this benchmark, not its chess strength or unseen-task generalization.
+
+### Additional dedicated decision checkpoints
+
+The following adapters use explicitly pinned Hub snapshots and source checkouts.
+They are separate from similarly named existing adapters. Use `--device cuda:0`
+with `CUDA_VISIBLE_DEVICES=1` on the shared workstation. Always run `smoke-v1`
+before `english-v1`, and validate each saved run. Runtime compatibility and full
+coverage must be established for each checkpoint; adapter availability is not a
+claim that a checkpoint has completed evaluation.
+
+GLiFormer Jeff needs a separate environment: install the `gliformer-jeff` extra
+without the Transformers 5.17 extras (`open-models`, `firelex-jeff`, `bekko-v0`,
+or `laya`). GLiFormer 0.1.2 imports a GLiNER helper absent from 0.2.24; the tested
+combination is GLiNER 0.2.29 and Transformers 5.16.0, matching GLiNER's declared
+Transformers upper bound. These dependency versions are recorded in model metadata.
+
+| Adapter | Native runtime / checkpoint family | Input and probability contract |
+| --- | --- | --- |
+| `jevlite` | `mghafiri/qwen3.5-0.8B-decision-model`, bundled `jevlite` source | Native calibrated answer logits; strict full-token length checks |
+| `certo` | `altslate/certo-decision-model`, AltSlate-Labs/certo | Native independent option logits, calibrated across all options; no state or option truncation |
+| `jev-omni` | `akhilaaa3/Jev-Omni`, bundled `jev_omni.py` | Native 256-way head; distinct anonymous prefixes preserve duplicate descriptions |
+| `autojev` | `denis-pplx/AutoJev-27B`, bundled `source/src/autojev` | Native decision head and checkpoint temperature; Python 3.12 required |
+| `flymy` | FlyMy packaged pointer or letter-logit releases, bundled `model.py` | Manifest verification on a temporary real-file copy; native calibration; explicit context and letter capacity; pointer request byte cap raised from 64 KiB to 1 MiB while retaining structural validation and strict token limits |
+| `lev` | `franckverrot/lev-350m`, franckverrot/lev | Native FP32 pointer model, pinned base revision, checkpoint calibration, strict encoding |
+| `gliner2` | Fastino GLiNER2 checkpoints, fastino-ai/GLiNER2 | Native classification softmax with all labels returned; checks full schema-plus-text token count |
+| `reranker` | Dedicated sequence-classification rerankers, Qwen3-Reranker, MXBAI v2 and ZeroRank 2 | Full rubric and one candidate per relevance pair; softmax of native relevance scores at temperature 1; this is an adapter distribution, not native decision calibration |
+| `metask` | `wayfind/metask-jev-4b-policy-mix`, metask-ai/metask-jev `inference/` | Native enum prompt and released per-task temperatures; authored Noul definitions and numeric levels remain explicit |
+| `spark` | `abhishek085/spark-s1-4b-v6`, abhishek085/open-spark-jev | Native menu prompt and per-task calibration; Noul uses explicit Choice options to retain authored definitions |
+| `evalengine` | `evalengine/decision-4b`, checkpoint directory | Pinned base plus LoRA; published Tev-compatible JSON prompt and allowed-letter softmax |
+| `deem` | `LibertAIDAI/deem-0.8-v1`, Libertai/deem | Native Torch backend and typed prompt; one original option ordering; default temperature 1 when the checkpoint has no calibration artifact |
+| `hopper` | `HopitAI/hopper`, hopit-ai/hopper | Native calibrated letter probabilities, full authored Noul criteria, no shortlisting |
+| `reflex` | `kshetrajna12/reflex-qwen3.5-4b-lora`, kshetrajna12/reflex | Pinned base and LoRA, native calibrated branches, one option ordering; probability sums normalized only within native six-decimal rounding error |
+| `verdict-small` | `Manav2op/verdict-small`, Manavarya09/verdict | Native overlapping state windows and embedding similarity; option token overflow is rejected |
+| `opendecision` | `MoritzLaurer/ModernBERT-large-zeroshot-v2.0`, deepanwadhwa/OpenDecision | Native typed NLI scoring; full tokenization without truncation; Noul hypotheses retain instructions and definitions; authored hypothesis braces stay literal |
+| `gliformer-jeff` | `knowledgator/gliformer-large-v1`, logan-markewich/jeff | Native isolated classification groups and temperature normalization, with complete-label validation and no output rounding; distinct from Firelex Jeff |
+| `nimble-lora` | `jsaurabh/qwen3.5-9b-jev-data-mix-v2`, frozen bespokelabsai/nimble | Native schema candidate logits, pinned base plus LoRA, temperature 1 |
+| `imajev` | `mohit67890/imajev-4b`, mohit67890/imajev | Native CUDA readout and released calibration, one option order; retain the unknown prompt branch and condition probabilities on declared benchmark options |
+| `smalljev` | `isHeSatoshi/smalljev-semantic-v9`, isHeSatoshi/smalljev | Native shared option-span scorer; construct the complete prompt before checking capacity, disabling native state shortening |
+| `plumb` | `crh225/plumb-4b`, crh225/plumb | Released single-read JevK5 protocol and checkpoint temperature; no confidence commitment heuristic |
+| `rune` | Rune v3 BF16, invergent-ai/surogate | Decisions v1 prompt and codebook, Transformers CUDA logits, temperature 1, no thinking or order averaging |
+| `standardone` | `StandardThinking/StandardOne-8B`, bundled `server/` | Native wording and tokenizer boundary, no system prompt, released per-task temperatures, one option order |
+| `jevone` | `juspay/jev-one`, bundled serving archive | Native 255-marker prompt and two-order reduction; released task temperatures, no output rounding; non-chat role records preserved as complete JSON |
+| `needle` | `Cactus-Compute/needle3`, cactus-compute/needle | JAX CUDA teacher-forced likelihood of each complete tool-call candidate, normalized over declared candidates; this is an adapter distribution, not Needle's native confidence scalar |
+
+All these adapters accept `--context-limit`; omitting it retains the adapter's
+recorded default. Inputs that exceed the effective limit fail rather than being
+silently truncated. `jevlite`, `flymy`, `metask`, `spark`, `deem`, `hopper`,
+`reflex`, `nimble-lora`, `smalljev`, `plumb`, and `standardone` also accept
+`--max-candidates` for an explicit answer-code capacity extension. Extended
+codebooks preserve the native prefix and require distinct single-token codes.
+Smalljev's option-span scorer uses display labels instead of answer-token IDs;
+its extension preserves the original alphabet and adds two-letter labels.
+Extensions are recorded as evaluation conditions and do not imply training at
+those lengths or candidate counts. Eval Engine uses the existing ordered Tev
+24-way decision tree for larger menus, preserving every leaf and multiplying
+conditional probabilities.
+
+GLiNER2 explicitly requests its supported FlashDeBERTa backend and records the
+actual encoder implementation. Its FP32 biased-attention kernel uses 32-by-32
+tiles, one stage and four warps to fit the GPU shared-memory limit; this changes
+kernel scheduling, not the input or checkpoint precision. Rerankers with a
+published `LogitScore` configuration use their bundled query/document chat
+template and token IDs. XLM-R rerankers also enforce the learned position-table
+capacity, even when a larger runtime context was requested; overlong examples
+fail explicitly instead of indexing beyond the embedding table.
+Encoder rerankers batch up to eight candidates within an 8,192-token padded
+microbatch budget. Decoder rerankers retain single-pair inference because padded
+BF16 batching materially changed Qwen3 candidate logits in numerical checks.
+Every candidate is length-checked before any candidate is evaluated.
+
+Public source licenses and checkpoint licenses remain separate. Native runtimes
+are imported from their recorded source checkout; they are not redistributed as
+part of the S1MB package. The GLiNER2 project declares Transformers 4 compatibility;
+use an isolated compatible runtime when necessary rather than modifying the
+shared evaluation environment during a running job.
+
+Use the `decision-encoders` extra for sentence-transformers, GLiFormer and
+FlashDeBERTa. The `standardone` extra supplies its native `mistral-common`
+tokenizer. Needle requires a separate CUDA JAX environment with `jax[cuda13]`,
+Flax, Optax, SentencePiece and Safetensors, plus S1MB. It refuses CPU inference.
+Needle's complete-candidate likelihood scoring is explicitly different from the
+label-only native tool-call API: neither a one-hot label nor its single confidence
+scalar is presented as a probability distribution. Its scores and latency must
+be interpreted under that recorded adapter contract.

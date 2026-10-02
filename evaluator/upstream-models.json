@@ -118,15 +118,6 @@
     "subfolder": "qwen3.5-4b-nli-v5"
   },
   {
-    "adapter": "clm",
-    "repository": "https://github.com/Contrastive-LM/CLM",
-    "commit": "bb42c6c5bf914fd449bed2f6ca65be80602cb1f7",
-    "model": "Contrastive-LM/CLM-v0.1-8B",
-    "revision": "e939398d4556fcd9400c76fa8c5a513202f42b0a",
-    "base_model": "Qwen/Qwen3-8B",
-    "base_revision": "b968826d9c46dd6066d109eabc6255188de91218"
-  },
-  {
     "adapter": "tev",
     "repository": "https://github.com/togethercomputer/tev1",
     "commit": "1dde7782382c9f49d627153759b8d1deab426ce0",
@@ -306,5 +297,334 @@
     "repository": "https://huggingface.co/openjev/openjev",
     "model": "openjev/openjev",
     "revision": "0b6bb6e571bc7bcd6f1eb68de706f592f29c6483"
+  },
+  {
+    "adapter": "firelex-jeff",
+    "repository": "https://github.com/firelex/jeff",
+    "commit": "f06788292874c21a5b5c41549ac220dd9e15da7f",
+    "model": "mstrasser/Jeff-Qwen3.5-0.8B",
+    "revision": "0f212b3e72acb4dde3f7da61e925d6ab7f819990"
+  },
+  {
+    "adapter": "firelex-jeff",
+    "repository": "https://github.com/firelex/jeff",
+    "commit": "f06788292874c21a5b5c41549ac220dd9e15da7f",
+    "model": "mstrasser/Jeff-Qwen3.5-2B",
+    "revision": "2b1055eddeb00788f22c0b6156b8d6fa6fc0eecd"
+  },
+  {
+    "adapter": "firelex-jeff",
+    "repository": "https://github.com/firelex/jeff",
+    "commit": "f06788292874c21a5b5c41549ac220dd9e15da7f",
+    "model": "mstrasser/Jeff-Gemma4-E2B",
+    "revision": "e3de3e99a979f92afd995d4e526c7e3170ae49cf"
+  },
+  {
+    "adapter": "firelex-jeff",
+    "repository": "https://github.com/firelex/jeff",
+    "commit": "f06788292874c21a5b5c41549ac220dd9e15da7f",
+    "model": "mstrasser/Jeff-Qwen3.5-0.8B-Chess",
+    "revision": "aa915f1f73add6c25c059f970a7b0d9d2a6055b3"
+  },
+  {
+    "adapter": "bosun",
+    "repository": "https://huggingface.co/Hanno-Labs/bosun-v3.1-0.6b",
+    "commit": "1d8b6f9611f9b64b514ce8b57cd86398fbc31a3b",
+    "model": "Hanno-Labs/bosun-v3.1-0.6b",
+    "revision": "1d8b6f9611f9b64b514ce8b57cd86398fbc31a3b"
+  },
+  {
+    "adapter": "kev",
+    "repository": "https://github.com/jaredpalmer/kev",
+    "commit": "90512f1c517d977741f2104470a40635408236c9",
+    "model": "jaredpalmer/kev-0.5b",
+    "revision": "9ce2fd39db3a397c89733f94af948e3d1fdfffcd"
+  },
+  {
+    "adapter": "kev",
+    "repository": "https://github.com/jaredpalmer/kev",
+    "commit": "90512f1c517d977741f2104470a40635408236c9",
+    "model": "jaredpalmer/kev-0.6b",
+    "revision": "dece6dba8d43f0f7ded45e9f5b9df12474d90843"
+  },
+  {
+    "adapter": "kev",
+    "repository": "https://github.com/jaredpalmer/kev",
+    "commit": "90512f1c517d977741f2104470a40635408236c9",
+    "model": "jaredpalmer/kev-8b",
+    "revision": "c80773da7f383f93c4dbff0c0b008e0463f9145a"
+  },
+  {
+    "adapter": "kev",
+    "repository": "https://github.com/jaredpalmer/kev",
+    "commit": "90512f1c517d977741f2104470a40635408236c9",
+    "model": "dhtocks/malkuth-2b",
+    "revision": "37ae1672eebcf9ee5417418bd0be49f2e53d9087"
+  },
+  {
+    "adapter": "kev",
+    "repository": "https://github.com/jaredpalmer/kev",
+    "commit": "90512f1c517d977741f2104470a40635408236c9",
+    "model": "dhtocks/malkuth-4b",
+    "revision": "ba9221fcb1ff450fc51dcefffc8e034ed479630d"
+  },
+  {
+    "adapter": "jevlite",
+    "repository": "https://huggingface.co/mghafiri/qwen3.5-0.8B-decision-model",
+    "commit": "4a9939034a27006b4b62ad5aed65a90b82d0d350",
+    "model": "mghafiri/qwen3.5-0.8B-decision-model",
+    "revision": "4a9939034a27006b4b62ad5aed65a90b82d0d350"
+  },
+  {
+    "adapter": "certo",
+    "repository": "https://github.com/AltSlate-Labs/certo",
+    "commit": "6db922ddd19c9260155259c9d7623b3900036d79",
+    "model": "altslate/certo-decision-model",
+    "revision": "7628c0da918c5fce96a6629c548630ac6bed8c58"
+  },
+  {
+    "adapter": "jev-omni",
+    "repository": "https://huggingface.co/akhilaaa3/Jev-Omni",
+    "commit": "5addda86ddee081a68fb067477ea100c221b8917",
+    "model": "akhilaaa3/Jev-Omni",
+    "revision": "5addda86ddee081a68fb067477ea100c221b8917"
+  },
+  {
+    "adapter": "lev",
+    "repository": "ssh://git@github.com/franckverrot/lev",
+    "commit": "c48a945dbf629998d7458dcc5c16f58df964db94",
+    "model": "franckverrot/lev-350m",
+    "revision": "ab08ad8b8f346994d983152917e114224f6adac7"
+  },
+  {
+    "adapter": "autojev",
+    "repository": "https://huggingface.co/denis-pplx/AutoJev-27B",
+    "commit": "6f5b557e037f5edb25c7dc92dbc6553e5a19c015",
+    "model": "denis-pplx/AutoJev-27B",
+    "revision": "6f5b557e037f5edb25c7dc92dbc6553e5a19c015"
+  },
+  {
+    "adapter": "flymy",
+    "repository": "https://huggingface.co/flymy-ai/decision-fast-preview",
+    "commit": "4225d41c66119fe28e95a2631bb0103decae6d56",
+    "model": "flymy-ai/decision-fast-preview",
+    "revision": "4225d41c66119fe28e95a2631bb0103decae6d56"
+  },
+  {
+    "adapter": "flymy",
+    "repository": "https://huggingface.co/flymy-ai/decision-2b-preview",
+    "commit": "df57b75db927acc9ad91ec8115508c1e487086eb",
+    "model": "flymy-ai/decision-2b-preview",
+    "revision": "df57b75db927acc9ad91ec8115508c1e487086eb"
+  },
+  {
+    "adapter": "flymy",
+    "repository": "https://huggingface.co/flymy-ai/decision-4b-v1.1",
+    "commit": "d7060294e51c83d173fe35b169682992bfdc20ce",
+    "model": "flymy-ai/decision-4b-v1.1",
+    "revision": "d7060294e51c83d173fe35b169682992bfdc20ce"
+  },
+  {
+    "adapter": "flymy",
+    "repository": "https://huggingface.co/flymy-ai/decision-4b-v1.2",
+    "commit": "79792bfb89e38498a21d1b71bc96b684be7b6617",
+    "model": "flymy-ai/decision-4b-v1.2",
+    "revision": "79792bfb89e38498a21d1b71bc96b684be7b6617"
+  },
+  {
+    "adapter": "decider",
+    "repository": "ssh://git@github.com/Mapika/decider",
+    "commit": "50d0be0d7cb43d2066965ce5fa7f3fe4e489a60f",
+    "model": "Mapika/decider-35b-a3b",
+    "revision": "91470e65478656eb68fde8c0ccdfe575d69d0309"
+  },
+  {
+    "adapter": "clm",
+    "repository": "ssh://git@github.com/Contrastive-LM/CLM",
+    "commit": "bb42c6c5bf914fd449bed2f6ca65be80602cb1f7",
+    "model": "Contrastive-LM/CLM-v0.1-8B",
+    "revision": "e939398d4556fcd9400c76fa8c5a513202f42b0a"
+  },
+  {
+    "adapter": "gliner2",
+    "repository": "ssh://git@github.com/fastino-ai/GLiNER2",
+    "commit": "55656fbfa01d3d4a77485e1a1eeeaf682990ccdf",
+    "model": "fastino/gliner2-large-v1",
+    "revision": "d7aa8a2850d175a9227ff80358ea380723d03ad2"
+  },
+  {
+    "adapter": "gliner2",
+    "repository": "ssh://git@github.com/fastino-ai/GLiNER2",
+    "commit": "55656fbfa01d3d4a77485e1a1eeeaf682990ccdf",
+    "model": "fastino/gliner2.5-multi-v1",
+    "revision": "2ca71aafb3446d9014e1c55c7ff51c9bc7209c47"
+  },
+  {
+    "adapter": "gliner2",
+    "repository": "ssh://git@github.com/fastino-ai/GLiNER2",
+    "commit": "55656fbfa01d3d4a77485e1a1eeeaf682990ccdf",
+    "model": "fastino/gliner2.5-base-v1",
+    "revision": "ca906247640776a07753514055be9726f9080ead"
+  },
+  {
+    "adapter": "gliner2",
+    "repository": "ssh://git@github.com/fastino-ai/GLiNER2",
+    "commit": "55656fbfa01d3d4a77485e1a1eeeaf682990ccdf",
+    "model": "fastino/gliner2.5-small-v1",
+    "revision": "7132dc4561c3f94563c6147e75ffa8ef34c4964a"
+  },
+  {
+    "adapter": "reranker",
+    "repository": "https://huggingface.co/Qwen/Qwen3-Reranker-4B",
+    "commit": "22e683669bc0f0bd69640a1354a6d0aebcfeede5",
+    "model": "Qwen/Qwen3-Reranker-4B",
+    "revision": "22e683669bc0f0bd69640a1354a6d0aebcfeede5"
+  },
+  {
+    "adapter": "reranker",
+    "repository": "https://huggingface.co/BAAI/bge-reranker-v2-m3",
+    "commit": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e",
+    "model": "BAAI/bge-reranker-v2-m3",
+    "revision": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"
+  },
+  {
+    "adapter": "reranker",
+    "repository": "https://huggingface.co/Alibaba-NLP/gte-reranker-modernbert-base",
+    "commit": "f7481e6055501a30fb19d090657df9ec1f79ab2c",
+    "model": "Alibaba-NLP/gte-reranker-modernbert-base",
+    "revision": "f7481e6055501a30fb19d090657df9ec1f79ab2c"
+  },
+  {
+    "adapter": "reranker",
+    "repository": "https://huggingface.co/mixedbread-ai/mxbai-rerank-base-v2",
+    "commit": "3ea9d4dffa7d12a4f366be8e275c349de9fc9865",
+    "model": "mixedbread-ai/mxbai-rerank-base-v2",
+    "revision": "3ea9d4dffa7d12a4f366be8e275c349de9fc9865"
+  },
+  {
+    "adapter": "metask",
+    "repository": "ssh://git@github.com/metask-ai/metask-jev",
+    "commit": "6cce2276d7898a9ed0122afbc49d0f0b74ccda98",
+    "model": "wayfind/metask-jev-4b-policy-mix",
+    "revision": "ea20fe85b28733b1522721dec119bec50947a869"
+  },
+  {
+    "adapter": "spark",
+    "repository": "ssh://git@github.com/abhishek085/open-spark-jev",
+    "commit": "3bdf49e50b0b8cb9cc35ab5dcd51434a9f7734c8",
+    "model": "abhishek085/spark-s1-4b-v6",
+    "revision": "93d49ddbfb29212e3296635a75a3e80cf69da027"
+  },
+  {
+    "adapter": "hopper",
+    "repository": "ssh://git@github.com/hopit-ai/hopper",
+    "commit": "d88d7e326ae45280fcb2c3a64e13ff73af6745fa",
+    "model": "HopitAI/hopper",
+    "revision": "5d7ff514240655a07fb2ee4e59d0dcb5982314cf"
+  },
+  {
+    "adapter": "reflex",
+    "repository": "ssh://git@github.com/kshetrajna12/reflex",
+    "commit": "231f896d818a62b94fec305ed553df1088486dcb",
+    "model": "kshetrajna12/reflex-qwen3.5-4b-lora",
+    "revision": "9df1cbbbc1837ba494530a59d3d9d345688ed250"
+  },
+  {
+    "adapter": "nimble-lora",
+    "repository": "ssh://git@github.com/bespokelabsai/nimble",
+    "commit": "f136b3f75721fda4ea961f73993cc50b08488835",
+    "model": "jsaurabh/qwen3.5-9b-jev-data-mix-v2",
+    "revision": "af0d51022410a72218f0ddc7414f877d0556e82d"
+  },
+  {
+    "adapter": "jevone",
+    "repository": "https://huggingface.co/juspay/jev-one",
+    "commit": "a286a461e6daedee1e2400bdbe81cbb741cd592f",
+    "model": "juspay/jev-one",
+    "revision": "a286a461e6daedee1e2400bdbe81cbb741cd592f"
+  },
+  {
+    "adapter": "reranker",
+    "repository": "https://huggingface.co/zeroentropy/zerank-2-reranker",
+    "commit": "5eae30d5ee3c6b2df2ef6d723bde45172d761c4c",
+    "model": "zeroentropy/zerank-2-reranker",
+    "revision": "5eae30d5ee3c6b2df2ef6d723bde45172d761c4c"
+  },
+  {
+    "adapter": "verdict-small",
+    "repository": "ssh://git@github.com/Manavarya09/verdict",
+    "commit": "76bc1fe9ba87ec5b746ed33faac48812f1d1a4ca",
+    "model": "Manav2op/verdict-small",
+    "revision": "085a41e0ea269f00483dd202a286cfb68f7aa63a"
+  },
+  {
+    "adapter": "deem",
+    "repository": "ssh://git@github.com/Libertai/deem",
+    "commit": "3883f79261e5c61d3e8f230cad02b50c6d2b1891",
+    "model": "LibertAIDAI/deem-0.8-v1",
+    "revision": "8cbabbb2c4a7ef13c6b43f0ef3ae4157983c6d21"
+  },
+  {
+    "adapter": "evalengine",
+    "repository": "https://huggingface.co/evalengine/decision-4b",
+    "commit": "aadc55517ae8bfb1264fd5932ec452b939361e47",
+    "model": "evalengine/decision-4b",
+    "revision": "aadc55517ae8bfb1264fd5932ec452b939361e47"
+  },
+  {
+    "adapter": "plumb",
+    "repository": "ssh://git@github.com/crh225/plumb",
+    "commit": "fe73067682729221bc61aac1db6c1e08f2f7d7f8",
+    "model": "crh225/plumb-4b",
+    "revision": "24f7bf77e7ee258a2d158c61ea2dce2b60321010"
+  },
+  {
+    "adapter": "smalljev",
+    "repository": "ssh://git@github.com/isHeSatoshi/smalljev",
+    "commit": "65f74b49748f2663225a6fc68852c0a7d09fd0b9",
+    "model": "isHeSatoshi/smalljev-semantic-v9",
+    "revision": "8e2bac7c4e922371c05899f4f000233e8096fee6"
+  },
+  {
+    "adapter": "imajev",
+    "repository": "ssh://git@github.com/mohit67890/imajev",
+    "commit": "ccf586d43d2a580319b6535c893668904d909eb9",
+    "model": "mohit67890/imajev-4b",
+    "revision": "f8d8234cebc6c99065c07731e59716dc0a6e27ab"
+  },
+  {
+    "adapter": "rune",
+    "repository": "ssh://git@github.com/invergent-ai/surogate",
+    "commit": "d500563399c27c8ce425bcd1214194ce5dda87bb",
+    "model": "michaelfeil/rune-26b-a4b",
+    "revision": "d9507c3d09de24e948f69aaa53c7bcb4a271effb"
+  },
+  {
+    "adapter": "needle",
+    "repository": "ssh://git@github.com/cactus-compute/needle",
+    "commit": "ea68f2eb955f110e15c8706a85a87c1bbf63698b",
+    "model": "Cactus-Compute/needle3",
+    "revision": "27c0a9a5b3ca835e0b7dbeaccf555df03dac493d"
+  },
+  {
+    "adapter": "standardone",
+    "repository": "https://huggingface.co/StandardThinking/StandardOne-8B",
+    "commit": "36d7999c63403acc1fd5861d5b139eee275e26d8",
+    "model": "StandardThinking/StandardOne-8B",
+    "revision": "36d7999c63403acc1fd5861d5b139eee275e26d8"
+  },
+  {
+    "adapter": "opendecision",
+    "repository": "ssh://git@github.com/deepanwadhwa/OpenDecision",
+    "commit": "9bbf478cb86dc4bee3d134fda75ccee211b23f02",
+    "model": "MoritzLaurer/ModernBERT-large-zeroshot-v2.0",
+    "revision": "a51e07b524299e309dd2b88d48b0cfa2bd9ec598"
+  },
+  {
+    "adapter": "gliformer-jeff",
+    "repository": "ssh://git@github.com/logan-markewich/jeff",
+    "commit": "34b32f99a727c47b679adde33f4702a001e02979",
+    "model": "knowledgator/gliformer-large-v1",
+    "revision": "d0a4e53d09cebe6bc963dd9be319d4279084bb2d"
   }
 ]
