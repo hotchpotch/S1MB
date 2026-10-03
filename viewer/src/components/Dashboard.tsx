@@ -6,8 +6,10 @@ import { GitHubIcon } from "./GitHubIcon";
 import { BenchmarkSources } from "./BenchmarkSources";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeftRight, ArrowUpRight, BarChart3, Blocks, Check, CircleCheck, ListChecks, Trophy, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { ArrowLeftRight, ArrowUpRight, BarChart3, Blocks, Check, CircleCheck, ListChecks, Trophy, ChevronLeft, ChevronRight, Search, SlidersHorizontal, ChevronDown, X } from "lucide-react";
 import { ModelWebsiteLink } from "./ModelWebsiteLink";
+import { ParameterFilter } from './ParameterFilter';
+import { ALL_PARAMETERS, matchesParameterRange, rangeActive, type ParameterRange } from '../lib/parameter-filters';
 import { ParameterCounts, ParameterCountsHeader } from "./ParameterCounts";
 import { Dialog } from "radix-ui";
 import { Button } from "./ui/button";
@@ -386,6 +388,7 @@ export function Dashboard({
   initialGeneralizationOnly = false,
   initialCheckedOnly = false,
   initialModelSearch = "",
+  initialFiltersOpen = false,
   initialCompare = [],
   initialBenchmark,
 }: {
@@ -397,6 +400,7 @@ export function Dashboard({
   initialGeneralizationOnly?: boolean;
   initialCheckedOnly?: boolean;
   initialModelSearch?: string;
+  initialFiltersOpen?: boolean;
   initialCompare?: string[];
   initialBenchmark?: string;
 }) {
@@ -418,6 +422,11 @@ export function Dashboard({
   const [generalizationOnly, setGeneralizationOnly] = useState(initialGeneralizationOnly);
   const [checkedOnly, setCheckedOnly] = useState(initialCheckedOnly);
   const [modelSearch, setModelSearch] = useState(initialModelSearch);
+  const [filtersOpen, setFiltersOpen] = useState(initialFiltersOpen);
+  const [totalRange, setTotalRange] = useState<ParameterRange>([...ALL_PARAMETERS]);
+  const [activeRange, setActiveRange] = useState<ParameterRange>([...ALL_PARAMETERS]);
+  const parameterFilterCount = Number(rangeActive(totalRange)) + Number(rangeActive(activeRange));
+  const resetParameterFilters = () => { setTotalRange([...ALL_PARAMETERS]); setActiveRange([...ALL_PARAMETERS]); };
   const [includeIncomplete, setIncomplete] = useState(false);
   const [modelPickerOpen, setModelPickerOpen] = useState(true);
   const [query, setQuery] = useState("");
@@ -485,6 +494,8 @@ export function Dashboard({
   });
   const displayedRows = rows.filter(row =>
     (!checkedOnly || selectedIds.includes(row.runId)) &&
+    matchesParameterRange(row.model.total_params, totalRange) &&
+    matchesParameterRange(row.model.active_params, activeRange) &&
     [row.model.id, row.model.short_name, modelName(row.model)].some(name => name?.toLowerCase().includes(modelSearch.trim().toLowerCase())));
   function sortLeaderboard(column: LeaderboardSort) {
     setLeaderboardAscending(column === leaderboardSort ? !leaderboardAscending : false);
@@ -670,8 +681,28 @@ export function Dashboard({
                     <Input aria-label="Search leaderboard models" placeholder="Search models…" value={modelSearch} onChange={event => setModelSearch(event.target.value)} className="h-8 pl-7 pr-7 text-xs md:text-xs" />
                     {modelSearch && <Button variant="ghost" size="icon-xs" aria-label="Clear model search" className="absolute right-1 top-1" onClick={() => setModelSearch('')}><X className="size-3" /></Button>}
                   </div>
+                  <Button variant="outline" size="sm" className={cn('h-8 text-xs', parameterFilterCount > 0 && 'border-primary/30 bg-primary/10 text-primary')} aria-expanded={filtersOpen} aria-controls="leaderboard-filters" onClick={() => setFiltersOpen(open => !open)}>
+                    <SlidersHorizontal className="size-3.5" /> Filters
+                    {parameterFilterCount > 0 && <Badge className="h-4 min-w-4 px-1 text-[10px]">{parameterFilterCount}</Badge>}
+                    <ChevronDown className={cn('size-3.5 transition-transform', filtersOpen && 'rotate-180')} />
+                  </Button>
                 </div>
 
+              </div>
+            </div>
+            <div id="leaderboard-filters" inert={!filtersOpen} className={cn('grid transition-[grid-template-rows,opacity] duration-200 motion-reduce:transition-none', filtersOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0')}>
+              <div className="overflow-hidden">
+                <div className="border-y py-3">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="text-[11px] text-muted-foreground">Parameters</p>
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px] text-muted-foreground" disabled={!parameterFilterCount} onClick={resetParameterFilters}>Reset all</Button>
+                  </div>
+                  <div className="grid max-w-3xl gap-4 sm:grid-cols-2 sm:gap-8">
+                    <ParameterFilter label="TP · Total parameters" description="Total model parameters. M = million; B = billion." value={totalRange} onChange={setTotalRange} />
+                    <ParameterFilter label="AP · Active parameters" description="Excludes lookup-only embeddings; retains shared output weights. M = million; B = billion." value={activeRange} onChange={setActiveRange} />
+                  </div>
+                  <p className="mt-3 text-[11px] text-muted-foreground">Unknown parameter counts are excluded when a range is set.</p>
+                </div>
               </div>
             </div>
             {displayedRows.length ? <div className="rounded-lg border bg-card overflow-hidden">
@@ -707,8 +738,8 @@ export function Dashboard({
               </Table>
             </div> : rows.length ? <div className="rounded-lg border bg-muted/20 p-6 text-center space-y-3">
               <p className="text-sm font-medium">{checkedOnly && !selectedIds.length ? 'Check models to show them here' : 'No models match these filters'}</p>
-              <p className="text-xs text-muted-foreground">Search and Checked only do not change Borda scores or ranks.</p>
-              <Button variant="outline" size="sm" onClick={() => { setCheckedOnly(false); setModelSearch(''); }}>Show all models</Button>
+              <p className="text-xs text-muted-foreground">Filters do not change Borda scores or ranks.</p>
+              <Button variant="outline" size="sm" onClick={() => { setCheckedOnly(false); setModelSearch(''); resetParameterFilters(); }}>Show all models</Button>
             </div> : <Empty title="No complete models yet" description="Only measured models with every benchmark in the selected scope complete appear on the leaderboard. Use Compare to inspect partial results." />}
             <details className="text-xs text-muted-foreground py-2">
               <summary>Scoring & scope</summary>

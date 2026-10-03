@@ -448,3 +448,18 @@ export const LeaderboardHeadingActions: Story = {
   args: { snapshot: radarFixture, initialCompare: ['synthetic-radar-0'], initialCheckedOnly: true },
   parameters: { docs: { description: { story: 'Synthetic results. Heading actions appear in Generalization tasks only, Checked only, Compare order and wrap below the title on mobile.' } } },
 };
+
+const parameterFixture: Snapshot = { ...radarFixture, results: radarFixture.results.map(result => ({
+  ...result, model: { ...result.model,
+    total_params: result.run_id === 'synthetic-radar-0' ? 400_000_000 : result.run_id === 'synthetic-radar-1' ? 7_700_000_000 : undefined,
+    active_params: result.run_id === 'synthetic-radar-0' ? 170_000_000 : result.run_id === 'synthetic-radar-1' ? 1_200_000_000 : undefined,
+  },
+})) };
+export const ParameterFilters: Story = {
+  args: { snapshot: parameterFixture, initialFiltersOpen: true },
+  parameters: { docs: { description: { story: 'Synthetic parameter counts. Compact inline TP/AP filters match the leaderboard toolbar, with thin tracks and neutral handles. Independent ranges include unknown counts only when unrestricted. Filtering preserves ranks and selected comparison models.' } } },
+};
+export const ParameterFiltersMobile: Story = {
+  ...ParameterFilters,
+  decorators: [(Story) => <div style={{ width: 390, maxWidth: '100%' }}><Story /></div>],
+};
