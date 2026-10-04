@@ -1,0 +1,9 @@
+{
+  "id": "japanese-nanojmteb-mintaka-ja-choice-test-v1",
+  "task": "choice",
+  "dataset": "datasets/japanese-nanojmteb-mintaka-ja-choice",
+  "split": "test",
+  "case_count": 57,
+  "decision_count": 57,
+  "primary_metric": "target_mass_at_prediction"
+}

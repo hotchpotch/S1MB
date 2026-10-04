@@ -74,10 +74,13 @@ def dataset_cache_key(source: dict[str, str]) -> str:
 def result_data_root(root: Path, result: Result, *, download: bool = False) -> Path:
     """Use the recorded release, materializing only the requested subset if needed."""
     source = dataset_source(result)
-    current_path = root / "datasets/hub-source.json"
-    if current_path.exists():
-        current = read_json(current_path)
-        if all(current.get(k) == v for k, v in source.items()):
+    from .dataset_source import source_receipts
+
+    for current in source_receipts(root):
+        subset_name = Path(result.benchmark.dataset).name
+        if all(current.get(k) == v for k, v in source.items()) and (
+            "subsets" not in current or subset_name in current["subsets"]
+        ):
             return root
     target = root / "result-datasets" / dataset_cache_key(source)
     benchmark = result.benchmark

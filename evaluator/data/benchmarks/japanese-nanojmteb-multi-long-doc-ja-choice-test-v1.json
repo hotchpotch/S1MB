@@ -1,0 +1,9 @@
+{
+  "id": "japanese-nanojmteb-multi-long-doc-ja-choice-test-v1",
+  "task": "choice",
+  "dataset": "datasets/japanese-nanojmteb-multi-long-doc-ja-choice",
+  "split": "test",
+  "case_count": 68,
+  "decision_count": 68,
+  "primary_metric": "target_mass_at_prediction"
+}

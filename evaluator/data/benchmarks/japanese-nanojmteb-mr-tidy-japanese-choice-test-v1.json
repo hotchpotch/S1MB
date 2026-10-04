@@ -1,0 +1,9 @@
+{
+  "id": "japanese-nanojmteb-mr-tidy-japanese-choice-test-v1",
+  "task": "choice",
+  "dataset": "datasets/japanese-nanojmteb-mr-tidy-japanese-choice",
+  "split": "test",
+  "case_count": 81,
+  "decision_count": 81,
+  "primary_metric": "target_mass_at_prediction"
+}

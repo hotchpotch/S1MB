@@ -1,9 +1,18 @@
+from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from s1mb import cli
+
+
+@pytest.fixture(autouse=True)
+def isolate_selection_from_dataset_refresh(monkeypatch):
+    # These tests mock evaluation and only inspect benchmark selection.
+    monkeypatch.setattr(
+        "s1mb.dataset_source.dataset_session", lambda *args, **kwargs: nullcontext()
+    )
 
 
 @pytest.mark.parametrize("task,expected", [(None, 6), ("noul", 2)])

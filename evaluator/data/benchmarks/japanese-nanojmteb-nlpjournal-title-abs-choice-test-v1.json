@@ -1,0 +1,9 @@
+{
+  "id": "japanese-nanojmteb-nlpjournal-title-abs-choice-test-v1",
+  "task": "choice",
+  "dataset": "datasets/japanese-nanojmteb-nlpjournal-title-abs-choice",
+  "split": "test",
+  "case_count": 97,
+  "decision_count": 97,
+  "primary_metric": "target_mass_at_prediction"
+}

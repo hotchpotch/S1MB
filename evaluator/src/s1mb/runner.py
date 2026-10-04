@@ -17,10 +17,10 @@ from .data import (
     Result,
     check_probabilities,
     load_cases,
-    read_json,
     validate_result,
     write_json,
 )
+from .dataset_source import source_for_subset
 from .metrics import calculate
 
 
@@ -61,8 +61,7 @@ def evaluate(
     destination = output / run_id / f"{benchmark.id}.json"
     if destination.exists():
         raise ValueError(f"Result already exists: {destination}; use a new run ID")
-    source_path = root / "datasets/hub-source.json"
-    dataset_source = read_json(source_path) if source_path.exists() else None
+    dataset_source = source_for_subset(root, Path(benchmark.dataset).name)
     cases = load_cases(root, benchmark)
     selected = cases[:limit] if limit is not None else cases
     predictions = []

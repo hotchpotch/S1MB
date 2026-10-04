@@ -1,0 +1,9 @@
+{
+  "id": "japanese-nanojmteb-ja-gov-faqs-choice-test-v1",
+  "task": "choice",
+  "dataset": "datasets/japanese-nanojmteb-ja-gov-faqs-choice",
+  "split": "test",
+  "case_count": 86,
+  "decision_count": 86,
+  "primary_metric": "target_mass_at_prediction"
+}

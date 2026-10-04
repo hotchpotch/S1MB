@@ -1,0 +1,9 @@
+{
+  "id": "japanese-llm-jp-jamp-choice-test-v1",
+  "task": "choice",
+  "dataset": "datasets/japanese-llm-jp-jamp-choice",
+  "split": "test",
+  "case_count": 100,
+  "decision_count": 100,
+  "primary_metric": "target_mass_at_prediction"
+}

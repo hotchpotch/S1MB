@@ -1,0 +1,9 @@
+{
+  "id": "japanese-nanojmteb-nlpjournal-title-abs-score-test-v1",
+  "task": "score",
+  "dataset": "datasets/japanese-nanojmteb-nlpjournal-title-abs-score",
+  "split": "test",
+  "case_count": 100,
+  "decision_count": 100,
+  "primary_metric": "normalized_expected_score_mae"
+}

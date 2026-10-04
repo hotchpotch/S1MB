@@ -178,7 +178,7 @@ def main() -> None:
     if args.command == "run":
         from .dataset_source import dataset_session
 
-        with dataset_session(args.data_dir, offline=args.offline_dataset):
+        with dataset_session(args.data_dir, offline=args.offline_dataset, category=args.category):
             execute(args, parser)
     else:
         execute(args, parser)

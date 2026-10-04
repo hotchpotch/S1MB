@@ -45,6 +45,31 @@ test('a changed or incomplete set of definitions cannot silently reduce the aver
   assert.equal(result.rows[0].average, null);
 });
 
+test('Japanese generalization selects six benchmarks only from its category', () => {
+  const data = fixture();
+  const japanese = data.benchmarks.map(b => ({ ...b, id: `ja-${b.id}`, dataset: b.dataset.replace('s1mb-generalization-', 's1mb-generalization-japanese-') }));
+  data.benchmarks.push(...japanese);
+  const category = { id: 'japanese-v1', name: 'Japanese v1', description: '', benchmarks: japanese.map(b => b.id) };
+  data.categories.push(category);
+  japanese.forEach((benchmark, i) => {
+    data.results.push({ ...data.results[i], benchmark });
+    data.scoring![benchmark.id] = { eligible: true, reason: null };
+  });
+  const result = generalizationComparison(data, category);
+  assert.equal(result.columns.length, 6);
+  assert.ok(result.columns.every(c => c.benchmark.id.startsWith('ja-')));
+  assert.equal(result.rows[0].average, 0.5);
+  assert.ok(generalizationComparison(data, data.categories[0]).columns.every(c => !c.benchmark.id.startsWith('ja-')));
+});
+
+test('duplicate family/task definitions cannot silently select one benchmark', () => {
+  const data = fixture();
+  const duplicate = { ...data.benchmarks[0], id: 'duplicate', dataset: data.benchmarks[0].dataset.replace('s1mb-generalization-', 's1mb-generalization-japanese-') };
+  data.benchmarks.push(duplicate);
+  data.categories[0].benchmarks.push(duplicate.id);
+  assert.throws(() => generalizationComparison(data, data.categories[0]), /Duplicate generalization/);
+});
+
 test('six-benchmark coverage admits a model only in the selected generalization scope', async () => {
   const { hasCompleteCoverage } = await import('./comparison');
   const { generalizationCategory, overallIndex } = await import('./types');

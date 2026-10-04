@@ -1,0 +1,9 @@
+{
+  "id": "japanese-nanojmteb-mintaka-ja-noul-test-v1",
+  "task": "noul",
+  "dataset": "datasets/japanese-nanojmteb-mintaka-ja-noul",
+  "split": "test",
+  "case_count": 100,
+  "decision_count": 100,
+  "primary_metric": "binary_brier"
+}
