@@ -1,6 +1,7 @@
 """Command-line evaluation and offline validation."""
 
 import argparse
+import math
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
@@ -107,6 +108,7 @@ def main() -> None:
             "winnow",
             "openjev-shim",
             "verdict-encoder",
+            "meta-encoder",
         ],
         required=True,
     )
@@ -114,6 +116,11 @@ def main() -> None:
     run.add_argument("--revision", default="main")
     run.add_argument("--subfolder", help="Alex Openjev checkpoint subfolder")
     run.add_argument("--device", default="cpu")
+    run.add_argument(
+        "--temperature",
+        type=float,
+        help="Explicit Meta Encoder cosine-softmax temperature",
+    )
     run.add_argument(
         "--server-host", default="127.0.0.1", help="Winnow bind IPv4: localhost or Tailscale"
     )
@@ -343,6 +350,7 @@ def execute(args, parser):
             "jevone",
             "needle",
             "gliformer-jeff",
+            "meta-encoder",
         }
     ):
         parser.error(
@@ -361,8 +369,17 @@ def execute(args, parser):
         "openjev-org",
         "clm",
         "tev",
+        "meta-encoder",
     }:
         parser.error("--attention applies only to measured upstream adapters")
+    if args.temperature is not None and (
+        args.adapter != "meta-encoder"
+        or not math.isfinite(args.temperature)
+        or args.temperature <= 0
+    ):
+        parser.error("--temperature must be finite and positive and applies only to Meta Encoder")
+    if args.adapter == "meta-encoder" and args.temperature is None:
+        parser.error("--temperature is required for Meta Encoder")
     if args.benchmark:
         if set(args.benchmark) - set(category.benchmarks):
             parser.error("Selected benchmark is not in the category")
@@ -426,6 +443,17 @@ def execute(args, parser):
         from .adapters.typesafe import TypeSafeAdapter
 
         adapter = TypeSafeAdapter(args.model)
+    elif args.adapter == "meta-encoder":
+        from .adapters.meta_encoder import MetaEncoderAdapter
+
+        adapter = MetaEncoderAdapter(
+            args.model,
+            args.revision,
+            args.device,
+            temperature=args.temperature,
+            context_limit=args.context_limit,
+            attention=args.attention or "sdpa",
+        )
     elif args.adapter in {
         "lumma",
         "tinyjev",

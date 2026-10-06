@@ -70,6 +70,12 @@
     ]
   },
   {
+    "adapter": "meta-encoder",
+    "repository": "https://huggingface.co/facebook/meta-encoder",
+    "model": "facebook/meta-encoder",
+    "revision": "cb36037ca0e6276c92fed2d7a2a9fbcdd4e79109"
+  },
+  {
     "adapter": "kev",
     "repository": "https://github.com/jaredpalmer/kev",
     "commit": "2855ba2a55a80579176a459f78b95d03548cabb5",

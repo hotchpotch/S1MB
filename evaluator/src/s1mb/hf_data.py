@@ -74,6 +74,7 @@ def case_from_row(row: dict[str, Any]) -> Case:
             "group_id": row["group_id"],
             "language": row["language"],
             "state": json.loads(source["state_json"]),
+            "state_json": source["state_json"],
             "questions": questions,
             "targets": targets,
             "provenance": {

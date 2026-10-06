@@ -77,6 +77,7 @@ class Target(Record):
 class InferenceCase(Record):
     case_id: str
     state: Any
+    state_json: str | None = None
     questions: list[Question]
 
 
@@ -96,7 +97,12 @@ class Case(InferenceCase):
         return self
 
     def inference(self) -> InferenceCase:
-        return InferenceCase(case_id=self.case_id, state=self.state, questions=self.questions)
+        return InferenceCase(
+            case_id=self.case_id,
+            state=self.state,
+            state_json=self.state_json,
+            questions=self.questions,
+        )
 
 
 class Benchmark(Record):

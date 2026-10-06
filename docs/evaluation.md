@@ -55,6 +55,10 @@ in smoke comparisons. CLM and Tev require `--case-batch-size 1`; see
 before comparing measurements. Both use `--source` and a pinned `--revision`.
 Bekko uses the `bekko-v0` extra and adapter with a Hugging Face model ID;
 its remote `BekkoSentenceTransformer.predict()` supplies inference.
+Meta Encoder uses the `meta-encoder` extra and requires an explicit positive
+cosine-softmax `--temperature`. Its text-choice input limit, candidate caching,
+overflow rejection, and input rendering are documented in
+[the adapter notes](../evaluator/OPEN_MODELS.md#meta-encoder).
 
 Before evaluation, identify and record:
 
