@@ -8,6 +8,7 @@ import { BenchmarkSources } from "./BenchmarkSources";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeftRight, ArrowUpRight, BarChart3, Blocks, Check, CircleCheck, ListChecks, Trophy, ChevronLeft, ChevronRight, Search, SlidersHorizontal, ChevronDown, X } from "lucide-react";
 import { ModelWebsiteLink } from "./ModelWebsiteLink";
+import { hfModelLabel } from '../lib/hf-model-label';
 import { ParameterFilter } from './ParameterFilter';
 import { ALL_PARAMETERS, matchesParameterRange, rangeActive, type ParameterRange } from '../lib/parameter-filters';
 import { ParameterCounts, ParameterCountsHeader } from "./ParameterCounts";
@@ -117,25 +118,33 @@ function ModelLabel({
   onClick,
   detailed = false,
   distinguish = false,
+  showRepository = false,
 }: {
   model: ModelInfo;
   runId: string;
   onClick?: () => void;
   detailed?: boolean;
   distinguish?: boolean;
+  showRepository?: boolean;
 }) {
+  const repository = showRepository ? hfModelLabel(model.hf_url) : null;
   return (
-    <div className="min-w-0 w-full space-y-1 text-left whitespace-normal [overflow-wrap:anywhere]">
+    <div className={cn('min-w-0 w-full text-left whitespace-normal [overflow-wrap:anywhere]', repository ? 'space-y-0' : 'space-y-1')}>
       {onClick ? (
         <button
           onClick={onClick}
-          className="font-semibold text-sm text-foreground underline-offset-4 hover:underline text-left break-words"
+          className={cn('font-semibold text-sm text-foreground underline-offset-4 hover:underline text-left break-words', repository && 'block leading-snug')}
         >
           {detailed ? modelName(model) : model.short_name ?? modelName(model)}
         </button>
       ) : (
         <p className="font-semibold text-sm break-words">{modelName(model)}</p>
       )}
+      {repository && (onClick ? (
+        <button onClick={onClick} className="block text-left text-[10px]! font-normal leading-tight text-muted-foreground underline-offset-2 hover:underline break-words">
+          {repository}
+        </button>
+      ) : <p className="text-[10px] font-normal leading-tight text-muted-foreground">{repository}</p>)}
       {(detailed || (!onClick && instructionLabel(model) !== 'Default instructions')) && <p className="text-xs font-normal text-muted-foreground">{instructionLabel(model)}</p>}
       {(detailed || !onClick) && <details className="text-[11px] font-normal text-muted-foreground" open={detailed || distinguish || undefined}>
         <summary className="cursor-pointer">Run ID</summary>
@@ -725,7 +734,7 @@ export function Dashboard({
                   }}>
                   <TableCell><CheckRun id={row.runId} checked={selectedIds.includes(row.runId)} onToggle={toggle} /></TableCell>
                   <TableCell className="font-mono text-muted-foreground">{leaderboardRanks.get(row.runId) ?? '—'}</TableCell>
-                  <TableCell data-export-url={row.model.url} data-export-huggingface={row.model.hf_url} className="whitespace-normal"><ModelLabel model={row.model} runId={row.runId} distinguish={repeatedName(runs, row.model)} onClick={() => setRun(row.runId)} />{row.score === null && <span className="mt-1 block text-xs text-muted-foreground">Aggregate unavailable · {row.results.filter(r => rankingCategory.benchmarks.includes(r.benchmark.id) && r.status === 'complete').length}/{rankingCategory.benchmarks.length} complete</span>}{row.demo && <Badge variant="secondary">Demo</Badge>}</TableCell>
+                  <TableCell data-export-url={row.model.url} data-export-huggingface={row.model.hf_url} className="whitespace-normal"><ModelLabel showRepository model={row.model} runId={row.runId} distinguish={repeatedName(runs, row.model)} onClick={() => setRun(row.runId)} />{row.score === null && <span className="mt-1 block text-xs text-muted-foreground">Aggregate unavailable · {row.results.filter(r => rankingCategory.benchmarks.includes(r.benchmark.id) && r.status === 'complete').length}/{rankingCategory.benchmarks.length} complete</span>}{row.demo && <Badge variant="secondary">Demo</Badge>}</TableCell>
                   <TableCell className="text-right font-mono font-semibold text-primary">{adjustedScore(borda.get(row.runId))}</TableCell>
                   <TableCell className="text-right">
                     <span className="font-mono">{adjustedScore(row.score)}</span>

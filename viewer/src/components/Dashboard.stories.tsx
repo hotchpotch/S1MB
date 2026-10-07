@@ -181,6 +181,21 @@ const layoutFixture: Snapshot = {
   }))),
 };
 export const LeaderboardLayout: Story = { args: { snapshot: layoutFixture } };
+export const HuggingFaceModelLabels: Story = {
+  args: { snapshot: { ...layoutFixture, results: layoutFixture.results.map(result => ({
+    ...result,
+    model: { ...result.model, hf_url: [
+      'https://huggingface.co/example/synthetic-encoder',
+      'https://huggingface.co/example/synthetic-checkpoints/tree/main/experiments/encoder-small',
+      null,
+      'https://huggingface.co/example/synthetic-encoder/tree/release-v2',
+    ][Number(result.run_id.split('-').at(-1))] },
+  })) } },
+  parameters: { docs: { description: { story: 'Synthetic leaderboard models with Hub repositories, nested checkpoint directories, and no Hub URL.' } } },
+};
+export const HuggingFaceModelLabelsMobile: Story = {
+  ...HuggingFaceModelLabels, globals: { viewport: { value: 'mobile1', isRotated: false } },
+};
 export const NoulMetrics: Story = { args: { snapshot: layoutFixture, initialView: 'benchmarks', initialTask: 'noul' } };
 export const LongNameComparison: Story = { args: {
   snapshot: layoutFixture, initialView: 'compare', initialCompare: previewNames.map((_, i) => `synthetic-layout-${i}`),
