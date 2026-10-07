@@ -76,6 +76,7 @@ def main() -> None:
             "kotoba",
             "jeff",
             "firelex-jeff",
+            "clef",
             "jevlite",
             "certo",
             "jev-omni",
@@ -351,6 +352,7 @@ def execute(args, parser):
             "needle",
             "gliformer-jeff",
             "meta-encoder",
+            "clef",
         }
     ):
         parser.error(
@@ -443,6 +445,12 @@ def execute(args, parser):
         from .adapters.typesafe import TypeSafeAdapter
 
         adapter = TypeSafeAdapter(args.model)
+    elif args.adapter == "clef":
+        from .adapters.clef import ClefAdapter
+
+        adapter = ClefAdapter(
+            args.model, args.revision, args.device, context_limit=args.context_limit
+        )
     elif args.adapter == "meta-encoder":
         from .adapters.meta_encoder import MetaEncoderAdapter
 

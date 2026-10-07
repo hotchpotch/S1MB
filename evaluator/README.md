@@ -60,6 +60,13 @@ Use `uv run s1mb run --help` for the current options. Upstream dependencies are
 loaded only for the selected adapter. Model checkpoints and external source
 checkouts are not part of this repository.
 
+### Cloudflare Clef
+
+Use `--adapter clef` for `Cloudflare/clef-flash` or `Cloudflare/clef`. Code and
+weights are pinned to the same Hub revision. See the
+[Clef runtime notes](OPEN_MODELS.md#cloudflare-clef-and-clef-flash) for installation,
+input rendering and full-category context limits.
+
 ### TypeSafe / Jev
 
 Configure API credentials using [`.env.sample`](../.env.sample), then select

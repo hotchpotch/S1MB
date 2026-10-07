@@ -492,3 +492,34 @@ Needle's complete-candidate likelihood scoring is explicitly different from the
 label-only native tool-call API: neither a one-hot label nor its single confidence
 scalar is presented as a probability distribution. Its scores and latency must
 be interpreted under that recorded adapter contract.
+
+## Cloudflare Clef and Clef-Flash
+
+Use `--adapter clef` for `Cloudflare/clef-flash` and `Cloudflare/clef`. Install
+`uv sync --locked --extra open-models --extra meta-encoder`. The adapter loads
+code, backbone, processor and joint head from the same resolved model SHA;
+no separate source checkout is required. Text-only inference uses BF16 and SDPA
+on an explicit CUDA device, with one case per forward pass and all its questions.
+Supported GPU delta-rule kernels accelerate the Qwen recurrent layers; convolution
+and rotary operations use native Torch GPU implementations.
+The native 16,384-token default can be changed with `--context-limit`. Inputs
+are fully encoded and overflow is rejected before inference; native state
+truncation is disabled. Choice keys and question IDs are anonymous; zero-padded
+choice keys preserve authored order under the native lexical sort. Structured
+instructions and descriptions, authored Noul definitions and numeric Score values
+are preserved. Score descriptions include their declared numeric values because
+the native score interface otherwise represents only zero-based ordinal indices.
+
+```sh
+CUDA_VISIBLE_DEVICES=1 uv run --no-sync s1mb run \
+  --adapter clef --model Cloudflare/clef-flash --revision MODEL_SHA \
+  --device cuda --context-limit 32768 \
+  --category smoke-v1 --limit 2 --run-id clef-flash-smoke-001
+uv run --no-sync s1mb validate data/results/clef-flash-smoke-001
+```
+
+After validating smoke results, use `--category english-v1` without `--limit`
+and a fresh run ID. Keep `--context-limit 32768` for the current English category:
+its joint UD EWT schemas include cases longer than 16,384 tokens. This increases
+the encoder cap; it does not change weights or truncate inputs. Repeat for
+`Cloudflare/clef` with its own pinned revision.
