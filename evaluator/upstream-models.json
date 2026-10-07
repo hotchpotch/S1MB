@@ -644,5 +644,17 @@
     "repository": "https://huggingface.co/Cloudflare/clef",
     "model": "Cloudflare/clef",
     "revision": "2f3de3dd85f379784083b0814d997ab627200f0c"
+  },
+  {
+    "adapter": "julia",
+    "repository": "https://huggingface.co/SupersonicLabs/Julia-1",
+    "model": "SupersonicLabs/Julia-1",
+    "revision": "a85b127321d580d65176c89ced8273f305745d85"
+  },
+  {
+    "adapter": "dinah",
+    "repository": "https://huggingface.co/Lukitaduarte/dinah-0",
+    "model": "Lukitaduarte/dinah-0",
+    "revision": "07c6884439df7c3d2cd01eea16924ed07b866dea"
   }
 ]

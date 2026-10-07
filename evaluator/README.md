@@ -209,3 +209,5 @@ Synchronization caches and result snapshots are ignored by Git.
 
 For smoke checks, full runs, reruns, and validation, follow the
 [evaluation guide](../docs/evaluation.md).
+
+Julia and Dinah native CUDA adapters are described in [OPEN_MODELS.md](OPEN_MODELS.md#julia-and-dinah). See the [open model preparation queue](../docs/model_expansion.md) before scheduling new evaluations.

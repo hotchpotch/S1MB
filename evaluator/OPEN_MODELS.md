@@ -523,3 +523,47 @@ and a fresh run ID. Keep `--context-limit 32768` for the current English categor
 its joint UD EWT schemas include cases longer than 16,384 tokens. This increases
 the encoder cap; it does not change weights or truncate inputs. Repeat for
 `Cloudflare/clef` with its own pinned revision.
+
+## Julia and Dinah
+
+`julia` loads `SupersonicLabs/Julia-1`'s pinned `TransformerEngine` directly,
+without its optional router or CPU backend. It uses native marker serialization,
+8192 total tokens, a 512-token question/option head, at most 20 candidates and at
+most 48 tokens per option. Native `sequence(strict=True)` checks the full request
+before inference and passes that exact encoding to the native collator. Requests
+outside these bounds fail rather than being shortened or split into tournaments.
+The release declares `transformers>=5.0,<5.1`; prepare a separate environment
+when evaluating it instead of changing an environment used by another run.
+
+`dinah` loads `Lukitaduarte/dinah-0`'s pinned Torch API on explicit CUDA with SDPA,
+FP32 weights and BF16 autocast. Each question is a separate bounded call. Its
+native encoder rejects inputs above 8192 tokens. The model's API supports Score,
+although the supplied Decision Index wrapper only admits Choice and Noul.
+S1MB uses the native Score probability distribution, preserving declared rubric
+order and including each numeric level alongside its authored description.
+This is recorded as a rendering condition; the native ordinal expected value is
+not used as a replacement for S1MB's numeric levels.
+
+Both adapters retain structured state/instructions/criteria, anonymize Choice
+transport labels, preserve authored Noul definitions, and record pinned source
+and checkpoint provenance. Neither loads targets or case IDs into model text.
+Use `uv sync --extra open-models` for the common Torch runtime dependencies,
+subject to Julia's separate Transformers requirement above.
+
+```sh
+CUDA_VISIBLE_DEVICES=1 uv run s1mb run \
+  --adapter julia --model SupersonicLabs/Julia-1 \
+  --revision a85b127321d580d65176c89ced8273f305745d85 \
+  --device cuda:0 --category smoke-v1 --limit 2 \
+  --run-id julia-smoke-001
+
+CUDA_VISIBLE_DEVICES=1 uv run s1mb run \
+  --adapter dinah --model Lukitaduarte/dinah-0 \
+  --revision 07c6884439df7c3d2cd01eea16924ed07b866dea \
+  --device cuda:0 --category smoke-v1 --limit 2 \
+  --run-id dinah-smoke-001
+```
+
+Choose fresh IDs if these directories already exist. Inspect GPU 1's free memory
+and wait for its current workload to finish before running either command.
+Validate each saved smoke run before moving on to `english-v1`.

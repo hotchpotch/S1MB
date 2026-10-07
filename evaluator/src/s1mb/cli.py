@@ -77,6 +77,8 @@ def main() -> None:
             "jeff",
             "firelex-jeff",
             "clef",
+            "julia",
+            "dinah",
             "jevlite",
             "certo",
             "jev-omni",
@@ -353,6 +355,8 @@ def execute(args, parser):
             "gliformer-jeff",
             "meta-encoder",
             "clef",
+            "julia",
+            "dinah",
         }
     ):
         parser.error(
@@ -445,6 +449,18 @@ def execute(args, parser):
         from .adapters.typesafe import TypeSafeAdapter
 
         adapter = TypeSafeAdapter(args.model)
+    elif args.adapter == "dinah":
+        from .adapters.dinah import DinahAdapter
+
+        adapter = DinahAdapter(
+            args.model, args.revision, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "julia":
+        from .adapters.julia import JuliaAdapter
+
+        adapter = JuliaAdapter(
+            args.model, args.revision, args.device, context_limit=args.context_limit
+        )
     elif args.adapter == "clef":
         from .adapters.clef import ClefAdapter
 

@@ -293,3 +293,12 @@ CLI options and remain visible in the saved model metadata. Run one measured GPU
 job at a time. Preserve failed attempts under their original run IDs, diagnose
 failures from local logs, and use a fresh run ID after each correction. A saved
 partial run passing structural validation is still incomplete coverage.
+
+## Additional small encoder models
+
+Use the `julia` and `dinah` adapters with an explicit model revision and CUDA
+device. Both accept `--context-limit` only within their native capacity and reject
+input overflow. See [runtime notes and smoke commands](../evaluator/OPEN_MODELS.md#julia-and-dinah)
+and the [model preparation queue](model_expansion.md). CPU input preflight is
+useful before GPU smoke checks: model availability and small parameter counts do
+not guarantee complete benchmark coverage.
