@@ -550,6 +550,16 @@ and checkpoint provenance. Neither loads targets or case IDs into model text.
 Use `uv sync --extra open-models` for the common Torch runtime dependencies,
 subject to Julia's separate Transformers requirement above.
 
+`dm-jepa` loads `DangerLabs/DM-JEPA`'s pinned native latent verifier with FP32
+weights, BF16 autocast and SDPA. The ModernBERT configuration and tokenizer are
+independently pinned to `8949b909ec900327062f0ebf497f51aef5e6f0c8`; the adapter
+constructs that backbone locally and loads the decision checkpoint strictly.
+Native state and option formatting retains structured instructions and criteria,
+anonymizes Choice labels and renders authored numeric Score levels. Full
+tokenization precedes CUDA transfer: states exceeding the release's 16384-token
+budget or criteria exceeding 512 tokens fail without truncation. The backbone's
+declared position budget is recorded separately from the release budget.
+
 ```sh
 CUDA_VISIBLE_DEVICES=1 uv run s1mb run \
   --adapter julia --model SupersonicLabs/Julia-1 \

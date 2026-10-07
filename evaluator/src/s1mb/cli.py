@@ -79,6 +79,7 @@ def main() -> None:
             "clef",
             "julia",
             "dinah",
+            "dm-jepa",
             "jevlite",
             "certo",
             "jev-omni",
@@ -357,6 +358,7 @@ def execute(args, parser):
             "clef",
             "julia",
             "dinah",
+            "dm-jepa",
         }
     ):
         parser.error(
@@ -449,6 +451,12 @@ def execute(args, parser):
         from .adapters.typesafe import TypeSafeAdapter
 
         adapter = TypeSafeAdapter(args.model)
+    elif args.adapter == "dm-jepa":
+        from .adapters.dm_jepa import DMJEPAAdapter
+
+        adapter = DMJEPAAdapter(
+            args.model, args.revision, args.device, context_limit=args.context_limit
+        )
     elif args.adapter == "dinah":
         from .adapters.dinah import DinahAdapter
 

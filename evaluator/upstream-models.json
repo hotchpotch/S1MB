@@ -656,5 +656,11 @@
     "repository": "https://huggingface.co/Lukitaduarte/dinah-0",
     "model": "Lukitaduarte/dinah-0",
     "revision": "07c6884439df7c3d2cd01eea16924ed07b866dea"
+  },
+  {
+    "adapter": "dm-jepa",
+    "repository": "https://huggingface.co/DangerLabs/DM-JEPA",
+    "model": "DangerLabs/DM-JEPA",
+    "revision": "6c7b6a6c5ca3bfa5221130fc00cc2c3cbb4a5a8c"
   }
 ]

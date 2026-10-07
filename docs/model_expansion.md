@@ -40,7 +40,7 @@ before treating this as an exact size ordering.
 | Approximate size | Checkpoint | Preparation |
 | --- | --- | --- |
 | 141M | `SupersonicLabs/Julia-1` | Native adapter; strict 20-option / head-token bounds may prevent full coverage |
-| 149M | `DangerLabs/DM-JEPA` | Audit separate state/criterion encoding and pin backbone configuration/tokenizer dependencies |
+| 149M | `DangerLabs/DM-JEPA` | Native latent-verifier adapter; pinned backbone configuration/tokenizer; strict state/criterion limits |
 | 150M | `Lukitaduarte/dinah-0` | Native Torch adapter; native Score API differs from Decision Index wrapper |
 | 300M in index | `alibiserikbay/JevK5-Lite` | Audit Lite runtime; existing autoregressive JevK5 adapter is insufficient |
 | 354M | `notnotsamuel/LFM2.5-350M-RLCD` | Audit branch-scoring runtime and unchanged backbone provenance |
