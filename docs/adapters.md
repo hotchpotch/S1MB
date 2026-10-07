@@ -45,8 +45,10 @@ public tests must not load a checkpoint or require that extra.
 
 ## Preserve the task meaning
 
-The runner supplies `InferenceCase`, which excludes targets and provenance.
-Use `case.state` and the authored questions. IDs exist for matching outputs;
+The runner supplies `InferenceCase`, which excludes targets and provenance. It
+contains both parsed `case.state` and the exact input `case.state_json`; use the
+serialized form only when the model's native renderer depends on that boundary.
+Use the authored questions. IDs exist for matching outputs;
 keep case/question identifiers and provenance out of model text. Use anonymous
 choice keys when native API transport requires keys that would otherwise reveal
 source labels. Do not feed an entire evaluation `Case` to a model.

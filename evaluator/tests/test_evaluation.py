@@ -60,7 +60,7 @@ def test_soft_target_metrics(task, expected):
 
 def test_adapter_never_receives_targets_or_source_metadata():
     value = example().inference().model_dump()
-    assert set(value) == {"case_id", "state", "questions"}
+    assert set(value) == {"case_id", "state", "state_json", "questions"}
     assert "must not reach inference" not in str(value)
 
 

@@ -42,6 +42,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "safetensors" },
     { name = "torch" },
+    { name = "torchvision" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f5/b5/1d3ed029ac71d3f2961346829a268da923698e9fd63f218f78841f216bfd/accelerate-1.15.0.tar.gz", hash = "sha256:5654f8c5eaa0d4fa68b33e287a97765da6849bf6d51dcac874e73fbbddfb6134", size = 422615, upload-time = "2026-09-09T13:04:49.078Z" }
 wheels = [
@@ -2908,6 +2909,14 @@ laya = [
     { name = "torch" },
     { name = "transformers", version = "5.17.0", source = { registry = "https://pypi.org/simple" } },
 ]
+meta-encoder = [
+    { name = "accelerate" },
+    { name = "pillow" },
+    { name = "safetensors" },
+    { name = "torch" },
+    { name = "transformers", version = "5.16.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-4-s1mb-gliformer-jeff'" },
+    { name = "transformers", version = "5.17.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-4-s1mb-bekko-v0' or extra == 'extra-4-s1mb-firelex-jeff' or extra != 'extra-4-s1mb-gliformer-jeff' or (extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-laya') or (extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-open-models')" },
+]
 mini-jev = [
     { name = "bitsandbytes" },
 ]
@@ -2938,6 +2947,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "accelerate", marker = "extra == 'meta-encoder'", specifier = ">=1,<2" },
     { name = "accelerate", marker = "extra == 'open-models'", specifier = ">=1,<2" },
     { name = "bitsandbytes", marker = "extra == 'mini-jev'", specifier = ">=0.49,<1" },
     { name = "datasets", specifier = ">=4,<5" },
@@ -2956,8 +2966,10 @@ requires-dist = [
     { name = "mistral-common", marker = "extra == 'standardone'", specifier = ">=1.11,<2" },
     { name = "peft", marker = "extra == 'open-models'", specifier = ">=0.17,<1" },
     { name = "pillow", marker = "extra == 'firelex-jeff'", specifier = ">=12,<13" },
+    { name = "pillow", marker = "extra == 'meta-encoder'", specifier = ">=12,<13" },
     { name = "pydantic", specifier = ">=2.12,<3" },
     { name = "safetensors", marker = "extra == 'bekko-v0'", specifier = ">=0.7" },
+    { name = "safetensors", marker = "extra == 'meta-encoder'", specifier = ">=0.7,<1" },
     { name = "sentence-transformers", marker = "extra == 'bekko-v0'", specifier = "==6.1.0" },
     { name = "sentence-transformers", marker = "extra == 'decision-encoders'", specifier = "==6.1.0" },
     { name = "sentencepiece", marker = "extra == 'open-models'", specifier = ">=0.2,<1" },
@@ -2965,16 +2977,19 @@ requires-dist = [
     { name = "torch", marker = "extra == 'firelex-jeff'", specifier = "==2.10.0", index = "https://download.pytorch.org/whl/cu130" },
     { name = "torch", marker = "extra == 'gliformer-jeff'", specifier = "==2.10.0", index = "https://download.pytorch.org/whl/cu130" },
     { name = "torch", marker = "extra == 'laya'", specifier = "==2.10.0", index = "https://download.pytorch.org/whl/cu130" },
+    { name = "torch", marker = "extra == 'meta-encoder'", specifier = ">=2.6", index = "https://download.pytorch.org/whl/cu130" },
     { name = "torch", marker = "extra == 'open-models'", specifier = "==2.10.0", index = "https://download.pytorch.org/whl/cu130" },
     { name = "torchvision", marker = "extra == 'firelex-jeff'", specifier = "==0.25.0", index = "https://download.pytorch.org/whl/cu130" },
+    { name = "torchvision", marker = "extra == 'meta-encoder'", specifier = "==0.25.0", index = "https://download.pytorch.org/whl/cu130" },
     { name = "tqdm", marker = "extra == 'bekko-v0'", specifier = ">=4.67" },
     { name = "transformers", marker = "extra == 'bekko-v0'", specifier = "==5.17.0" },
     { name = "transformers", marker = "extra == 'firelex-jeff'", specifier = "==5.17.0" },
     { name = "transformers", marker = "extra == 'gliformer-jeff'", specifier = "==5.16.0" },
     { name = "transformers", marker = "extra == 'laya'", specifier = "==5.17.0" },
+    { name = "transformers", marker = "extra == 'meta-encoder'", specifier = ">=5.15,<6" },
     { name = "transformers", marker = "extra == 'open-models'", specifier = "==5.17.0" },
 ]
-provides-extras = ["winnow", "standardone", "decision-encoders", "gliformer-jeff", "firelex-jeff", "mini-jev", "bekko-v0", "laya", "open-models"]
+provides-extras = ["winnow", "standardone", "decision-encoders", "gliformer-jeff", "firelex-jeff", "mini-jev", "bekko-v0", "laya", "open-models", "meta-encoder"]
 
 [package.metadata.requires-dev]
 dev = [

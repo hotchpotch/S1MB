@@ -35,6 +35,15 @@ test('reject invalid scores, counts and parameter metadata; preserve incomplete 
   assert.equal(partial.status, 'partial');
 });
 
+test('converts native joint-question results while rejecting invalid call settings', () => {
+  const joint = { ...result(), model: { ...result().model, adapter: 'clef', settings: { questions_per_call: 'all-case-questions', secret: 'never-render' } } };
+  const summary = summarize(joint);
+  assert.deepEqual(summary.model.settings, { questions_per_call: 'all-case-questions' });
+  for (const value of [0, -1, 1.5, 'unknown']) {
+    assert.throws(() => summarize({ ...joint, model: { ...joint.model, settings: { questions_per_call: value } } }));
+  }
+});
+
 test('combines published and local rows without merging model runs or overriding conflicts', async () => {
   const f = await fixture();
   const local = path.join(f.root, 'local');

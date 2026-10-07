@@ -16,6 +16,7 @@ source hashes, rendering, attention backend, precision and input limits.
 | Bekko v0 (`bekko-v0`) | Hub remote `BekkoSentenceTransformer.predict()`; pinned code and weights, no local checkout |
 | System Ichi | Local typed model with bounded question batching |
 | Laya | Full native token layout, FP32 arithmetic, bounded cross-case batches; no CPU fallback |
+| Meta Encoder (`meta-encoder`) | Independent text-choice embeddings with joint cosine softmax |
 | Von | Native option-marker backend and calibration |
 | JevForge | Candidate-path inference followed by a joint softmax |
 | Kev | Native typed loader with explicit input budgets |
@@ -52,6 +53,41 @@ Support for an adapter does not imply that a checkpoint is publicly available or
 that every benchmark fits its context limit. Failed or partial runs remain visibly
 incomplete. Do not interpret arbitrary upstream truncation or unavailable weights
 as successful evaluation. Model and source licenses must be reviewed separately.
+
+## Meta Encoder
+
+`meta-encoder` evaluates `facebook/meta-encoder` as an independent text-choice
+encoder. Install its runtime with `uv sync --extra meta-encoder`; install a
+compatible FlashAttention build separately when selecting
+`--attention flash_attention_2`. The adapter resolves the requested Hub revision,
+loads Muse Glimmer in BF16, left-pads text-only batches, pools the final token from
+the last hidden layer, converts embeddings to normalized FP32, and applies one
+joint cosine softmax over each decision's declared candidates.
+
+The renderer prefixes each query with `Select the correct option.`, retains the
+raw structured state JSON, and includes the dataset instruction, criteria, and
+option IDs in declared order. Candidates are the option IDs encoded independently.
+The explicit positive `--temperature` is part of the measured configuration and
+is saved in every result; the adapter has no implicit inference temperature.
+
+The default context limit is 8,192 tokens. Inputs are tokenized intact and
+overflow is rejected before model inference. An explicit larger
+`--context-limit`, within the checkpoint's supported position capacity, evaluates
+full longer inputs and is recorded as an evaluation condition. Candidate encoding
+is bounded to eight texts per batch and reuses at most 4,096 exact candidate
+embeddings. Targets, annotations, case identifiers, and provenance are never
+included in model text.
+
+Example smoke command:
+
+```sh
+CUDA_VISIBLE_DEVICES=1 uv run s1mb run \
+  --adapter meta-encoder --model facebook/meta-encoder \
+  --revision cb36037ca0e6276c92fed2d7a2a9fbcdd4e79109 \
+  --temperature 0.03 --device cuda:0 --attention flash_attention_2 \
+  --context-limit 8192 --category smoke-v1 --limit 2 \
+  --run-id meta-encoder-smoke-001
+```
 
 ## Additional English model runtimes
 
@@ -456,3 +492,34 @@ Needle's complete-candidate likelihood scoring is explicitly different from the
 label-only native tool-call API: neither a one-hot label nor its single confidence
 scalar is presented as a probability distribution. Its scores and latency must
 be interpreted under that recorded adapter contract.
+
+## Cloudflare Clef and Clef-Flash
+
+Use `--adapter clef` for `Cloudflare/clef-flash` and `Cloudflare/clef`. Install
+`uv sync --locked --extra open-models --extra meta-encoder`. The adapter loads
+code, backbone, processor and joint head from the same resolved model SHA;
+no separate source checkout is required. Text-only inference uses BF16 and SDPA
+on an explicit CUDA device, with one case per forward pass and all its questions.
+Supported GPU delta-rule kernels accelerate the Qwen recurrent layers; convolution
+and rotary operations use native Torch GPU implementations.
+The native 16,384-token default can be changed with `--context-limit`. Inputs
+are fully encoded and overflow is rejected before inference; native state
+truncation is disabled. Choice keys and question IDs are anonymous; zero-padded
+choice keys preserve authored order under the native lexical sort. Structured
+instructions and descriptions, authored Noul definitions and numeric Score values
+are preserved. Score descriptions include their declared numeric values because
+the native score interface otherwise represents only zero-based ordinal indices.
+
+```sh
+CUDA_VISIBLE_DEVICES=1 uv run --no-sync s1mb run \
+  --adapter clef --model Cloudflare/clef-flash --revision MODEL_SHA \
+  --device cuda --context-limit 32768 \
+  --category smoke-v1 --limit 2 --run-id clef-flash-smoke-001
+uv run --no-sync s1mb validate data/results/clef-flash-smoke-001
+```
+
+After validating smoke results, use `--category english-v1` without `--limit`
+and a fresh run ID. Keep `--context-limit 32768` for the current English category:
+its joint UD EWT schemas include cases longer than 16,384 tokens. This increases
+the encoder cap; it does not change weights or truncate inputs. Repeat for
+`Cloudflare/clef` with its own pinned revision.

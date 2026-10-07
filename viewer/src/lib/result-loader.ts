@@ -11,7 +11,7 @@ export const benchmarkSchema = z.object({ id, task: z.enum(['choice', 'noul', 's
 export const categorySchema = z.object({ id, name: z.string(), description: z.string(), benchmarks: z.array(id).nonempty() });
 export const resultSchema = z.object({
   format_version: z.literal(1), run_id: id, benchmark: benchmarkSchema,
-  model: z.object({ id: z.string(), adapter: z.string(), settings: z.object({ questions_per_call: count.positive().nullish() }),
+  model: z.object({ id: z.string(), adapter: z.string(), settings: z.object({ questions_per_call: z.union([count.positive(), z.literal('all-case-questions')]).nullish() }),
     total_params: count.nullish(), active_params: count.nullish(), parameter_count_method: z.literal('non_lookup_parameters_v1').nullish() }).refine(m => m.active_params == null || (m.parameter_count_method === 'non_lookup_parameters_v1' && (m.total_params == null || m.active_params <= m.total_params)), 'Invalid parameter counts'),
   provenance: z.enum(['measured', 'demo']), status: z.enum(['complete', 'partial']),
   counts: z.object({ cases: count, expected: count, succeeded: count, failed: count }),

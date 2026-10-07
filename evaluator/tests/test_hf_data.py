@@ -19,6 +19,7 @@ def native_row():
 def test_native_structured_values_and_target_ids():
     row = native_row()
     case = case_from_row(row)
+    assert case.state_json == row["input"]["state_json"]
     assert case.state["messages"][0]["content"] == "A sample"
     assert case.questions[0].instructions == (
         '{"constraints":["Use context"],"task":"Choose a label"}'
@@ -61,7 +62,7 @@ def test_labels_and_auxiliary_text_do_not_change_inference():
     row["targets"][0]["metadata_json"] = '{"answer":"teacher-secret"}'
     row["private_note"] = "must never enter model input"
     assert case_from_row(row).inference() == baseline
-    assert set(baseline.model_dump()) == {"case_id", "state", "questions"}
+    assert set(baseline.model_dump()) == {"case_id", "state", "state_json", "questions"}
 
 
 @pytest.mark.parametrize(
