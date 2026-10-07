@@ -523,3 +523,27 @@ and a fresh run ID. Keep `--context-limit 32768` for the current English categor
 its joint UD EWT schemas include cases longer than 16,384 tokens. This increases
 the encoder cap; it does not change weights or truncate inputs. Repeat for
 `Cloudflare/clef` with its own pinned revision.
+
+## KnowLine (PelaAI)
+
+Use `--adapter knowline` for `PelaAI/KnowLine-4B-Gen2` and later KnowLine releases. The model is served by its own
+`/v1/systemone` server from the model repo (`serve_knowline.sh`: SGLang with FP8 at load, then `knowline_server.py`,
+chat style, temperature 1), which implements the TypeSafe v1 typed-question contract. The adapter reuses the TypeSafe
+request mapping (structured instructions, ascending Score levels) with a local base URL from `KNOWLINE_BASE_URL`, no
+credentials and unrounded probabilities. The server takes up to 64 questions per request, as Jev does; cases with more
+questions are sent in chunks of 64 with the same state. Each question is scored with its own prefill, so chunking does
+not change any answer. `--case-batch-size` (default 16) sets how many cases are sent concurrently.
+
+```sh
+# in a clone of the model repo, on one GPU
+bash serve_knowline.sh PelaAI/KnowLine-4B-Gen2 0 8080
+# from evaluator/
+KNOWLINE_BASE_URL=http://127.0.0.1:8080 uv run --no-sync s1mb run --adapter knowline \
+  --model PelaAI/KnowLine-4B-Gen2 --revision MODEL_SHA \
+  --category smoke-v1 --limit 2 --run-id knowline-smoke-001
+uv run --no-sync s1mb validate data/results/knowline-smoke-001
+```
+
+Use a `knowline_server.py` from 2026-10-08 or later (model repo commit `d62c958` for Gen2). Earlier copies close the
+connection on chats whose roles the chat template rejects (for example `customer` / `agent`), which fails one case of
+`s1mb-generalization-diverse-score-score-test-v1`.

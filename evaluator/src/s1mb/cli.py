@@ -48,6 +48,7 @@ def main() -> None:
             "dummy",
             "laya",
             "typesafe",
+            "knowline",
             "liquid",
             "system-ichi",
             "bekko-v0",
@@ -445,6 +446,14 @@ def execute(args, parser):
         from .adapters.typesafe import TypeSafeAdapter
 
         adapter = TypeSafeAdapter(args.model)
+    elif args.adapter == "knowline":
+        from .adapters.knowline import KnowLineAdapter
+
+        adapter = KnowLineAdapter(
+            args.model,
+            args.revision,
+            case_batch_size=args.case_batch_size if args.case_batch_size is not None else 16,
+        )
     elif args.adapter == "clef":
         from .adapters.clef import ClefAdapter
 
