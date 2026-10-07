@@ -632,5 +632,17 @@
     "commit": "34b32f99a727c47b679adde33f4702a001e02979",
     "model": "knowledgator/gliformer-large-v1",
     "revision": "d0a4e53d09cebe6bc963dd9be319d4279084bb2d"
+  },
+  {
+    "adapter": "clef",
+    "repository": "https://huggingface.co/Cloudflare/clef-flash",
+    "model": "Cloudflare/clef-flash",
+    "revision": "17f0b0ad64efb65d273590632833508766b2aae6"
+  },
+  {
+    "adapter": "clef",
+    "repository": "https://huggingface.co/Cloudflare/clef",
+    "model": "Cloudflare/clef",
+    "revision": "2f3de3dd85f379784083b0814d997ab627200f0c"
   }
 ]
