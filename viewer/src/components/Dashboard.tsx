@@ -708,7 +708,7 @@ export function Dashboard({
                   </div>
                   <div className="grid max-w-3xl gap-4 sm:grid-cols-2 sm:gap-8">
                     <ParameterFilter label="TP · Total parameters" description="Total model parameters. M = million; B = billion." value={totalRange} onChange={setTotalRange} />
-                    <ParameterFilter label="AP · Active parameters" description="Excludes lookup-only embeddings; retains shared output weights. M = million; B = billion." value={activeRange} onChange={setActiveRange} />
+                    <ParameterFilter label="AP · Active parameters" description="Static AP excludes embedding weights, including shared output embeddings. M = million; B = billion." value={activeRange} onChange={setActiveRange} />
                   </div>
                   <p className="mt-3 text-[11px] text-muted-foreground">Unknown parameter counts are excluded when a range is set.</p>
                 </div>
@@ -1085,7 +1085,7 @@ function RunDetails({
           <div className="text-xs text-muted-foreground"><span className="font-medium">Run ID</span><p className="mt-1 font-mono break-all">{run.id}</p></div>
       <details className="text-xs text-muted-foreground">
         <summary>Model identity</summary>
-        <dl className="mt-2 space-y-1 break-all"><div>Model: {run.model.id}</div><div>Adapter: {run.model.adapter}</div><div>Total params: {run.model.total_params?.toLocaleString('en-US') ?? 'Unknown'}</div><div>Active params: {run.model.active_params?.toLocaleString('en-US') ?? 'Unknown'}</div><div>AP definition: parameters excluding lookup-only embeddings; shared output weights are retained.</div></dl>
+        <dl className="mt-2 space-y-1 break-all"><div>Model: {run.model.id}</div><div>Adapter: {run.model.adapter}</div><div>Total params: {run.model.total_params?.toLocaleString('en-US') ?? 'Unknown'}</div><div>Active params: {run.model.active_params?.toLocaleString('en-US') ?? 'Unknown'}</div><div>AP definition: {run.model.parameter_count_method === "non_lookup_parameters_v1" ? "Legacy: excludes lookup-only embeddings; tied output embeddings retained." : "Static: TP minus embedding weights, including tied output embeddings."}</div></dl>
       </details>
         </div>
       </details>

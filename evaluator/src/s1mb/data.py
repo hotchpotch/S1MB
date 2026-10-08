@@ -158,7 +158,7 @@ class ModelInfo(Record):
     settings: dict[str, Any] = Field(default_factory=dict)
     total_params: int | None = Field(default=None, ge=0, strict=True)
     active_params: int | None = Field(default=None, ge=0, strict=True)
-    parameter_count_method: Literal["non_lookup_parameters_v1"] | None = None
+    parameter_count_method: Literal["non_lookup_parameters_v1", "embedding_excluded_parameters_v1"] | None = None
 
     @model_validator(mode="after")
     def check_parameters(self) -> Self:

@@ -12,9 +12,9 @@ export const metadataSchema = z.object({
   model_id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*__[A-Za-z0-9][A-Za-z0-9._-]*$/),
   display_name: z.string().min(1), short_name: z.string().min(1), url: link, hf_url: link,
   total_params: count.nullish(), active_params: count.nullish(),
-  parameter_count_method: z.literal('non_lookup_parameters_v1').nullish(),
+  parameter_count_method: z.enum(['non_lookup_parameters_v1', 'embedding_excluded_parameters_v1']).nullish(),
 }).strict().refine(m => m.active_params == null ||
-  (m.parameter_count_method === 'non_lookup_parameters_v1' && (m.total_params == null || m.active_params <= m.total_params)), 'Invalid parameter counts');
+  (m.parameter_count_method != null && (m.total_params == null || m.active_params <= m.total_params)), 'Invalid parameter counts');
 
 export async function readResultJson(file: string): Promise<unknown> {
   if (file.endsWith('.json.xz')) {

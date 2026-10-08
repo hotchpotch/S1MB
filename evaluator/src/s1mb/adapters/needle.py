@@ -17,15 +17,14 @@ from .upstream import checkpoint_path, source_path, state_text
 
 
 def needle_parameter_metadata(params):
-    """Count loaded Flax parameters, retaining the tied token/output embedding.
+    """Count loaded Flax parameters, excluding token and Engram embeddings.
 
-    Engram tables only perform indexed lookups and are excluded from active
-    parameters. Include all loaded heads, matching non_lookup_parameters_v1;
+    Embeddings remain excluded when shared with output heads. Include other
+    loaded heads, matching embedding_excluded_parameters_v1;
     this is not a count of operations or parameters used by one input.
     """
     sizes = {}
     lookup = set()
-    active = set()
 
     def visit(value, path=()):
         if isinstance(value, Mapping):
@@ -34,15 +33,15 @@ def needle_parameter_metadata(params):
             return
         key = id(value)
         sizes[key] = math.prod(value.shape)
-        if len(path) == 2 and re.fullmatch(r"engrams_\d+", path[0]) and path[1] == "embedding":
+        if len(path) == 2 and path[1] == "embedding" and (
+            path[0] == "embedding" or re.fullmatch(r"engrams_\d+", path[0])
+        ):
             lookup.add(key)
-        else:
-            active.add(key)
 
     visit(params)
     if not sizes:
         raise ValueError("No Needle parameters found")
-    excluded = lookup - active
+    excluded = lookup
     return {
         "total_params": sum(sizes.values()),
         "active_params": sum(size for key, size in sizes.items() if key not in excluded),
