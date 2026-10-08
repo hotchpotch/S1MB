@@ -23,7 +23,7 @@ from .upstream import source_path
 
 
 def winnow_parameter_metadata(path):
-    """Count logical GGUF elements, retaining tied token/output embeddings.
+    """Count logical GGUF elements, excluding token embeddings from static AP.
 
     The Gemma 4 runtime uses token_embd.weight as output when output.weight is
     absent. Quantized storage bytes are not parameter counts. This text-only
@@ -43,7 +43,7 @@ def winnow_parameter_metadata(path):
     if "token_embd.weight" not in sizes:
         raise ValueError("Missing Winnow token embeddings")
     total = sum(sizes.values())
-    excluded = sizes["token_embd.weight"] if "output.weight" in sizes else 0
+    excluded = sizes["token_embd.weight"]
     return {
         "total_params": total,
         "active_params": total - excluded,

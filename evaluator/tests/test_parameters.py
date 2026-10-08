@@ -59,12 +59,22 @@ def test_complete_wrapper_and_shared_parameters(synthetic_torch):
         "parameter_count_method": METHOD,
     }
     model.output = Module(weight=table)
-    assert parameter_metadata(model)["active_params"] == 112
+    assert parameter_metadata(model)["active_params"] == 12
 
 
 def test_unknown_model_is_not_zero(synthetic_torch):
     with pytest.raises(ValueError, match="No torch modules"):
         parameter_metadata(object())
+
+
+def test_static_positions_and_token_weights_are_subtracted_once(synthetic_torch):
+    shared, positions = Parameter(40), Parameter(12)
+    model = SimpleNamespace(
+        lookup=Embedding(weight=shared), output=Module(weight=shared),
+        vision=Module(position_embedding_table=positions, weight=Parameter(8)),
+    )
+    assert parameter_metadata(model) == {
+        "total_params": 60, "active_params": 8, "parameter_count_method": METHOD}
 
 
 def test_quantized_storage_counts_original_parameter_shape(synthetic_torch):

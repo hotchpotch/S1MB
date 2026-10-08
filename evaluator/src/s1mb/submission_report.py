@@ -155,7 +155,7 @@ def render_report(benchmarks: list[Benchmark], models: list[ModelSummary]) -> st
         (
             "Scores: baseline-adjusted 0–100, higher is better; equal benchmark weights. "
             "Noul uses balanced accuracy. Gen is the Diverse/Contextual subset of each task. "
-            "Active Params excludes lookup-only embeddings (`non_lookup_parameters_v1`). "
+            "Static Active Params excludes embedding weights, including tied output weights (`embedding_excluded_parameters_v1`); historic results retain their recorded method. "
             "N/A means unknown parameters or unavailable scores."
         ),
         "",

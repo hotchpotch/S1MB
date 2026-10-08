@@ -10,6 +10,9 @@ from pathlib import Path
 
 from huggingface_hub import CommitOperationAdd, HfApi, hf_hub_download, snapshot_download
 
+from s1mb.data import write_json
+from s1mb.hub_parameters import enrich_metadata
+
 REPO = "hotchpotch/s1mb-result"
 SUMMARY = "viewer-summary.json"
 VIEWER = Path(__file__).resolve().parents[1]
@@ -61,6 +64,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=VIEWER / "display" / SUMMARY)
     parser.add_argument("--publish", action="store_true")
+    parser.add_argument("--metadata-output", type=Path,
+                        help="Stage resolved metadata.json updates for a separate Dataset PR")
     parser.add_argument("--approve-reduction", help="Reviewed candidate digest, printed when generation stops")
     args = parser.parse_args()
     output = args.output.resolve()
@@ -80,6 +85,14 @@ def main():
             destination = results / name
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(cache / name, destination)
+        parameter_report = enrich_metadata(results, api=public)
+        write_json(Path(str(output) + ".parameters.report.json"), parameter_report)
+        print(json.dumps({"parameter_counts": parameter_report}, indent=2), flush=True)
+        if args.metadata_output:
+            for entry in parameter_report:
+                if entry["status"] == "resolved":
+                    target = args.metadata_output / entry["model_id"] / "metadata.json"
+                    write_json(target, json.loads((results / entry["model_id"] / "metadata.json").read_text()))
         command = ["node", "--import", "tsx", "scripts/generate-display.ts", "--results-dir", str(results),
                    "--source-repo", REPO, "--source-revision", info.sha, "--output", str(output)]
         old = next((f for f in info.siblings if f.rfilename == SUMMARY), None)

@@ -181,12 +181,16 @@ Local adapters record `model.total_params`, `model.active_params`, and
 with unavailable counts use null/absent values, never an estimated zero.
 The viewer displays both counts in the run's model identity details.
 
-`non_lookup_parameters_v1` uses the mmBERT embedding project's non-lookup AP
-convention: count all unique registered parameters (including frozen weights and
-task heads), then subtract lookup-only `Embedding` and `EmbeddingBag` weights.
-Shared weights are counted once; an embedding tied to an output projection remains
-active. Position/type lookup tables are also excluded. Buffers are excluded from
-both counts. This is not per-token MoE routing, FLOPs, or trainable parameter count.
+`embedding_excluded_parameters_v1` defines static AP as TP minus unique embedding
+parameters, including token, position, type and Engram tables. Embeddings shared
+with output heads are still subtracted once. Count all unique registered
+parameters (including frozen weights and task heads); exclude buffers from both
+counts. This is not per-token MoE routing, FLOPs, memory usage, or trainable size.
+
+Past results retain their recorded `non_lookup_parameters_v1` provenance. That
+method excluded only lookup-exclusive weights and retained shared output weights.
+Display preparation recalculates legacy AP=TP rows against their pinned
+checkpoints and overrides display metadata without rewriting measurements.
 
 To calculate the same metadata independently, provide an importable Python factory
 returning the **complete** model or native runtime wrapper, including task heads:

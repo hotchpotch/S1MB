@@ -142,9 +142,10 @@ metadata even when `--source` points directly to the source tree.
 Winnow requires building the pinned checkout with `scripts/build.py` and CUDA.
 Install `uv sync --extra winnow` for GGUF parameter counting. Counts use logical
 tensor shapes rather than quantized storage sizes. Shared token/output embeddings
-remain active under `non_lookup_parameters_v1`. The verified Q8 release
+are excluded from static AP under `embedding_excluded_parameters_v1`. The verified Q8 release
 (`b710efc4c0d048ee61eed92c5fef5ce323a4d17e7c51f9f0533cc72ae50818ea`)
-contains 11,907,350,576 total and active parameters across 667 tensors.
+contains 11,907,350,576 total parameters across 667 tensors; static AP
+subtracts its token embedding table.
 Its adapter verifies the GGUF against the checkout's release manifest, starts the
 native server, and closes it after evaluation. Use `--server-host` with the
 machine's Tailscale IPv4 address, or localhost if unavailable, and an unused
@@ -450,7 +451,7 @@ Transformers upper bound. These dependency versions are recorded in model metada
 | `rune` | Rune v3 BF16, invergent-ai/surogate | Decisions v1 prompt and codebook, Transformers CUDA logits, temperature 1, no thinking or order averaging |
 | `standardone` | `StandardThinking/StandardOne-8B`, bundled `server/` | Native wording and tokenizer boundary, no system prompt, released per-task temperatures, one option order |
 | `jevone` | `juspay/jev-one`, bundled serving archive | Native 255-marker prompt and two-order reduction; released task temperatures, no output rounding; non-chat role records preserved as complete JSON |
-| `needle` | `Cactus-Compute/needle3`, cactus-compute/needle | JAX CUDA teacher-forced likelihood of each complete tool-call candidate, normalized over declared candidates; this is an adapter distribution, not Needle's native confidence scalar. Parameter counts use the loaded Flax tree, retaining tied token/output embeddings and excluding lookup-only Engram tables from Active Params; all loaded heads are included |
+| `needle` | `Cactus-Compute/needle3`, cactus-compute/needle | JAX CUDA teacher-forced likelihood of each complete tool-call candidate, normalized over declared candidates; this is an adapter distribution, not Needle's native confidence scalar. Parameter counts use the loaded Flax tree, excluding token and Engram embedding tables from static Active Params, even when shared with output heads; all loaded heads are included |
 
 All these adapters accept `--context-limit`; omitting it retains the adapter's
 recorded default. Inputs that exceed the effective limit fail rather than being
