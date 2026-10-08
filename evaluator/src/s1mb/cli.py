@@ -50,6 +50,7 @@ def main() -> None:
             "typesafe",
             "knowline",
             "liquid",
+            "unee",
             "system-ichi",
             "bekko-v0",
             "von",
@@ -471,6 +472,10 @@ def execute(args, parser):
             context_limit=args.context_limit,
             attention=args.attention or "sdpa",
         )
+    elif args.adapter == "unee":
+        from .adapters.unee import UneeAdapter
+
+        adapter = UneeAdapter(args.model)
     elif args.adapter in {
         "lumma",
         "tinyjev",
