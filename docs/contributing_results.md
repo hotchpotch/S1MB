@@ -94,12 +94,42 @@ row, regardless of the original run IDs.
 
 The three ID/name fields are required. Links must be HTTP(S); links and parameter
 counts may be omitted or null. Active parameter counts require
-`parameter_count_method: "non_lookup_parameters_v1"`: exclude lookup-only
-embeddings, retaining shared output weights. Total counts may be unknown.
+`parameter_count_method: "embedding_excluded_parameters_v1"`: subtract all static
+embedding weights, including those shared with output heads. Historic
+`non_lookup_parameters_v1` results retain their original recorded definition. Total counts may be unknown.
 When either metadata count is supplied, the metadata counts take precedence for
 display, including unknown values. Otherwise counts come from measured results.
 Measurement files are never rewritten to change display names. Use consistent
 counts within a model folder, or declare them in metadata.
+
+During public display preparation, missing counts can be supplemented from the
+explicit Hugging Face checkpoint link. The current header resolver supports
+Qwen 2/3/3.5 and Gemma 4 text and multimodal Safetensors checkpoints, plus
+pinned GGUF headers, recorded LoRA bases and supported composite runtimes. It counts logical
+elements, excludes embedding tables even when tied to outputs, and
+rejects packed quantization or unrecognized tensor layouts. It does not estimate
+counts from names such as "2B" or equate AP with routed MoE parameters.
+
+Existing counts using the current method take precedence. Legacy rows with an
+AP/TP gap of at most 1% (including AP=TP) are candidates for recounting, because
+the old method may retain tied token embeddings. These rows are
+recomputed as measured TP minus verified embedding shapes; TP and measurements
+are preserved, including additional task heads. A supplied total must match the
+checkpoint before its missing AP can be filled. Exact recorded model SHAs are
+used when the recorded model ID matches the linked repository. For API aliases
+or separately named GGUF deployments, the current linked checkpoint is used
+only as display metadata, with its resolved SHA and this distinction recorded
+in the local parameter report. This does not recover the evaluated weights'
+revision or prove equivalence between GGUF and Safetensors. Unsupported or
+unavailable checkpoints remain unknown with a reported reason. API-only rows
+without checkpoint links remain unknown.
+
+To inspect a supported public checkpoint without loading weights or Torch, run
+from `evaluator/`:
+
+```sh
+uv run python -m s1mb.hub_parameters owner/model --revision EXACT_MODEL_SHA
+```
 
 ## Prepare a submission
 
@@ -222,7 +252,7 @@ before writing the report. `--data-dir` selects an alternate data root;
 `--download-datasets` permits acquisition of missing recorded revisions. The table
 starts with Total Params and Active Params, using metadata overrides when present
 and otherwise the consistent saved model counts. Unknown counts remain `N/A`;
-Active Params uses `non_lookup_parameters_v1`, matching the viewer. The six score
+Static Active Params uses `embedding_excluded_parameters_v1`, matching the viewer. The six score
 columns are `noul`, `choice`, `score`, `gen-noul`, `gen-choice`, and `gen-score`, all
 baseline-adjusted scores multiplied by 100. It uses current category membership,
 equal benchmark weights and per-result baseline eligibility. Gen columns contain

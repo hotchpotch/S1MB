@@ -142,9 +142,10 @@ metadata even when `--source` points directly to the source tree.
 Winnow requires building the pinned checkout with `scripts/build.py` and CUDA.
 Install `uv sync --extra winnow` for GGUF parameter counting. Counts use logical
 tensor shapes rather than quantized storage sizes. Shared token/output embeddings
-remain active under `non_lookup_parameters_v1`. The verified Q8 release
+are excluded from static AP under `embedding_excluded_parameters_v1`. The verified Q8 release
 (`b710efc4c0d048ee61eed92c5fef5ce323a4d17e7c51f9f0533cc72ae50818ea`)
-contains 11,907,350,576 total and active parameters across 667 tensors.
+contains 11,907,350,576 total parameters across 667 tensors; static AP
+subtracts its token embedding table.
 Its adapter verifies the GGUF against the checkout's release manifest, starts the
 native server, and closes it after evaluation. Use `--server-host` with the
 machine's Tailscale IPv4 address, or localhost if unavailable, and an unused
@@ -450,7 +451,7 @@ Transformers upper bound. These dependency versions are recorded in model metada
 | `rune` | Rune v3 BF16, invergent-ai/surogate | Decisions v1 prompt and codebook, Transformers CUDA logits, temperature 1, no thinking or order averaging |
 | `standardone` | `StandardThinking/StandardOne-8B`, bundled `server/` | Native wording and tokenizer boundary, no system prompt, released per-task temperatures, one option order |
 | `jevone` | `juspay/jev-one`, bundled serving archive | Native 255-marker prompt and two-order reduction; released task temperatures, no output rounding; non-chat role records preserved as complete JSON |
-| `needle` | `Cactus-Compute/needle3`, cactus-compute/needle | JAX CUDA teacher-forced likelihood of each complete tool-call candidate, normalized over declared candidates; this is an adapter distribution, not Needle's native confidence scalar. Parameter counts use the loaded Flax tree, retaining tied token/output embeddings and excluding lookup-only Engram tables from Active Params; all loaded heads are included |
+| `needle` | `Cactus-Compute/needle3`, cactus-compute/needle | JAX CUDA teacher-forced likelihood of each complete tool-call candidate, normalized over declared candidates; this is an adapter distribution, not Needle's native confidence scalar. Parameter counts use the loaded Flax tree, excluding token and Engram embedding tables from static Active Params, even when shared with output heads; all loaded heads are included |
 
 All these adapters accept `--context-limit`; omitting it retains the adapter's
 recorded default. Inputs that exceed the effective limit fail rather than being
@@ -577,3 +578,27 @@ CUDA_VISIBLE_DEVICES=1 uv run s1mb run \
 Choose fresh IDs if these directories already exist. Inspect GPU 1's free memory
 and wait for its current workload to finish before running either command.
 Validate each saved smoke run before moving on to `english-v1`.
+
+## KnowLine (PelaAI)
+
+Use `--adapter knowline` for `PelaAI/KnowLine-4B-Gen2` and later KnowLine releases. The model is served by its own
+`/v1/systemone` server from the model repo (`serve_knowline.sh`: SGLang with FP8 at load, then `knowline_server.py`,
+chat style, temperature 1), which implements the TypeSafe v1 typed-question contract. The adapter reuses the TypeSafe
+request mapping (structured instructions, ascending Score levels) with a local base URL from `KNOWLINE_BASE_URL`, no
+credentials and unrounded probabilities. The server takes up to 64 questions per request, as Jev does; cases with more
+questions are sent in chunks of 64 with the same state. Each question is scored with its own prefill, so chunking does
+not change any answer. `--case-batch-size` (default 16) sets how many cases are sent concurrently.
+
+```sh
+# in a clone of the model repo, on one GPU
+bash serve_knowline.sh PelaAI/KnowLine-4B-Gen2 0 8080
+# from evaluator/
+KNOWLINE_BASE_URL=http://127.0.0.1:8080 uv run --no-sync s1mb run --adapter knowline \
+  --model PelaAI/KnowLine-4B-Gen2 --revision MODEL_SHA \
+  --category smoke-v1 --limit 2 --run-id knowline-smoke-001
+uv run --no-sync s1mb validate data/results/knowline-smoke-001
+```
+
+Use a `knowline_server.py` from 2026-10-08 or later (model repo commit `d62c958` for Gen2). Earlier copies close the
+connection on chats whose roles the chat template rejects (for example `customer` / `agent`), which fails one case of
+`s1mb-generalization-diverse-score-score-test-v1`.

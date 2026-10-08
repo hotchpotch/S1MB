@@ -26,8 +26,8 @@ def test_logical_shapes_and_tied_output(monkeypatch, separate_output):
     reader(monkeypatch, tensors)
     assert winnow_parameter_metadata("unused.gguf") == {
         "total_params": 5120 if separate_output else 3072,
-        "active_params": 3072,
-        "parameter_count_method": "non_lookup_parameters_v1",
+        "active_params": 3072 if separate_output else 1024,
+        "parameter_count_method": "embedding_excluded_parameters_v1",
     }
 
 

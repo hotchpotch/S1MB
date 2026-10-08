@@ -1,0 +1,9 @@
+{
+  "id": "japanese-nanojmteb-nlpjournal-title-intro-choice-test-v1",
+  "task": "choice",
+  "dataset": "datasets/japanese-nanojmteb-nlpjournal-title-intro-choice",
+  "split": "test",
+  "case_count": 99,
+  "decision_count": 99,
+  "primary_metric": "target_mass_at_prediction"
+}

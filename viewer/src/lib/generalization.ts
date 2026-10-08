@@ -4,7 +4,10 @@ import { diagnosticMean, DISPLAY_TASKS, type Category, type Snapshot } from './t
 /** Six individual adjusted scores; missing or undefined cells never become zero. */
 export function generalizationComparison(snapshot: Snapshot, category: Category) {
   const columns = ['diverse', 'contextual'].flatMap(family => DISPLAY_TASKS.flatMap(task => {
-    const benchmark = snapshot.benchmarks.find(b => category.benchmarks.includes(b.id) && b.dataset === `datasets/s1mb-generalization-${family}-${task}`);
+    const matches = snapshot.benchmarks.filter(b => category.benchmarks.includes(b.id)
+      && b.dataset.startsWith('datasets/s1mb-generalization-') && b.dataset.endsWith(`-${family}-${task}`));
+    if (matches.length > 1) throw new Error(`Duplicate generalization benchmark: ${family}-${task}`);
+    const benchmark = matches[0];
     return benchmark ? [{ family, task, benchmark }] : [];
   }));
   const rows = categoryRuns(snapshot, category).filter(run => run.results.some(r => columns.some(c => c.benchmark.id === r.benchmark.id))).map(run => {

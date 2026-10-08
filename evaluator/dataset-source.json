@@ -1,5 +1,12 @@
 {
   "repo_id": "hotchpotch/s1mb-dataset",
   "revision": "main",
-  "repo_type": "dataset"
+  "repo_type": "dataset",
+  "category_sources": {
+    "japanese-v1": {
+      "repo_id": "hotchpotch/s1mb-dataset-japanese-v1",
+      "revision": "main",
+      "repo_type": "dataset"
+    }
+  }
 }

@@ -26,7 +26,7 @@ class ModelMetadata(Record):
     hf_url: str | None = None
     total_params: int | None = Field(default=None, ge=0, strict=True)
     active_params: int | None = Field(default=None, ge=0, strict=True)
-    parameter_count_method: Literal["non_lookup_parameters_v1"] | None = None
+    parameter_count_method: Literal["non_lookup_parameters_v1", "embedding_excluded_parameters_v1"] | None = None
 
     @model_validator(mode="after")
     def check_metadata(self) -> Self:
@@ -36,8 +36,10 @@ class ModelMetadata(Record):
                 if parsed.scheme not in {"http", "https"} or not parsed.hostname:
                     raise ValueError("Model links must be HTTP(S) URLs")
         if self.active_params is not None:
-            if self.parameter_count_method != "non_lookup_parameters_v1":
-                raise ValueError("Active parameters require non_lookup_parameters_v1")
+            if self.parameter_count_method not in {
+                "non_lookup_parameters_v1", "embedding_excluded_parameters_v1"
+            }:
+                raise ValueError("Active parameters require a supported counting method")
             if self.total_params is not None and self.active_params > self.total_params:
                 raise ValueError("Active parameters exceed total parameters")
         return self
@@ -74,10 +76,13 @@ def dataset_cache_key(source: dict[str, str]) -> str:
 def result_data_root(root: Path, result: Result, *, download: bool = False) -> Path:
     """Use the recorded release, materializing only the requested subset if needed."""
     source = dataset_source(result)
-    current_path = root / "datasets/hub-source.json"
-    if current_path.exists():
-        current = read_json(current_path)
-        if all(current.get(k) == v for k, v in source.items()):
+    from .dataset_source import source_receipts
+
+    for current in source_receipts(root):
+        subset_name = Path(result.benchmark.dataset).name
+        if all(current.get(k) == v for k, v in source.items()) and (
+            "subsets" not in current or subset_name in current["subsets"]
+        ):
             return root
     target = root / "result-datasets" / dataset_cache_key(source)
     benchmark = result.benchmark

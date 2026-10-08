@@ -1,0 +1,9 @@
+{
+  "id": "japanese-nanojmteb-jaqket-choice-test-v1",
+  "task": "choice",
+  "dataset": "datasets/japanese-nanojmteb-jaqket-choice",
+  "split": "test",
+  "case_count": 91,
+  "decision_count": 91,
+  "primary_metric": "target_mass_at_prediction"
+}

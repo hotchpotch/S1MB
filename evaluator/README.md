@@ -14,7 +14,8 @@ uv run s1mb run --adapter dummy --category smoke-v1 --limit 2 --run-id smoke
 ```
 
 The dummy adapter checks plumbing with synthetic predictions. `smoke-v1` selects
-one benchmark per task; `english-v1` selects the complete evaluation set. Omit
+one benchmark per task; `english-v1` selects the English evaluation set and
+`japanese-v1` selects 58 Japanese benchmarks (5,651 judgments). Omit
 `--limit` for full evaluation. Missing cases or failed decisions make a result
 partial. Each run
 requires a fresh `--run-id`; saved runs are not overwritten.
@@ -46,6 +47,24 @@ are not stored in result files. A failed online
 check stops evaluation. `--offline-dataset` explicitly uses installed data without
 a network request. `list`, `check-data`, and `validate` always operate locally.
 An optional explicit refresh is available as `uv run python scripts/fetch_dataset.py`.
+
+Japanese data is a separate private repository,
+[hotchpotch/s1mb-dataset-japanese-v1](https://huggingface.co/datasets/hotchpotch/s1mb-dataset-japanese-v1).
+Authenticate with an account granted access before fetching it:
+
+```sh
+uv run hf auth login
+uv run python scripts/fetch_dataset.py --category japanese-v1
+uv run s1mb check-data --category japanese-v1
+uv run s1mb run --adapter dummy --category japanese-v1 --limit 1 --run-id japanese-smoke
+```
+
+`category_sources` in `dataset-source.json` overrides the source for Japanese
+runs. English and Japanese caches coexist. Japanese acquisition records its
+revision in `data/datasets/hub-sources/japanese-v1.json`; each result records the
+repository and SHA that own its subset. No dataset permissions change during
+fetching. Keep Japanese question text and targets out of public results and
+exports; source access conditions, including GPQA-JA, remain applicable.
 
 Only the active evaluation manifest defines membership. Quarantined data never
 enters categories. Changes to existing rows or benchmark membership require review;
@@ -162,12 +181,16 @@ Local adapters record `model.total_params`, `model.active_params`, and
 with unavailable counts use null/absent values, never an estimated zero.
 The viewer displays both counts in the run's model identity details.
 
-`non_lookup_parameters_v1` uses the mmBERT embedding project's non-lookup AP
-convention: count all unique registered parameters (including frozen weights and
-task heads), then subtract lookup-only `Embedding` and `EmbeddingBag` weights.
-Shared weights are counted once; an embedding tied to an output projection remains
-active. Position/type lookup tables are also excluded. Buffers are excluded from
-both counts. This is not per-token MoE routing, FLOPs, or trainable parameter count.
+`embedding_excluded_parameters_v1` defines static AP as TP minus unique embedding
+parameters, including token, position, type and Engram tables. Embeddings shared
+with output heads are still subtracted once. Count all unique registered
+parameters (including frozen weights and task heads); exclude buffers from both
+counts. This is not per-token MoE routing, FLOPs, memory usage, or trainable size.
+
+Past results retain their recorded `non_lookup_parameters_v1` provenance. That
+method excluded only lookup-exclusive weights and retained shared output weights.
+Display preparation recalculates legacy AP=TP rows against their pinned
+checkpoints and overrides display metadata without rewriting measurements.
 
 To calculate the same metadata independently, provide an importable Python factory
 returning the **complete** model or native runtime wrapper, including task heads:

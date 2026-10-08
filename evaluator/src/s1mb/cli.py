@@ -48,7 +48,9 @@ def main() -> None:
             "dummy",
             "laya",
             "typesafe",
+            "knowline",
             "liquid",
+            "unee",
             "system-ichi",
             "bekko-v0",
             "von",
@@ -189,7 +191,7 @@ def main() -> None:
     if args.command == "run":
         from .dataset_source import dataset_session
 
-        with dataset_session(args.data_dir, offline=args.offline_dataset):
+        with dataset_session(args.data_dir, offline=args.offline_dataset, category=args.category):
             execute(args, parser)
     else:
         execute(args, parser)
@@ -469,6 +471,14 @@ def execute(args, parser):
         adapter = JuliaAdapter(
             args.model, args.revision, args.device, context_limit=args.context_limit
         )
+    elif args.adapter == "knowline":
+        from .adapters.knowline import KnowLineAdapter
+
+        adapter = KnowLineAdapter(
+            args.model,
+            args.revision,
+            case_batch_size=args.case_batch_size if args.case_batch_size is not None else 16,
+        )
     elif args.adapter == "clef":
         from .adapters.clef import ClefAdapter
 
@@ -486,6 +496,10 @@ def execute(args, parser):
             context_limit=args.context_limit,
             attention=args.attention or "sdpa",
         )
+    elif args.adapter == "unee":
+        from .adapters.unee import UneeAdapter
+
+        adapter = UneeAdapter(args.model)
     elif args.adapter in {
         "lumma",
         "tinyjev",

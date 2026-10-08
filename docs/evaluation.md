@@ -287,6 +287,26 @@ only within four-decimal rounding tolerance. Use fresh run IDs for subsequent ru
 Use `--case-batch-size 8` for up to eight concurrent independent requests; the
 default is one and the maximum is 32. Smoke-test the chosen concurrency first.
 
+### Unee
+
+Unee is self-hosted: `unee serve` (from `pip install unee`) starts llama.cpp with a
+Unee GGUF file and serves the same typed-question contract as TypeSafe, with no
+API key. Start the server, then run the adapter from `evaluator/`:
+
+```sh
+pip install unee huggingface_hub
+hf download uneeverse/unee-0.8b-GGUF unee-0.8b-Q4_K_M.gguf --local-dir .
+unee serve --model unee-0.8b-Q4_K_M.gguf --model-name unee-0.8b-Q4_K_M \
+  --gpu-layers 99 --port 8000
+uv run s1mb run --adapter unee --model unee-0.8b \
+  --category smoke-v1 --limit 2 --run-id unee-08b-smoke-001
+```
+
+Set `UNEE_BASE_URL` when the server is not on `http://127.0.0.1:8000`. The saved
+revision is the server's `--model-name`. The server rejects inputs longer than a
+slot; run long-document benchmarks with a slot that fits them, for example
+`--slots 1 --ctx 32768`, and disclose it.
+
 For additional public dedicated checkpoints, see the adapter contracts in
 `evaluator/OPEN_MODELS.md`. Candidate-code and context extensions must be explicit
 CLI options and remain visible in the saved model metadata. Run one measured GPU
