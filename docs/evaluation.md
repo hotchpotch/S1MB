@@ -44,6 +44,17 @@ does not include every model's runtime. Install the selected adapter's supported
 dependencies and obtain any required checkpoint and upstream source checkout.
 Additional English typed-decision runtimes and their input limits are documented
 in [external model conditions](../evaluator/OPEN_MODELS.md#additional-english-model-runtimes).
+The `llama-cpp` adapter connects to a caller-managed native `/v1/systemone`
+server. Configure its URL, concurrency and declared runtime metadata through
+`--adapter-kwargs` JSON; see [llama.cpp setup and limits](../evaluator/OPEN_MODELS.md#caller-managed-llamacpp).
+It never starts or stops the server.
+
+When a model can run through a llama.cpp API server, first consider whether it
+can be evaluated with the shared `llama-cpp` adapter before adding a
+model-specific adapter. Confirm native `/v1/systemone` support, preserved input
+semantics, and overflow rejection; support for chat completions alone is not
+sufficient.
+
 Winnow also requires a separately built CUDA server; its `--server-host` must be
 the machine's Tailscale IPv4 address or localhost when unavailable, and
 `--server-port` must be unused. APUS needs its own pinned Transformers environment.

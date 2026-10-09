@@ -11,6 +11,8 @@ Existing runtime-specific instructions remain in [adapter notes](../evaluator/OP
   protocol and API encoding/decoding helpers.
 - [`data.py`](../evaluator/src/s1mb/data.py): `InferenceCase`, `Question`,
   `Prediction`, `ModelInfo`, and probability validation.
+- [`llama_cpp.py`](../evaluator/src/s1mb/adapters/llama_cpp.py): caller-managed
+  llama-server native `/v1/systemone` client with configurable constructor kwargs.
 - [`dummy.py`](../evaluator/src/s1mb/adapters/dummy.py): minimal implementation;
   its uniform predictions are demos, not model measurements.
 - [`cli.py`](../evaluator/src/s1mb/cli.py): adapter selection, options, lazy imports,
