@@ -50,6 +50,10 @@ def main() -> None:
             "llama-cpp",
             "laya",
             "typesafe",
+            "fastino-glide",
+            "openrouter",
+            "span",
+            "clef-cf",
             "knowline",
             "liquid",
             "unee",
@@ -471,6 +475,22 @@ def execute(args, parser):
         from .adapters.typesafe import TypeSafeAdapter
 
         adapter = TypeSafeAdapter(args.model)
+    elif args.adapter == "fastino-glide":
+        from .adapters.jev_channels import FastinoGlideAdapter
+
+        adapter = FastinoGlideAdapter(args.model or "fastino/glide")
+    elif args.adapter == "openrouter":
+        from .adapters.jev_channels import OpenRouterAdapter
+
+        adapter = OpenRouterAdapter(args.model)
+    elif args.adapter == "span":
+        from .adapters.jev_channels import SpanAdapter
+
+        adapter = SpanAdapter(args.model)
+    elif args.adapter == "clef-cf":
+        from .adapters.jev_channels import ClefCFAdapter
+
+        adapter = ClefCFAdapter(args.model or "@cf/cloudflare/clef-flash")
     elif args.adapter == "knowline":
         from .adapters.knowline import KnowLineAdapter
 
