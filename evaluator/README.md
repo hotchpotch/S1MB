@@ -75,6 +75,9 @@ Only decoded input is sent to models; targets and provenance remain evaluator-si
 
 ## Real adapters
 
+For a caller-managed llama-server, use `--adapter llama-cpp` and
+`--adapter-kwargs` JSON. See [setup and runtime limits](OPEN_MODELS.md#caller-managed-llamacpp).
+
 Use `uv run s1mb run --help` for the current options. Upstream dependencies are
 loaded only for the selected adapter. Model checkpoints and external source
 checkouts are not part of this repository.

@@ -548,3 +548,89 @@ uv run --no-sync s1mb validate data/results/knowline-smoke-001
 Use a `knowline_server.py` from 2026-10-08 or later (model repo commit `d62c958` for Gen2). Earlier copies close the
 connection on chats whose roles the chat template rejects (for example `customer` / `agent`), which fails one case of
 `s1mb-generalization-diverse-score-score-test-v1`.
+
+## Caller-managed llama.cpp
+
+The `llama-cpp` adapter connects to a running llama-server's native
+`/v1/systemone` endpoint. Start and stop the server yourself; the adapter does not
+build llama.cpp, download weights, start a process, or choose a GPU. It requires
+a native decision GGUF supported by that endpoint. Ordinary chat GGUFs are not
+supported by this adapter. No optional Python runtime extra is needed.
+
+Start your independently obtained model with a compatible llama.cpp build:
+
+```sh
+# On the shared workspace, inspect GPU 1 availability first.
+CUDA_VISIBLE_DEVICES=1 llama-server -m /path/to/decision.gguf \
+  --alias decision-model --host 127.0.0.1 --port 8080 \
+  -ngl 99 -c 16384 -b 16384 -ub 16384 --parallel 1 --no-context-shift
+```
+
+Choose context and batch sizes for the model and available GPU memory; these
+numbers are examples, not universal settings. When Tailscale is available, bind
+to that machine's Tailscale IPv4 address instead of localhost. Pin the model
+revision, GGUF hash, llama.cpp revision, precision, and effective server settings.
+The adapter does not verify an externally started server's weights against a Hub
+revision; `--revision` records the caller-declared checkpoint revision, while
+`served_model` verifies the response alias and detects model-name changes.
+
+From `evaluator/`, evaluate with constructor kwargs supplied as JSON:
+
+```sh
+uv run s1mb run --adapter llama-cpp \
+  --model organization/decision-model --revision CHECKPOINT_COMMIT \
+  --adapter-kwargs '{"base_url":"http://127.0.0.1:8080","served_model":"decision-model","timeout":600,"case_batch_size":1,"max_candidates":52,"runtime_settings":{"llama_cpp_revision":"SERVER_COMMIT","weights_sha256":"GGUF_SHA256","dtype":"Q8_0","context_size":16384}}' \
+  --category smoke-v1 --limit 2 --run-id llama-cpp-smoke-001
+uv run s1mb validate data/results/llama-cpp-smoke-001
+```
+
+For Python use, the same options are ordinary keyword arguments:
+
+```python
+from s1mb.adapters.llama_cpp import LlamaCppAdapter
+
+kwargs = {
+    "base_url": "http://127.0.0.1:8080",
+    "served_model": "decision-model",
+    "timeout": 600,
+    "case_batch_size": 1,
+    "max_candidates": 52,
+    "runtime_settings": {"llama_cpp_revision": "SERVER_COMMIT", "dtype": "Q8_0"},
+}
+adapter = LlamaCppAdapter("organization/decision-model", "CHECKPOINT_COMMIT", **kwargs)
+try:
+    predictions = adapter.predict(inference_case)  # an s1mb.data.InferenceCase
+finally:
+    adapter.close()  # closes the HTTP client; leaves llama-server running
+```
+
+Supported kwargs are `base_url`, `served_model`, `timeout`, `case_batch_size`
+(1..32), `max_questions` (1..64), `max_candidates`, `max_request_bytes` (default
+16 MiB), `retries` (0..5), and `runtime_settings` (recorded metadata only).
+`base_url` may contain a proxy path prefix. If the server requires a bearer token,
+set `S1MB_LLAMA_API_KEY` in a local ignored environment file. Do not put credentials
+in JSON kwargs, URLs, or runtime metadata. Changing concurrency may affect backend
+arithmetic; record it and smoke-test it before a full run.
+
+The adapter sends all questions of a case together, preserves joint-model
+semantics, and rejects oversized cases rather than splitting their questions.
+Question and Choice transport keys are anonymous. Structured state, instructions,
+and criteria use the native typed contract. Score levels are sent in ascending
+numeric-value order and response probabilities map back to the original option
+IDs; the original numeric values remain evaluator-side. The native API supports
+2..10 Score levels. Probabilities must validate without client renormalization.
+Request counts and token usage are recorded, and bounded retries apply only to
+transient failures. Batch failures remain individual failures.
+
+The native server renders/tokenizes the model-specific prompt and must reject
+context/batch overflow **before inference**. The client cannot pre-count that
+exact prompt through this API, does not truncate text, and rejects request-byte
+and configured candidate/question-capacity overflow locally. Server overflow
+errors are propagated without retry or fabricated probabilities. A generic
+`/tokenize` call on serialized request JSON would not count the native prompt.
+Do not use native runtimes that silently truncate, including the current Laya
+and LFM2-D1-Omni native renderers, with this adapter for S1MB until a separate
+no-truncation preflight is available. `--no-context-shift` alone does not disable
+model-specific renderer truncation. Backend temperature comes from the model's
+metadata; chat-generation parameters such as `temperature` and `top_p` are not
+constructor kwargs and are not passed to `/v1/systemone`.
