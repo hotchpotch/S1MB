@@ -43,6 +43,8 @@ class GEVAdapter(UpstreamAdapter):
                 or config["softcap"] != 30.0):
             raise ValueError("Unsupported GEV released head configuration")
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(str(self.path))
+        if self.tokenizer is None:
+            raise ValueError("Checkpoint did not provide a supported tokenizer")
         if self.tokenizer.bos_token_id != config["readout"]["prefix_token"]:
             raise ValueError("GEV tokenizer BOS differs from its trained readout")
         base = transformers.Gemma4ForConditionalGeneration.from_pretrained(

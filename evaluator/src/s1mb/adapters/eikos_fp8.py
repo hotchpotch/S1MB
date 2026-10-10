@@ -63,6 +63,8 @@ class EikosFP8Adapter(UpstreamAdapter):
         if not 1 <= self.limit <= 32768:
             raise ValueError("Eikos FP8 runtime context limit must be within 1..32768")
         self.tokenizer = importlib.import_module("transformers").AutoTokenizer.from_pretrained(str(self.path))
+        if self.tokenizer is None:
+            raise ValueError("Checkpoint did not provide a supported tokenizer")
         labels = [self.tokenizer.encode(label, add_special_tokens=False) for label in self.native.LABELS]
         if any(len(ids) != 1 for ids in labels):
             raise ValueError("Native Eikos labels must be single tokens")

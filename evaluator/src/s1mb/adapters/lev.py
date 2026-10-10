@@ -11,6 +11,7 @@ from .upstream import UpstreamAdapter, checkpoint_path
 
 
 class LevAdapter(UpstreamAdapter):
+    context_limit: int
     case_batch_size = 1
 
     def __init__(self, model, revision, source, device, context_limit=None, base_revision=None):

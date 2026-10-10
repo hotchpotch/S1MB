@@ -64,6 +64,8 @@ class JadeAdapter(UpstreamAdapter):
         self.config = json.loads((self.source / "decision_config.json").read_text())
         base, base_revision = checkpoint_path(self.config["base_model"], self.config["revision"])
         self.tokenizer = importlib.import_module("transformers").AutoTokenizer.from_pretrained(str(base))
+        if self.tokenizer is None:
+            raise ValueError("Checkpoint did not provide a supported tokenizer")
         self.tokens = self.config["token_ids"]
         codes = self.config["codes"]
         if (len(set(self.tokens)) != 255 or len(codes) != 255

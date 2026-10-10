@@ -70,6 +70,8 @@ class JEV27Adapter(UpstreamAdapter):
         if not 1 <= self.limit <= 32768:
             raise ValueError("JEV 27B runtime limit must be within 1..32768")
         self.tokenizer = importlib.import_module("transformers").AutoTokenizer.from_pretrained(str(self.path))
+        if self.tokenizer is None:
+            raise ValueError("Checkpoint did not provide a supported tokenizer")
         self.labels, self.tokens = [], []
         for label in list(string.ascii_uppercase) + ["".join(pair) for pair in itertools.product(string.ascii_uppercase, repeat=2)]:
             ids = self.tokenizer.encode(label, add_special_tokens=False)
