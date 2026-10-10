@@ -77,7 +77,7 @@ async function scan(dataDir: string, resultDirs: string[]): Promise<Entry[]> {
     const s = await stat(file, { bigint: true });
     if (!s.isFile() || s.size > 64n * 1024n * 1024n) throw new Error('Invalid or oversized result file');
     entries.push({ file, kind, published, stamp: `${s.size}:${s.mtimeNs}:${s.ctimeNs}:${s.ino}` });
-    if (entries.length > 20_000) throw new Error('Too many result files');
+    if (entries.length > 50_000) throw new Error('Too many result files');
   }
   for (const [dir, kind] of [['benchmarks', 'benchmark'], ['categories', 'category']] as const) {
     const base = path.join(dataDir, dir);
