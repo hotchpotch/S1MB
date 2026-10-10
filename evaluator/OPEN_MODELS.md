@@ -524,6 +524,27 @@ its joint UD EWT schemas include cases longer than 16,384 tokens. This increases
 the encoder cap; it does not change weights or truncate inputs. Repeat for
 `Cloudflare/clef` with its own pinned revision.
 
+## llama.cpp decision GGUFs
+
+Use `--adapter llamacpp` for GGUF decision models served by llama.cpp's own `llama-server`. A GGUF that carries decision
+metadata (`<arch>.decision.type`, for example `pplx-decider`) is served on `POST /v1/systemone`, which implements the
+TypeSafe v1 typed-question contract. The adapter reuses the TypeSafe request mapping (structured instructions, ascending
+Score levels) with a local base URL from `LLAMACPP_BASE_URL`, no credentials and unrounded probabilities. Cases with more
+than 64 questions are sent in chunks of 64 with the same state; each question is scored with its own prefill, so chunking
+does not change any answer. `--case-batch-size` (default 16) sets how many cases are sent concurrently; give the server at
+least that many slots. The server build and loaded file come from `/props`; pass the GGUF repo commit as `--revision` and
+the file's sha256 in `LLAMACPP_GGUF_SHA256`. Give the server enough context for the longest case: an overflowing prompt
+is an error, not a truncation.
+
+```sh
+llama-server -m Whittle-Reflex-25B-A3B-Q8_0.gguf -ngl 99 -fa on -c 131072 -np 16 --kv-unified --port 8080
+# from evaluator/
+LLAMACPP_BASE_URL=http://127.0.0.1:8080 LLAMACPP_GGUF_SHA256=FILE_SHA256 uv run --no-sync s1mb run --adapter llamacpp \
+  --model logic65/Whittle-Reflex-25B-A3B-GGUF --revision MODEL_SHA \
+  --category smoke-v1 --limit 2 --run-id llamacpp-smoke-001
+uv run --no-sync s1mb validate data/results/llamacpp-smoke-001
+```
+
 ## KnowLine (PelaAI)
 
 Use `--adapter knowline` for `PelaAI/KnowLine-4B-Gen2` and later KnowLine releases. The model is served by its own
