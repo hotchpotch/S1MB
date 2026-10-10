@@ -189,12 +189,15 @@ class MetaEncoderAdapter:
             self._candidate_cache.move_to_end(text)
         return self.torch.stack([self._candidate_cache[text] for text in texts])
 
+    def _render_query(self, case: InferenceCase, question: Question) -> str:
+        return render_query(case, question)
+
     def predict(self, case: InferenceCase) -> list[Prediction]:
         predictions = []
         for question in case.questions:
             candidates = [render_candidate(option) for option in question.options]
             candidate_embeddings = self._candidate_embeddings(candidates)
-            query_embedding = self._encode([render_query(case, question)], 1)
+            query_embedding = self._encode([self._render_query(case, question)], 1)
             cosine = (query_embedding @ candidate_embeddings.T)[0]
             values = self.torch.softmax(cosine / self.temperature, dim=-1).cpu().tolist()
             probabilities = dict(zip([o.id for o in question.options], values, strict=True))

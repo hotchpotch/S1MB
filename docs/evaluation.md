@@ -88,6 +88,9 @@ Meta Encoder uses the `meta-encoder` extra and requires an explicit positive
 cosine-softmax `--temperature`. Its text-choice input limit, candidate caching,
 overflow rejection, and input rendering are documented in
 [the adapter notes](../evaluator/OPEN_MODELS.md#meta-encoder).
+MetaEncoder-think uses the same extra and a local frozen reasoning-context file;
+generate and protect that intermediate as described in
+[its adapter notes](../evaluator/OPEN_MODELS.md#metaencoder-think).
 
 Before evaluation, identify and record:
 

@@ -17,6 +17,7 @@ source hashes, rendering, attention backend, precision and input limits.
 | System Ichi | Local typed model with bounded question batching |
 | Laya | Full native token layout, FP32 arithmetic, bounded cross-case batches; no CPU fallback |
 | Meta Encoder (`meta-encoder`) | Independent text-choice embeddings with joint cosine softmax |
+| MetaEncoder-think (`meta-encoder-think`) | Frozen target-free reasoning context followed by Meta Encoder candidate scoring |
 | Von | Native option-marker backend and calibration |
 | JevForge | Candidate-path inference followed by a joint softmax |
 | Kev | Native typed loader with explicit input budgets |
@@ -88,6 +89,66 @@ CUDA_VISIBLE_DEVICES=1 uv run s1mb run \
   --context-limit 8192 --category smoke-v1 --limit 2 \
   --run-id meta-encoder-smoke-001
 ```
+
+## MetaEncoder-think
+
+`meta-encoder-think` is a two-stage, target-free extension of the Meta Encoder
+adapter. It uses `meta-models/Muse-Glimmer-30B` at revision
+`a4e59da52a7bc87ae7251dd5545c0dd437c44b68` to generate reasoning from the
+unchanged official query, then scores the query plus frozen reasoning context
+with `facebook/meta-encoder` at revision
+`3d0df704aa5bf66d9c49da1393181f33e893e5f7`. Targets, annotations and
+provenance are not supplied to either stage.
+
+The reasoner uses BF16 SDPA, greedy decoding (`do_sample=false`), seed 4242,
+at most 1,024 new tokens and a 32,768-token combined limit. The prompt asks for
+reasoning followed by a separate `FINAL_ANSWER` line. Preprocessing keeps the
+prefix before the earliest final-answer marker or answer-like conclusion when
+that prefix is usable. If no usable boundary is found, it retains the entire
+nonempty generation. Such fallbacks can therefore contain answer-like
+conclusions and must be counted and disclosed; do not claim that every final
+answer was removed.
+
+Generate contexts before loading the encoder. The context file contains raw
+model generations: keep it local and never include it in a source or results PR.
+
+```sh
+uv run python scripts/generate_meta_encoder_think_contexts.py \
+  --data-dir data --category english-v1 \
+  --output ../tmp/metaencoder-think-contexts.json
+
+CUDA_VISIBLE_DEVICES=0 uv run s1mb run \
+  --adapter meta-encoder-think --model facebook/meta-encoder \
+  --revision 3d0df704aa5bf66d9c49da1393181f33e893e5f7 \
+  --reasoning-contexts ../tmp/metaencoder-think-contexts.json \
+  --temperature 0.03 --device cuda:0 --attention sdpa \
+  --context-limit 32768 --category english-v1 \
+  --run-id metaencoder-think-source-001
+```
+
+For a posthoc temperature study, the calibration script audits strictly positive
+persisted probabilities, preserves declared candidate order and Choice argmax,
+tests a broad logarithmic grid, refines around the best point, and applies one
+global temperature to every benchmark. It optimizes the official equal-type
+Task Avg with native task-specific scoring; it does not choose separate
+temperatures per benchmark or task.
+
+```sh
+uv run python scripts/calibrate_meta_encoder_think.py \
+  data/results/metaencoder-think-source-001 \
+  --data-dir data --source-temperature 0.03 \
+  --output ../tmp/metaencoder-think-calibrated
+uv run s1mb validate ../tmp/metaencoder-think-calibrated/results
+```
+
+This recalibration computes
+`softmax((source_temperature / effective_temperature) * log(p_source))` in
+Python FP64 arithmetic. It starts from persisted probabilities, so it cannot
+exactly recover the original cosine logits. Selecting temperature on the full
+evaluation set is posthoc calibration and is not evidence of untuned test
+generalization. The derived result provenance must retain the source run IDs,
+source file identities, source and effective temperatures, evaluator revision
+and dataset revision. It must not claim a GPU rerun at the selected temperature.
 
 ## Additional English model runtimes
 
