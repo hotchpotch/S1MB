@@ -42,7 +42,6 @@ dependencies = [
     { name = "pyyaml" },
     { name = "safetensors" },
     { name = "torch" },
-    { name = "torchvision" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/f5/b5/1d3ed029ac71d3f2961346829a268da923698e9fd63f218f78841f216bfd/accelerate-1.15.0.tar.gz", hash = "sha256:5654f8c5eaa0d4fa68b33e287a97765da6849bf6d51dcac874e73fbbddfb6134", size = 422615, upload-time = "2026-09-09T13:04:49.078Z" }
 wheels = [
@@ -656,6 +655,15 @@ wheels = [
 ]
 
 [[package]]
+name = "decision-index"
+version = "0.3"
+source = { git = "https://github.com/apolinario/decision-index.git?rev=9eb2dbe2a358004c8782c66e40a83ac07b953fec#9eb2dbe2a358004c8782c66e40a83ac07b953fec" }
+dependencies = [
+    { name = "httpx" },
+    { name = "huggingface-hub" },
+]
+
+[[package]]
 name = "dill"
 version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
@@ -702,6 +710,23 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f5/22/900cb125c76b7aaa450ce02fd727f452243f2e91a61af068b40adba60ea9/email_validator-2.3.0.tar.gz", hash = "sha256:9fc05c37f2f6cf439ff414f8fc46d917929974a82244c20eb10231ba60c54426", size = 51238, upload-time = "2025-08-26T13:09:06.831Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/de/15/545e2b6cf2e3be84bc1ed85613edd75b8aea69807a71c26f4ca6a9258e82/email_validator-2.3.0-py3-none-any.whl", hash = "sha256:80f13f623413e6b197ae73bb10bf4eb0908faf509ad8362c5edeb0be7fd450b4", size = 35604, upload-time = "2025-08-26T13:09:05.858Z" },
+]
+
+[[package]]
+name = "fastapi"
+version = "0.143.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "annotated-doc" },
+    { name = "opentelemetry-api" },
+    { name = "pydantic" },
+    { name = "starlette" },
+    { name = "typing-extensions" },
+    { name = "typing-inspection" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0b/d7/6a8753ab6c1d432dc53703c3e1b92974a94531b7d047c32bbaae461ea844/fastapi-0.143.0.tar.gz", hash = "sha256:1acffe48206a80917cf7dac21992b5c44b25384e8902bf745c1fd9dabcf6c51f", size = 468391, upload-time = "2026-10-08T12:29:46.54Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bd/f4/27e386913417ad32aae42bba48b0c0cce40e9ff2fba1a871ca2702c37324/fastapi-0.143.0-py3-none-any.whl", hash = "sha256:3e9395fd35276425b61b516a31fdd7c77fe2af83e41b4da22e30696fb1304c5d", size = 144665, upload-time = "2026-10-08T12:29:44.853Z" },
 ]
 
 [[package]]
@@ -1816,6 +1841,18 @@ wheels = [
 ]
 
 [[package]]
+name = "opentelemetry-api"
+version = "1.45.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2e/02/6e0ae9cc61bd3169d401077b507b3ebc344745171e1051ab430be012dcd9/opentelemetry_api-1.45.1.tar.gz", hash = "sha256:aa38ed19bcc084ba42782a73255b3582283eced7ad6dddbd6695189e69adfb75", size = 72804, upload-time = "2026-10-06T17:32:58.133Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1e/41/f7dcf80b81ee8e71c1a2b59f14208bc723edbd89ed027a73b175abf6348e/opentelemetry_api-1.45.1-py3-none-any.whl", hash = "sha256:b31553efa588ae44bc306f863c785c5333a9ecc091248c6ee68b4b6c87fdedfb", size = 60256, upload-time = "2026-10-06T17:32:33.506Z" },
+]
+
+[[package]]
 name = "packaging"
 version = "26.3"
 source = { registry = "https://pypi.org/simple" }
@@ -2890,6 +2927,10 @@ decision-encoders = [
     { name = "flashdeberta" },
     { name = "sentence-transformers" },
 ]
+exaone-jev = [
+    { name = "fastapi" },
+    { name = "uvicorn" },
+]
 firelex-jeff = [
     { name = "kernels" },
     { name = "pillow" },
@@ -2904,21 +2945,39 @@ gliformer-jeff = [
     { name = "torch" },
     { name = "transformers", version = "5.16.0", source = { registry = "https://pypi.org/simple" } },
 ]
+kas = [
+    { name = "decision-index" },
+]
+kodiak = [
+    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12' or (extra == 'extra-4-s1mb-bekko-v0' and extra == 'extra-4-s1mb-gliformer-jeff') or (extra == 'extra-4-s1mb-firelex-jeff' and extra == 'extra-4-s1mb-gliformer-jeff') or (extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-laya') or (extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-open-models')" },
+    { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12' or (extra == 'extra-4-s1mb-bekko-v0' and extra == 'extra-4-s1mb-gliformer-jeff') or (extra == 'extra-4-s1mb-firelex-jeff' and extra == 'extra-4-s1mb-gliformer-jeff') or (extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-laya') or (extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-open-models')" },
+]
 laya = [
     { name = "laya" },
     { name = "torch" },
     { name = "transformers", version = "5.17.0", source = { registry = "https://pypi.org/simple" } },
+]
+lfm-pcd = [
+    { name = "jsonschema" },
+]
+lfm-rlcd = [
+    { name = "jsonschema" },
 ]
 meta-encoder = [
     { name = "accelerate" },
     { name = "pillow" },
     { name = "safetensors" },
     { name = "torch" },
+    { name = "torchvision" },
     { name = "transformers", version = "5.16.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-4-s1mb-gliformer-jeff'" },
     { name = "transformers", version = "5.17.0", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-4-s1mb-bekko-v0' or extra == 'extra-4-s1mb-firelex-jeff' or extra != 'extra-4-s1mb-gliformer-jeff' or (extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-laya') or (extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-open-models')" },
 ]
 mini-jev = [
     { name = "bitsandbytes" },
+]
+onejev = [
+    { name = "pillow" },
+    { name = "torchvision" },
 ]
 open-models = [
     { name = "accelerate" },
@@ -2928,6 +2987,11 @@ open-models = [
     { name = "sentencepiece" },
     { name = "torch" },
     { name = "transformers", version = "5.17.0", source = { registry = "https://pypi.org/simple" } },
+]
+rsi = [
+    { name = "fastapi" },
+    { name = "pillow" },
+    { name = "uvicorn" },
 ]
 standardone = [
     { name = "mistral-common" },
@@ -2951,7 +3015,10 @@ requires-dist = [
     { name = "accelerate", marker = "extra == 'open-models'", specifier = ">=1,<2" },
     { name = "bitsandbytes", marker = "extra == 'mini-jev'", specifier = ">=0.49,<1" },
     { name = "datasets", specifier = ">=4,<5" },
+    { name = "decision-index", marker = "extra == 'kas'", git = "https://github.com/apolinario/decision-index.git?rev=9eb2dbe2a358004c8782c66e40a83ac07b953fec" },
     { name = "einops", marker = "extra == 'open-models'", specifier = ">=0.8,<1" },
+    { name = "fastapi", marker = "extra == 'exaone-jev'", specifier = ">=0.115,<1" },
+    { name = "fastapi", marker = "extra == 'rsi'", specifier = ">=0.115,<1" },
     { name = "filelock", specifier = ">=3,<5" },
     { name = "flashdeberta", marker = "extra == 'decision-encoders'", specifier = "==0.0.7" },
     { name = "flashdeberta", marker = "extra == 'gliformer-jeff'", specifier = "==0.0.7" },
@@ -2960,6 +3027,8 @@ requires-dist = [
     { name = "gliner", marker = "extra == 'gliformer-jeff'", specifier = "==0.2.29" },
     { name = "httpx", specifier = ">=0.28,<1" },
     { name = "huggingface-hub", specifier = ">=1,<2" },
+    { name = "jsonschema", marker = "extra == 'lfm-pcd'", specifier = ">=4,<5" },
+    { name = "jsonschema", marker = "extra == 'lfm-rlcd'", specifier = ">=4,<5" },
     { name = "kernels", marker = "extra == 'firelex-jeff'", specifier = "==0.16.0" },
     { name = "kernels", marker = "extra == 'open-models'", specifier = "==0.16.0" },
     { name = "laya", marker = "extra == 'laya'", specifier = "==0.3.20" },
@@ -2967,9 +3036,12 @@ requires-dist = [
     { name = "peft", marker = "extra == 'open-models'", specifier = ">=0.17,<1" },
     { name = "pillow", marker = "extra == 'firelex-jeff'", specifier = ">=12,<13" },
     { name = "pillow", marker = "extra == 'meta-encoder'", specifier = ">=12,<13" },
+    { name = "pillow", marker = "extra == 'onejev'", specifier = ">=12,<13" },
+    { name = "pillow", marker = "extra == 'rsi'", specifier = ">=12.3.0" },
     { name = "pydantic", specifier = ">=2.12,<3" },
     { name = "safetensors", marker = "extra == 'bekko-v0'", specifier = ">=0.7" },
     { name = "safetensors", marker = "extra == 'meta-encoder'", specifier = ">=0.7,<1" },
+    { name = "scipy", marker = "extra == 'kodiak'", specifier = ">=1.11,<2" },
     { name = "sentence-transformers", marker = "extra == 'bekko-v0'", specifier = "==6.1.0" },
     { name = "sentence-transformers", marker = "extra == 'decision-encoders'", specifier = "==6.1.0" },
     { name = "sentencepiece", marker = "extra == 'open-models'", specifier = ">=0.2,<1" },
@@ -2981,6 +3053,7 @@ requires-dist = [
     { name = "torch", marker = "extra == 'open-models'", specifier = "==2.10.0", index = "https://download.pytorch.org/whl/cu130" },
     { name = "torchvision", marker = "extra == 'firelex-jeff'", specifier = "==0.25.0", index = "https://download.pytorch.org/whl/cu130" },
     { name = "torchvision", marker = "extra == 'meta-encoder'", specifier = "==0.25.0", index = "https://download.pytorch.org/whl/cu130" },
+    { name = "torchvision", marker = "extra == 'onejev'", specifier = "==0.25.0", index = "https://download.pytorch.org/whl/cu130" },
     { name = "tqdm", marker = "extra == 'bekko-v0'", specifier = ">=4.67" },
     { name = "transformers", marker = "extra == 'bekko-v0'", specifier = "==5.17.0" },
     { name = "transformers", marker = "extra == 'firelex-jeff'", specifier = "==5.17.0" },
@@ -2988,8 +3061,10 @@ requires-dist = [
     { name = "transformers", marker = "extra == 'laya'", specifier = "==5.17.0" },
     { name = "transformers", marker = "extra == 'meta-encoder'", specifier = ">=5.15,<6" },
     { name = "transformers", marker = "extra == 'open-models'", specifier = "==5.17.0" },
+    { name = "uvicorn", marker = "extra == 'exaone-jev'", specifier = ">=0.30,<1" },
+    { name = "uvicorn", marker = "extra == 'rsi'", specifier = ">=0.30,<1" },
 ]
-provides-extras = ["winnow", "standardone", "decision-encoders", "gliformer-jeff", "firelex-jeff", "mini-jev", "bekko-v0", "laya", "open-models", "meta-encoder"]
+provides-extras = ["exaone-jev", "lfm-rlcd", "lfm-pcd", "kodiak", "onejev", "winnow", "standardone", "decision-encoders", "gliformer-jeff", "firelex-jeff", "mini-jev", "bekko-v0", "laya", "meta-encoder", "open-models", "kas", "rsi"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -3402,6 +3477,19 @@ wheels = [
 ]
 
 [[package]]
+name = "starlette"
+version = "1.7.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'extra-4-s1mb-bekko-v0' and extra == 'extra-4-s1mb-gliformer-jeff') or (extra == 'extra-4-s1mb-firelex-jeff' and extra == 'extra-4-s1mb-gliformer-jeff') or (extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-laya') or (extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-open-models')" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7b/2b/3850dc6bf7ef71b088962eba31dafc6cffd2f96e577ebb0bb316df96da3e/starlette-1.7.0.tar.gz", hash = "sha256:c79f74ea63cff761804fbbfb182f1e0b440c2d07b164d24700c5a1bab5d6ff5d", size = 2736246, upload-time = "2026-09-23T07:30:26.35Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4e/d6/1ec1b290f9e0fb067899b61e1d37a30c923068bad260b216dbe37a7d2967/starlette-1.7.0-py3-none-any.whl", hash = "sha256:67f8e99895493dd2911a03f11314af6ceebeae4e704bb9f43dfc6a9db151c93e", size = 78980, upload-time = "2026-09-23T07:30:24.567Z" },
+]
+
+[[package]]
 name = "sympy"
 version = "1.14.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3585,8 +3673,8 @@ name = "torchvision"
 version = "0.25.0+cu130"
 source = { registry = "https://download.pytorch.org/whl/cu130" }
 dependencies = [
-    { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.13' and extra == 'extra-4-s1mb-firelex-jeff') or (python_full_version >= '3.13' and extra == 'extra-4-s1mb-bekko-v0' and extra == 'extra-4-s1mb-gliformer-jeff') or (extra == 'extra-4-s1mb-bekko-v0' and extra != 'extra-4-s1mb-firelex-jeff' and extra == 'extra-4-s1mb-gliformer-jeff') or (extra != 'extra-4-s1mb-bekko-v0' and extra == 'extra-4-s1mb-firelex-jeff' and extra == 'extra-4-s1mb-gliformer-jeff') or (extra != 'extra-4-s1mb-firelex-jeff' and extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-laya') or (extra != 'extra-4-s1mb-firelex-jeff' and extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-open-models')" },
-    { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.13' and extra == 'extra-4-s1mb-firelex-jeff') or (python_full_version < '3.13' and extra == 'extra-4-s1mb-bekko-v0' and extra == 'extra-4-s1mb-gliformer-jeff') or (extra != 'extra-4-s1mb-bekko-v0' and extra == 'extra-4-s1mb-firelex-jeff' and extra == 'extra-4-s1mb-gliformer-jeff') or (extra != 'extra-4-s1mb-bekko-v0' and extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-laya') or (extra != 'extra-4-s1mb-bekko-v0' and extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-open-models') or (extra == 'extra-4-s1mb-bekko-v0' and extra != 'extra-4-s1mb-firelex-jeff' and extra == 'extra-4-s1mb-gliformer-jeff') or (extra != 'extra-4-s1mb-firelex-jeff' and extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-laya') or (extra != 'extra-4-s1mb-firelex-jeff' and extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-open-models')" },
+    { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13' or (extra == 'extra-4-s1mb-bekko-v0' and extra == 'extra-4-s1mb-gliformer-jeff') or (extra == 'extra-4-s1mb-firelex-jeff' and extra == 'extra-4-s1mb-gliformer-jeff') or (extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-laya') or (extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-open-models')" },
+    { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13' or (extra == 'extra-4-s1mb-bekko-v0' and extra == 'extra-4-s1mb-gliformer-jeff') or (extra == 'extra-4-s1mb-firelex-jeff' and extra == 'extra-4-s1mb-gliformer-jeff') or (extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-laya') or (extra == 'extra-4-s1mb-gliformer-jeff' and extra == 'extra-4-s1mb-open-models')" },
     { name = "pillow" },
     { name = "torch" },
 ]
@@ -3875,6 +3963,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/58/f2/c177f74568713f23ff97746bc300f109560013033ebd21b7e70ccc533040/uv-0.12.18-py3-none-win32.whl", hash = "sha256:cbbfcca37cf678b5135f61f722631a2a85e2eddc459ba64692054011f160f6c2", size = 19981835, upload-time = "2026-09-22T22:58:53.694Z" },
     { url = "https://files.pythonhosted.org/packages/86/b3/5f33b9bad8cb875ed547ef8aa403d423a2610f23f619f687308761dd02e1/uv-0.12.18-py3-none-win_amd64.whl", hash = "sha256:0a3c4e415515bd4c24c7516523d9042a2957ce716423e193f8b2be9fb8773340", size = 17986064, upload-time = "2026-09-22T22:58:56.301Z" },
     { url = "https://files.pythonhosted.org/packages/fc/f2/178a7353ba2426a275dc6815a276628ef00912a972d71666ca7f6bb93bb9/uv-0.12.18-py3-none-win_arm64.whl", hash = "sha256:4f9769cf34558a026ff9b8e04cdf9d25c16fe3d61f35956daf6548f2b0379ff0", size = 19304755, upload-time = "2026-09-22T22:58:58.512Z" },
+]
+
+[[package]]
+name = "uvicorn"
+version = "0.54.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "h11" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/da/34/30e9280707135d2cfc589dfff3cb796bd07a3aeb1a3e415ba09dd89d7bb4/uvicorn-0.54.0.tar.gz", hash = "sha256:a2e33cbfaa0306f8e6b0c13e0cb89d7d7a2da3e62b90c66e18c33d9807b28620", size = 112283, upload-time = "2026-09-25T06:52:37.601Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/38/0c/b54a4fdd7f90a3af8b02ebc9ce6712c2c208b7926a2f7bad95c33ebbe943/uvicorn-0.54.0-py3-none-any.whl", hash = "sha256:505bdb0f318731d45f1f712071fc781a8981f6847a31c902c9f5e652d4f67faf", size = 87427, upload-time = "2026-09-25T06:52:35.829Z" },
 ]
 
 [[package]]

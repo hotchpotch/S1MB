@@ -1,5 +1,5 @@
 diff --git a/native/engine.h b/native/engine.h
-index 6971b36..be2bc49 100644
+index 37ea1ae..f4e469e 100644
 --- a/native/engine.h
 +++ b/native/engine.h
 @@ -294,7 +294,7 @@ class Engine {
@@ -38,7 +38,7 @@ index b1a3414..727c806 100644
  +    const auto * tensor = model->output;
  +    const auto width = tensor->ne[0];
 diff --git a/runtime.lock.json b/runtime.lock.json
-index d444f78..8bcc004 100644
+index 672a75a..c8eebc5 100644
 --- a/runtime.lock.json
 +++ b/runtime.lock.json
 @@ -8,7 +8,7 @@
@@ -50,12 +50,12 @@ index d444f78..8bcc004 100644
      },
      {
        "file": "patches/llama-gemma4-tied-embedding.patch",
-@@ -27,7 +27,7 @@
+@@ -43,7 +43,7 @@
      "src/llama-cparams.h": "028d3a6e703d16cbece4711982f451649fa5d490f2e88b0a06b598b8ec5d8f46",
      "src/llama-kv-cache-iswa.cpp": "8c23b37835568b532198f3a48832bacc0af91987da6bcd4d670d675553448ab6",
      "src/llama-kv-cache-iswa.h": "cb0919cce0603a301eaa5af2ede1560e2857320f710004ddaed4adf5725a2925",
 -    "src/llama-model.cpp": "1cc729d55ae47088698035c561af4286fee8c5a0be6a7261d6591042809369cb",
 +    "src/llama-model.cpp": "fe7a9b63b20e8dd9cbb4534b4b7795001d1a125e8e7a0cb6957099893d7b5290",
      "src/models/gemma4.cpp": "07a2043ea44e4519571b7b834a99b3ee8b0b20770fab81eec660045ea804c02b",
-     "tools/server/server-context.cpp": "d97a0704ff4826b5ef811497a51806cdfcd57574d3fb14d8e0c09cb6f55c6018",
+     "tools/server/server-context.cpp": "f6d4969f2700b1c3f013527b1c0aab91a6d50649c2806533afe98de5d48fa081",
      "tools/server/server-context.h": "d38e35c35bdd49ea68297df14ea45d76248c53391a9197cf71b851fec21a4da0",

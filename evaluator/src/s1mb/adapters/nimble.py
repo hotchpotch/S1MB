@@ -46,7 +46,7 @@ class NimbleAdapter(UpstreamAdapter):
     def __init__(self, model, revision, source, device, context_limit=None):
         self.setup("nimble", model, revision, source, device)
         self.native = importlib.import_module("inference")
-        self.engine = self.native.NimbleModel(str(self.path))
+        self.engine = self.native.ParallelScorer(str(self.path))
         self.attention_model = self.engine.model
         original_limit = self.engine.contract["max_length"]
         if context_limit is not None:
@@ -67,7 +67,6 @@ class NimbleAdapter(UpstreamAdapter):
             "temperature": self.engine.temperature,
             "renderer": "native-enum-authored-levels-v1",
         }
-        self.enable_kernels()
 
     def predict(self, case):
         predictions = []

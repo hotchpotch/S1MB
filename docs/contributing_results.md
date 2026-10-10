@@ -56,6 +56,13 @@ The format and score checks establish consistency, not the identity of the model
 that generated predictions. Maintainers review the submitted evidence and may
 request corrections or a reproducible rerun before merging.
 
+Native runtime conditions belong in result provenance. For converted LoRA or
+quantized backends, retain the exact model and base revisions, conversion or
+quantization configuration, calibration, and input limits. Keep candidate-capacity
+and context-overflow failures visibly incomplete; passing preparation checks or
+registering a queued run does not establish complete benchmark coverage. Publish
+only validated saved measurements after the actual run finishes.
+
 ## Repository layout
 
 The Hugging Face results dataset is a file repository with one folder per
