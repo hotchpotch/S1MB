@@ -1,4 +1,4 @@
-"""Count unique model parameters, excluding lookup-only embeddings from AP."""
+"""Count unique model parameters, excluding embedding weights from static AP."""
 
 import argparse
 import importlib
@@ -7,14 +7,19 @@ import math
 from types import FunctionType, ModuleType
 from typing import Any
 
-METHOD = "non_lookup_parameters_v1"
+METHOD = "embedding_excluded_parameters_v1"
+STATIC_EMBEDDINGS = {
+    "position_embedding_table", "pos_embedding", "position_embedding",
+    "position_embeddings", "pos_embed", "class_embedding", "cls_token", "mask_token",
+}
 
 
 def parameter_metadata(model: Any) -> dict[str, Any]:
     """Count complete modules without inference or device transfers.
 
-    Include frozen parameters and heads; exclude buffers. Shared output weights
-    remain active. This is not a routed MoE or per-input operation count.
+    Include frozen parameters and heads; exclude buffers. Subtract all embedding
+    weights even when shared with an output head. AP is a static size metric,
+    not a routed MoE or per-input operation count.
     """
     torch = importlib.import_module("torch")
     modules: dict[int, Any] = {}
@@ -41,13 +46,13 @@ def parameter_metadata(model: Any) -> dict[str, Any]:
         raise ValueError("No torch modules found; cannot count model parameters")
     parameters: dict[int, Any] = {}
     lookup: set[int] = set()
-    active: set[int] = set()
     for module in modules.values():
         is_lookup = isinstance(module, (torch.nn.Embedding, torch.nn.EmbeddingBag))
         for name, parameter in module.named_parameters(recurse=False):
             parameters[id(parameter)] = parameter
-            (lookup if is_lookup and name == "weight" else active).add(id(parameter))
-    excluded = lookup - active
+            if (is_lookup and name == "weight") or name in STATIC_EMBEDDINGS:
+                lookup.add(id(parameter))
+    excluded = lookup
 
     def logical_size(parameter: Any) -> int:
         # Packed NF4 storage has fewer elements than the original weight matrix.

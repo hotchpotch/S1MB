@@ -142,9 +142,10 @@ metadata even when `--source` points directly to the source tree.
 Winnow requires building the pinned checkout with `scripts/build.py` and CUDA.
 Install `uv sync --extra winnow` for GGUF parameter counting. Counts use logical
 tensor shapes rather than quantized storage sizes. Shared token/output embeddings
-remain active under `non_lookup_parameters_v1`. The verified Q8 release
+are excluded from static AP under `embedding_excluded_parameters_v1`. The verified Q8 release
 (`b710efc4c0d048ee61eed92c5fef5ce323a4d17e7c51f9f0533cc72ae50818ea`)
-contains 11,907,350,576 total and active parameters across 667 tensors.
+contains 11,907,350,576 total parameters across 667 tensors; static AP
+subtracts its token embedding table.
 Its adapter verifies the GGUF against the checkout's release manifest, starts the
 native server, and closes it after evaluation. Use `--server-host` with the
 machine's Tailscale IPv4 address, or localhost if unavailable, and an unused
@@ -364,6 +365,17 @@ released `temperatures.json` supplies all three task temperatures, including the
 v2 Score calibration update. The existing 32K full-input condition and overflow
 rejection also apply to merged releases; checkpoint format and base revision are
 recorded in result metadata.
+The same path supports `frontier-infra/jebadiah-27b`. Structured descriptions and
+numeric Score levels are serialized as JSON strings through native Choice
+rendering, preserving authored criterion order while applying each original
+task's saved temperature. The native FP32 candidate readout is required, and
+each label is checked at the actual prompt's continuation boundary.
+
+`kev` also supports Kev 27B v2 full-weight checkpoints through the native
+`kev.checkpoint.Checkpoint` loader. Use a pinned Kev source checkout, a case
+batch size of 1 for long inputs on one GPU, and an explicit context limit within
+the checkpoint's capacity. The saved pointer-head temperature remains active;
+all-choice transport preserves authored criterion order and numeric Score values.
 
 ## Firelex Jeff (mstrasser checkpoints)
 
@@ -429,7 +441,8 @@ Transformers upper bound. These dependency versions are recorded in model metada
 | `jevlite` | `mghafiri/qwen3.5-0.8B-decision-model`, bundled `jevlite` source | Native calibrated answer logits; strict full-token length checks |
 | `certo` | `altslate/certo-decision-model`, AltSlate-Labs/certo | Native independent option logits, calibrated across all options; no state or option truncation |
 | `jev-omni` | `akhilaaa3/Jev-Omni`, bundled `jev_omni.py` | Native 256-way head; distinct anonymous prefixes preserve duplicate descriptions |
-| `autojev` | `denis-pplx/AutoJev-27B`, bundled `source/src/autojev` | Native decision head and checkpoint temperature; Python 3.12 required |
+| `autojev` | AutoJev and `perplexity-ai/pplx-decider-v1.1-27b`, bundled `source/src/autojev` | Native decision head, saved attention mode/pooling and checkpoint temperature; Python 3.12 required; authored criterion order and numeric Score values retained through Choice transport |
+| `jev27` | `autotrust/JEV-27B`, bundled converted `adapter_vllm` | Native bare-v1 single-pass readout through vLLM, all 2–256 labels, trained slot biases and saved Choice temperature; explicit server host/port required |
 | `flymy` | FlyMy packaged pointer or letter-logit releases, bundled `model.py` | Manifest verification on a temporary real-file copy; native calibration; explicit context and letter capacity; pointer request byte cap raised from 64 KiB to 1 MiB while retaining structural validation and strict token limits |
 | `lev` | `franckverrot/lev-350m`, franckverrot/lev | Native FP32 pointer model, pinned base revision, checkpoint calibration, strict encoding |
 | `gliner2` | Fastino GLiNER2 checkpoints, fastino-ai/GLiNER2 | Native classification softmax with all labels returned; checks full schema-plus-text token count |
@@ -447,10 +460,10 @@ Transformers upper bound. These dependency versions are recorded in model metada
 | `imajev` | `mohit67890/imajev-4b`, mohit67890/imajev | Native CUDA readout and released calibration, one option order; retain the unknown prompt branch and condition probabilities on declared benchmark options |
 | `smalljev` | `isHeSatoshi/smalljev-semantic-v9`, isHeSatoshi/smalljev | Native shared option-span scorer; construct the complete prompt before checking capacity, disabling native state shortening |
 | `plumb` | `crh225/plumb-4b`, crh225/plumb | Released single-read JevK5 protocol and checkpoint temperature; no confidence commitment heuristic |
-| `rune` | Rune v3 BF16, invergent-ai/surogate | Decisions v1 prompt and codebook, Transformers CUDA logits, temperature 1, no thinking or order averaging |
+| `rune` | Rune v3 BF16, invergent-ai/surogate | Decisions v1 prompt and filtered single-token codebook, Transformers CUDA logits, temperature 1, no thinking or order averaging; all-choice transport preserves criterion order and numeric Score values |
 | `standardone` | `StandardThinking/StandardOne-8B`, bundled `server/` | Native wording and tokenizer boundary, no system prompt, released per-task temperatures, one option order |
 | `jevone` | `juspay/jev-one`, bundled serving archive | Native 255-marker prompt and two-order reduction; released task temperatures, no output rounding; non-chat role records preserved as complete JSON |
-| `needle` | `Cactus-Compute/needle3`, cactus-compute/needle | JAX CUDA teacher-forced likelihood of each complete tool-call candidate, normalized over declared candidates; this is an adapter distribution, not Needle's native confidence scalar. Parameter counts use the loaded Flax tree, retaining tied token/output embeddings and excluding lookup-only Engram tables from Active Params; all loaded heads are included |
+| `needle` | `Cactus-Compute/needle3`, cactus-compute/needle | JAX CUDA teacher-forced likelihood of each complete tool-call candidate, normalized over declared candidates; this is an adapter distribution, not Needle's native confidence scalar. Parameter counts use the loaded Flax tree, excluding token and Engram embedding tables from static Active Params, even when shared with output heads; all loaded heads are included |
 
 All these adapters accept `--context-limit`; omitting it retains the adapter's
 recorded default. Inputs that exceed the effective limit fail rather than being
@@ -545,6 +558,60 @@ LLAMACPP_BASE_URL=http://127.0.0.1:8080 LLAMACPP_GGUF_SHA256=FILE_SHA256 uv run 
 uv run --no-sync s1mb validate data/results/llamacpp-smoke-001
 ```
 
+## Julia and Dinah
+
+`julia` loads `SupersonicLabs/Julia-1`'s pinned `TransformerEngine` directly,
+without its optional router or CPU backend. It uses native marker serialization,
+8192 total tokens, a 512-token question/option head, at most 20 candidates and at
+most 48 tokens per option. Native `sequence(strict=True)` checks the full request
+before inference and passes that exact encoding to the native collator. Requests
+outside these bounds fail rather than being shortened or split into tournaments.
+The release declares `transformers>=5.0,<5.1`; prepare a separate environment
+when evaluating it instead of changing an environment used by another run.
+
+`dinah` loads `Lukitaduarte/dinah-0`'s pinned Torch API on explicit CUDA with SDPA,
+FP32 weights and BF16 autocast. Each question is a separate bounded call. Its
+native encoder rejects inputs above 8192 tokens. The model's API supports Score,
+although the supplied Decision Index wrapper only admits Choice and Noul.
+S1MB uses the native Score probability distribution, preserving declared rubric
+order and including each numeric level alongside its authored description.
+This is recorded as a rendering condition; the native ordinal expected value is
+not used as a replacement for S1MB's numeric levels.
+
+Both adapters retain structured state/instructions/criteria, anonymize Choice
+transport labels, preserve authored Noul definitions, and record pinned source
+and checkpoint provenance. Neither loads targets or case IDs into model text.
+Use `uv sync --extra open-models` for the common Torch runtime dependencies,
+subject to Julia's separate Transformers requirement above.
+
+`dm-jepa` loads `DangerLabs/DM-JEPA`'s pinned native latent verifier with FP32
+weights, BF16 autocast and SDPA. The ModernBERT configuration and tokenizer are
+independently pinned to `8949b909ec900327062f0ebf497f51aef5e6f0c8`; the adapter
+constructs that backbone locally and loads the decision checkpoint strictly.
+Native state and option formatting retains structured instructions and criteria,
+anonymizes Choice labels and renders authored numeric Score levels. Full
+tokenization precedes CUDA transfer: states exceeding the release's 16384-token
+budget or criteria exceeding 512 tokens fail without truncation. The backbone's
+declared position budget is recorded separately from the release budget.
+
+```sh
+CUDA_VISIBLE_DEVICES=1 uv run s1mb run \
+  --adapter julia --model SupersonicLabs/Julia-1 \
+  --revision a85b127321d580d65176c89ced8273f305745d85 \
+  --device cuda:0 --category smoke-v1 --limit 2 \
+  --run-id julia-smoke-001
+
+CUDA_VISIBLE_DEVICES=1 uv run s1mb run \
+  --adapter dinah --model Lukitaduarte/dinah-0 \
+  --revision 07c6884439df7c3d2cd01eea16924ed07b866dea \
+  --device cuda:0 --category smoke-v1 --limit 2 \
+  --run-id dinah-smoke-001
+```
+
+Choose fresh IDs if these directories already exist. Inspect GPU 1's free memory
+and wait for its current workload to finish before running either command.
+Validate each saved smoke run before moving on to `english-v1`.
+
 ## KnowLine (PelaAI)
 
 Use `--adapter knowline` for `PelaAI/KnowLine-4B-Gen2` and later KnowLine releases. The model is served by its own
@@ -568,3 +635,619 @@ uv run --no-sync s1mb validate data/results/knowline-smoke-001
 Use a `knowline_server.py` from 2026-10-08 or later (model repo commit `d62c958` for Gen2). Earlier copies close the
 connection on chats whose roles the chat template rejects (for example `customer` / `agent`), which fails one case of
 `s1mb-generalization-diverse-score-score-test-v1`.
+
+
+## JevK5-Lite
+
+`jevk5-lite` is separate from the autoregressive `jevk5` adapter. Pass a
+checkout of `allebee/jevk5` v0.3.1 (commit
+`c6d1b01b194d2f36c8be129159c6bd270f3510b4`) with `--source`, a pinned model
+revision, and an explicit CUDA device. The adapter loads the encoder and scorer
+in FP32 and uses the native single-label calibrated softmax for all three tasks.
+It preserves declared option order, structured authored definitions and numeric
+Score levels; anonymous positional prefixes distinguish duplicate definitions.
+No dataset identifiers, targets or provenance enter model text.
+
+The native runtime truncates the body to fit its 512-token budget. S1MB compares
+the native encoded body with complete tokenization and checks the total sequence
+length before inference, rejecting any overflow. `--context-limit` may lower
+this budget. Overflow remains a failed decision in saved results. The native
+DeBERTa attention backend is recorded; there is no CPU fallback.
+
+```sh
+CUDA_VISIBLE_DEVICES=1 uv run s1mb run \
+  --adapter jevk5-lite --model alibiserikbay/JevK5-Lite \
+  --revision 315ee211f828a899161477c534cea23e84ba3568 \
+  --source /path/to/pinned/jevk5 --device cuda:0 \
+  --category smoke-v1 --limit 2 --run-id jevk5-lite-smoke-001
+uv run s1mb validate data/results/jevk5-lite-smoke-001
+```
+
+Use fresh IDs and validate the smoke results before a full category run.
+
+
+## Lavoir
+
+`lavoir` requires a pinned `moganai/lavoir` source checkout, a pinned checkpoint
+revision and explicit CUDA. It loads the complete decision and VOI checkpoint
+strictly, then evaluates only slot-free decisions. The native default general-data
+calibration is retained; no source-specific calibration or clarification policy
+is selected. FP32 weights, BF16 autocast and SDPA match the native CUDA API.
+
+The adapter keeps the slot-free sequence layout and option segment embeddings,
+while tokenizing complete fields and rejecting overflow instead of applying the
+native truncation. The total budget is 1024 tokens (lowerable with
+`--context-limit`) and the native slot-free head budget is 256. Choice labels are
+anonymous, Noul keeps both authored poles and Score descriptions include their
+numeric levels. Each question is one bounded inference call.
+
+```sh
+CUDA_VISIBLE_DEVICES=1 uv run s1mb run \
+  --adapter lavoir --model moganai/lavoir \
+  --revision 4c5eaeb99b2368f1416b9893c7aacc58235aa09f \
+  --source /path/to/pinned/lavoir --device cuda:0 \
+  --category smoke-v1 --limit 2 --run-id lavoir-smoke-001
+uv run s1mb validate data/results/lavoir-smoke-001
+```
+
+Install `laya==0.3.20` alongside the common open-model dependencies. Validate
+saved smoke files before running `english-v1`, with a fresh run ID.
+
+
+## LFM RLCD
+
+`lfm-rlcd` evaluates the release's bundled unchanged LFM2 weights with its pinned
+native prompt, JSON-value token boundary and full candidate log-likelihood sum,
+including the newline terminator. Supply the snapshot's source directory using
+`--source`. The adapter forks the native hybrid attention/convolution cache in
+bounded groups of at most eight candidates and 32,768 padded cache-plus-branch
+tokens. Complete prefix-plus-value paths are checked before inference; the
+32,768-token default may be changed explicitly up to checkpoint capacity.
+
+The native API exposes log-likelihoods, not calibrated probabilities. S1MB uses
+a temperature-one softmax over full value likelihoods, without length
+normalization; saved metadata explicitly labels the distribution uncalibrated.
+Choice transport labels are anonymous, Noul retains authored definitions, and
+Score enum values retain numeric levels and authored descriptions. Instructions
+and structured state retain the dataset defaults.
+
+FP32 and SDPA preserve branch-batch stability: a GPU parity check against the
+native all-candidate implementation found a maximum probability difference of
+1.91e-6 across synthetic Choice, Noul and Score requests, including a ten-option
+Choice spanning two bounded batches. BF16 produced a material batch-size
+sensitivity and is not used for this adapter.
+
+Install common open-model dependencies and `--extra lfm-rlcd`. Use a fresh
+three-task smoke, validate its files, then evaluate the full category with a new
+run ID. Bundled base weights and source/checkpoint digests are recorded; there is
+no independent unpinned base-model load or CPU fallback.
+
+### Decision 2.0 native package
+
+Use `--adapter decision2 --source /path/to/pinned/snapshot` with the exact
+checkpoint revision. The bridge loads the release's verified native package,
+retains its calibration and Score bias, and uses SDPA with native BF16 exact
+linear residency and FP32 heads. It sends one anonymous question per call,
+preserves structured criteria, authored Noul definitions and numeric Score
+levels, and decodes probabilities in declared option order. Native Score supports
+two through ten levels. Overflow is rejected without truncation; `--context-limit`
+may lower the release's manifest budget but cannot raise it.
+
+Validate a fresh three-task smoke before a full category run. Graphs, fused
+kernels and shared-context optimization are disabled for this evaluation bridge.
+Source digests, native manifest identity, base provenance, calibration and
+resolved checkpoint revision are recorded in model metadata.
+
+### OneJev native runtime
+
+Use `--adapter onejev --source /path/to/pinned/OneJev/source` with an exact
+checkpoint revision and the `open-models` and `onejev` extras. The native
+multimodal engine receives text-only benchmark requests with no media. One
+anonymous question is sent per call with complete structured state, authored
+Noul criteria and numeric Score values. The native renderer, slot readout and
+option ordering remain intact. BF16 model weights and the native FP32 readout
+head use SDPA; sequential cache branches avoid batch-dependent rounding.
+
+The default complete branch budget is 32,768 tokens, with overflow rejected
+without truncation. Calibration is loaded only from the pinned checkpoint's
+`calibration.json`; if absent, native temperature 1 is recorded explicitly.
+Native six-decimal probabilities are normalized only within their rounding
+bound. Validate GPU output parity and a fresh three-task smoke before a full
+category run. CUDA graphs and media loading are disabled.
+
+### Jev-Style v3 native runtime
+
+Use `--adapter jev-style --source /path/to/pinned/snapshot` with an exact model
+revision. The bridge verifies the native release manifest and retains its
+renderer, FP32 Yes-minus-No readout, global calibration temperature and lossless
+option chunking. It sends complete structured criteria, anonymous Choice names,
+authored Noul definitions and numeric Score levels in declared order. Structured
+instructions are serialized as JSON to the native string instruction field.
+
+The native default budgets are 25,600 total tokens and 2,048 head tokens.
+Choice candidate descriptions exceeding the head budget use native contiguous
+option chunks; the complete per-option scores share one calibrated softmax.
+Other overflow is rejected without truncation. Use GPU SDPA, with CUDA graphs
+disabled. Verify all three tasks and a large split-option Choice against native
+probabilities before a fresh validated smoke and full category run.
+
+### Sifr native option-key scorer
+
+Use `--adapter sifr --source /path/to/pinned/decision-index/source` with the exact
+Sifr checkpoint revision and open-model plus vision dependencies. The snapshot's
+`sifr_engine.py` provides the native renderer and mean option-key log-likelihood
+softmax. Both dependency-source and checkpoint-source digests are recorded.
+The released identity temperature is verified. BF16 GPU inference uses SDPA,
+one question per call and one full-sequence branch per batch.
+
+The native Noul renderer ignores authored definitions and the native API does
+not implement Score. The bridge therefore sends every primitive as an explicit
+Choice distribution, preserving structured instructions, anonymous Choice
+labels, authored true/false definitions and numeric Score level descriptions.
+It maps probabilities back to the original declared option order. This typed
+mapping is recorded in metadata.
+
+The default complete input budget is 32,768 tokens; overflow is rejected by the
+native scorer without truncation. `SIFR_KV=1` is refused because this bridge
+uses full-sequence native scoring. Verify typed probability mappings on GPU and
+a fresh three-task smoke before a full run.
+
+### Jiwo native runtime
+
+Use Python 3.12 for the pinned native jiwo source (it uses Python 3.12 type
+alias syntax), with `--adapter jiwo --source /path/to/pinned/jiwo/source`.
+Keep this evaluation environment separate from the regular Python 3.11
+workspace. The bridge loads pinned full decoder and readout weights, uses GPU
+BF16 SDPA, and preserves native per-type temperatures and option alignment.
+Structured instructions, authored Noul definitions and numeric Score levels
+are passed without targets or stable benchmark identifiers.
+
+The bridge explicitly uses a 32,768-token native maximum and batch budget,
+with one anonymous question per call. Native overflow validation occurs
+before computation and never truncates. Record actual Torch, Transformers
+and Python versions; verify native probabilities and a fresh three-task smoke
+in the isolated environment before a full category run.
+
+### JPT with the llm2jev native HF reference
+
+Use `--adapter llm2jev --source /path/to/pinned/llm2jev/source` and an explicit
+`--temperature`; JPT-0.8B's pinned release declares `--temperature 1.140`.
+The bridge retains llm2jev's native chat renderer, thinking-disabled template,
+context-verified 255 single-token labels and full-vocabulary HF reference
+readout. It sends one anonymous question at a time with complete structured
+criteria, authored Noul definitions and numeric Score level descriptions.
+
+GPU inference uses BF16 SDPA. Complete tokenization is checked against the
+default 32,768-token budget before native scoring; no truncation or CPU
+fallback is allowed. Role-bearing records with missing chat fields or extra
+metadata are serialized intact as JSON instead of losing fields in the native
+chat renderer. Text-only runs reject media. Validate native typed probabilities
+and a fresh three-task smoke before running the full category.
+
+### Intern-Decision native masked-symbol runtime
+
+Use Python 3.12 or newer with `--adapter intern-decision` and
+`--source /path/to/pinned/snapshot`. The bridge loads the snapshot's native
+`inference.py`, keeps its trained decision marker and immediate-predecessor
+logit readout, and uses the release's own temperature. GPU BF16 SDPA processes
+one anonymous typed question per call. Complete structured criteria, authored
+Noul definitions and numeric Score levels remain in declared order.
+
+The explicit default token budget is 32,768, validated against checkpoint
+capacity; native length checks reject overflow without truncation. The released
+runtime supports at most 62 candidate symbols and rejects larger questions
+without filtering or replacing candidates. Reserved decision markers in input
+are rejected by the native compiler. Keep any such partial results visibly
+incomplete and audit the failures against the pinned native compiler. Verify
+typed GPU probability parity and a fresh validated smoke before a full run.
+
+### this-that 1.2 native bridge
+
+The `thisthat` adapter uses the pinned FLock `TypedDecider` PyTorch backend,
+BF16 with SDPA, the native answer-slot restricted-label readout, state-first
+layout, and the native default temperature of 1.0. Supply the source checkout
+with `--source`; checkpoint and source Python digests are recorded in metadata.
+Each question is evaluated separately, with authored criteria in declared order;
+structured descriptions/instructions are serialized as JSON and Score options
+include their numeric values. The native maximum is 255 distinct option texts.
+Duplicate option texts are rejected by the native constructor, without adding
+invented distinctions. The bridge overrides the native 1,536-token state slice
+with the exact complete state token count and rejects full padded inputs over
+32,768 tokens before GPU inference. This is an explicit full-state configuration.
+CPU mapping/boundary tests pass; GPU parity, smoke and full-run validation are
+required before claiming measured support. No HTTP service is launched.
+
+### EXAONE-JEV native bridge
+
+`exaone-jev` loads the pinned `serve/systemone_server.py` in a private module and
+retains its question validation, tev1 rendering, calibration by task/candidate
+count, original/reversed permutation averaging, balanced candidate chunks and
+final-pool mass redistribution. All original candidates remain in the returned
+distribution. Only the label-logprob transport uses Transformers BF16/SDPA, as
+supported by the checkpoint card, instead of vLLM. The full input limit is
+explicitly 32,768 tokens, including the native one-token output reservation;
+overflow is rejected without truncation. Structured authored instructions and
+criteria are preserved; Score descriptions include numeric values. Install
+`uv sync --locked --extra open-models --extra exaone-jev` and supply the pinned
+source checkout with `--source`. Importing native helpers does not start an HTTP
+service. CPU tests and static checks are prerequisites; GPU parity, validated
+smoke and full results must pass before measured support is claimed.
+
+### Jev-Style 2B v3 block-causal bridge
+
+Use `jev-style-2b` for the pinned 2B release. It shares typed question mapping
+with the 0.8B bridge but has a distinct native runtime: 2,048-token block-causal
+attention in full-attention layers, recurrent state in Gated-DeltaNet layers,
+and a complete catalogue/rubric renderer for long options. The adapter preserves
+`jev_style_block_sdpa`; selecting ordinary causal SDPA would change the model.
+FP32 inference/readout, native global temperature (0.8278650620942867), manifest
+verification, a 25,600-token complete-input limit, and no truncation are retained.
+CUDA graphs are off. Native state-cache reuse/deep-copy behavior remains enabled;
+close releases the cached state before freeing the model. Supply the pinned
+checkpoint snapshot as `--source`. GPU parity must include a long catalogue with
+more than one block, then validated smoke and full results before measured
+support is claimed.
+
+### Sieve native fork bridge
+
+`sieve` uses the pinned native Sieve constructor, LoRA, scalar head, sorted
+listed-question catalogue, isolated recurrent/attention prefix forks and released
+calibration temperature. Specify `--base-revision` for the dependency checkpoint;
+the exact base SHA is resolved once and recorded alongside the adapter revision.
+The base is a dependency, not another evaluated leaderboard row. The bridge
+uses supported native FP32 with SDPA. It rejects complete prefix-plus-branch
+input overflow before any model forward, without calling native `_trim`.
+Candidates are scored in bounded groups (at most eight branches and a 32,768
+branch padded-token budget); each group receives an independent native prefix
+cache and all logits enter one global softmax. No candidate is filtered.
+Structured descriptions/instructions and authored Noul definitions remain
+intact; Score options include numeric values and use native Choice scoring.
+Native indistinguishable duplicate option texts remain unsupported. No
+benchmark-specific schema fitting is performed. GPU parity must compare full
+native scoring and option permutations, then smoke/full validation must pass
+before measured support is claimed.
+
+### LFM2.5 2.6B PCD native bridge
+
+The 2.6B RLCD release bundles the original LFM weights and its distinct `pcd`
+package. Use `lfm-pcd`, the `lfm-pcd` optional extra, and the pinned snapshot as
+`--source`. The adapter uses native token mode: atomic option codes, the native
+catalogue/prompt, one cached branch per field and restricted output-head scoring.
+It preserves structured authored definitions and numeric Score values via the
+same anonymous schema inputs as the 350M bridge. Probabilities are the native
+uncalibrated restricted-code softmax, not full-sequence likelihoods.
+Supported native Limits are explicitly configured: 32,768 complete input tokens,
+32,768 serialized-value tokens, bounded input/schema character budgets, one field
+branch per call and 32 positions per projection. Record these limits in metadata;
+complete prefix plus field suffix is checked before prefill. Native conservative
+GPU memory admission remains active. FP32/SDPA is used, with the bundled release
+weights. GPU parity must compare the native cached output and uncached full-head
+oracle, validate convolution/cache immutability, and include a 151-option choice.
+CPU input audits do not prove GPU memory admission or measured support.
+
+### Kodiak accuracy ensemble native bridge
+
+`kodiak` loads all three pinned ensemble members through the native Kodiak hub
+loader and applies their released calibration. Supply the source checkout and
+install the `kodiak` optional extra. Bundled tokenizer files must be identical;
+the bridge binds native tokenization to those local files without a separate
+unpinned ModernBERT download. Native FP32 weights/BF16 CUDA autocast and packed
+block-mask SDPA remain intact. Schema validation and native packing happen before
+any GPU forward; any native truncation flag is rejected. Native request limits
+(including 32 choice labels and 200 characters per label) are retained.
+Choice and Noul use authored label text, anonymous transport IDs, and explicit
+`allow_null=False`, returning native calibrated conditional probabilities.
+Score uses the native calibrated ensemble's moment-matched Beta over its numeric
+range, includes every authored numeric level and description in the question,
+and supplies native endpoint anchors. The bridge discretizes this continuous
+Beta into the declared numeric levels using midpoint boundaries. This is an
+explicit score-distribution interpretation; it is not an ordinal accuracy or a
+replacement classifier head. No labels are removed to fit the request limits.
+GPU parity must cover the public native ensemble probabilities and Score mean/
+variance, then validate three-task smoke and complete traversal results. CPU
+schema/token audits do not establish measured support.
+
+### Lev1 3.7B native bridge
+
+`lev1` loads the pinned release's bundled native scorer and merged weights with
+`--source <pinned-snapshot>`. BF16 packed block-mask SDPA, native cached long-input
+scoring, and original/reversed option-order probability averaging are preserved.
+The explicit default complete-input limit is 32,768 tokens; overflow is rejected
+before inference. Authored Noul definitions and numeric Score values are passed
+as anonymous native Choice criteria. Native temperature defaults to 1 when no
+calibration is provided. GPU parity must exercise the cached long-option path as
+well as all three task mappings before validated smoke and full traversal.
+
+Kas 4B uses `--adapter kas --source <pinned-kas-checkout>` and the `kas`
+optional extra, which pins the native engine protocol dependency. Native BF16
+SDPA, repeated JSON prompting, prefix-cache reuse and restricted-label softmax
+at temperature 1 remain unchanged. Every task uses explicit Choice criteria
+to preserve authored Noul definitions and numeric Score levels. The default
+complete prompt limit is 32,768 tokens; excess candidate counts and context
+overflow are rejected without truncation. Require native parity and validated
+three-task smoke before full evaluation.
+
+Intelif uses `--adapter intelif --source <pinned-intelif-checkout>` in Python
+3.12 or newer. Its release config pins the external base checkpoint revision.
+The native loader merges released LoRA and uses its linear anchor readout with
+BF16/native SDPA GQA. No ordinary HF or PEFT-only inference path is substituted.
+The native 40,960-token default limit may only be lowered. Explicit Choice
+transport retains authored Noul definitions and numeric Score levels. Native
+GPU parity and validated smoke must pass before full evaluation.
+
+The current Lev release uses `--adapter lev --source <checkout>/packages/lev`
+and requires `--base-revision <exact-sha>`. Run in Python 3.12 or newer. The bridge
+loads native `mode_b_head.pt`, merges released LoRA into the pinned base and uses
+native calibration and routing with BF16/SDPA. Explicit Choice transport keeps
+authored Noul definitions and numeric Score levels. Reject complete-input
+overflow and Mode B candidate text longer than the native 64-token budget before
+forward, rather than accepting native truncation. Clear candidate caches between
+questions. GPU parity and validated smoke remain required before full evaluation.
+
+Jet uses `--adapter jet --source <pinned-release-snapshot>` with Python 3.12
+and its released Torch 2.11/FLA runtime. Retain native BF16 SDPA, FLA gated-delta
+scoring and PyTorch convolution. The native complete-input limit is 16,384
+tokens and may only be lowered. Explicit Choice transport retains authored
+Noul and numeric Score definitions as lossless strings, with native Choice
+temperature. Require GPU parity and validated smoke before full evaluation.
+
+Hopper uses a pinned native checkout with Python 3.12 or newer. Retain native
+BF16/SDPA, exact base revision, calibration, and constructor kernel checks.
+Disable shortlisting and reject more than 26 candidates rather than removing
+options or extending the native head. A declared 32,768-token evaluation budget
+is checked without truncation. Record native kernel/fallback diagnostics; do not
+replace kernels after their native validation. Require native GPU parity and
+validated smoke before full traversal, and audit recorded capacity failures.
+
+Pngwn requires `--base-revision <exact-sha>` for its external backbone. The
+release temperature is read from its pinned `metrics.json`, validated and
+recorded; do not reuse another checkpoint's temperature. Preserve all candidates,
+full state/question/option text and numeric Score values. Extended full-input
+evaluation rejects overflow instead of native training/demo truncation, and
+records that condition explicitly. Verify readout/probability parity and smoke
+results against this configuration before full traversal.
+
+RSI uses `--adapter rsi --source <pinned-rsi-checkout>`. The native in-process
+server loads the self-contained release and its calibrated option readout.
+Use the native server default complete-input path, then explicitly set the
+encoder budget (default 32,768) and retain `truncate=none`. The release loader
+accepts only training cut policies, so do not pass `none` through its environment
+overrides. Restore the caller environment after construction. Use explicit Choice criteria
+for authored Noul definitions and numeric Score levels. Preserve the trained
+option pooling and every candidate, reject any truncation report, and require
+native GPU parity plus validated smoke before full traversal.
+
+Gevva uses `--adapter gevva --source <pinned-gevva-checkout>` for the self-contained
+E2B and E4B releases. Preserve the native three-class NLI calibration and native
+bucketed margin softmax through `GevvaCrossEncoder.decide`. Encode all authored
+Noul criteria and numeric Score levels as explicit Choice descriptions. Before
+inference, compare the native bounded pair tokenization with complete pair
+encoding and reject any difference; never silently cut state or hypotheses.
+Candidate batches are bounded at four. Require native GPU probability parity,
+validated three-task smoke, and saved-result validation for each pinned release.
+
+Winnow E4B selects the Q8 artifact from the pinned runtime release-assets manifest
+and verifies its exact size and SHA256. Pass the positive finite
+direct-text Q8 calibration from the verified E4B release card through the native
+`winnow.temperature` request extension;
+record it in metadata. Explicit Choice transport preserves authored Noul
+definitions and numeric Score levels without replacing them with ordinal labels.
+
+Jevstral uses `--adapter jevstral --source <pinned-jevstral-checkout>` and the
+calibrated `stage4/final` release. Its native code pins the Ministral 3 base SHA;
+require the checkpoint configuration to match it. Use the native bf16 merged
+LoRA decoder with trained delimiter rows, fp32 pointer head and saved temperature.
+Keep native serving limits (65,536 state tokens and 73,728 row tokens), or use a
+stricter explicit context limit. Native encoding rejects overflow. One question
+per call avoids duplicating state across batches and uses the native uncached
+path. Explicit Choice criteria preserve authored Noul definitions and numeric
+Score values. A separate Transformers 5.18 environment avoids changing the RSI
+and Gevva runtimes. Require native GPU parity and validated smoke before full runs.
+
+Nimble v2 uses the released `ParallelScorer` from the pinned model snapshot,
+including its T=2.179078721266035 calibration and native serving codebook.
+Nimble v3 uses `--adapter nimble-v3 --source <pinned-evaluation-snapshot>/code`;
+its released `nimble.evaluation.decision_index_engine.NimbleEngine` verifies the
+prompt hashes and 255-token codebook against the adapter contract. Use the
+contract's exact Qwen base revision, native unscaled softmax, SDPA and one question
+per call. Explicit Choice transport keeps authored Noul descriptions and numeric
+Score levels. Complete prompts are rejected beyond the explicit budget (default
+32,768). Require native GPU parity, full input audit and validated smoke before
+full traversal. The v3 weights retain their separate CC BY-NC 4.0 license.
+
+JevK5 9B uses the pinned native raw probability API with its released temperature
+and separate knockout temperature. Explicit Choice criteria preserve structured
+descriptions, authored Noul definitions and numeric Score values. Native knockout
+scores every candidate in groups above 16 choices. Check every actual branch's
+complete chat-template tokenization against 32,768; reject overflow before model
+forward. Use SDPA, disabled CUDA graphs, and native probability parity including a
+151-candidate fixture before validated smoke and full traversal.
+
+
+### AutoTrust JEV 9B
+
+Use `--adapter autotrust-jev` with an immutable checkpoint revision and `--source`
+pointing to that release snapshot. This follows the release card's Transformers
+inference example: load the bundled BF16 text backbone, merge its released LoRA,
+and apply the separate FP32 24-slot head to the last final-norm hidden state.
+Use SDPA and the released Choice calibration temperature. The bare-v1 Choice
+transport preserves structured descriptions, authored Noul definitions, criterion
+order and numeric Score levels. It supports 2–16 candidates; wider questions fail
+explicitly without dropping candidates. Reject complete-input overflow before
+inference (default 32,768 tokens, bounded by checkpoint position capacity).
+The separate slot head is included in parameter metadata. Require independent
+model-card probability parity across all three tasks before smoke and full runs.
+
+
+### Sieve 9B
+
+Use `--adapter sieve-9b` and `--source` pointing to the upstream Sieve package.
+This release differs from the Sieve 2B scalar-head checkpoint. Load its BF16
+merged LoRA text backbone and FP32 pointer head with the base revision recorded
+in the release's provenance.json. The native Decision Index single-question
+path scores one complete causal row, with the released head temperature and
+SDPA, without CUDA graphs or cached state reuse. Preserve all criteria using
+structured Choice transport, including authored Noul definitions and numeric
+Score levels. Native admission limits are 65,536 state tokens, 32,768 branch
+tokens and 255 candidates. An optional context limit also bounds the complete
+row without truncation. Verify probability parity against the upstream Decision
+Index engine before validated smoke and full evaluation.
+
+
+### AJev Gemma 4 12B LoRA5
+
+Use `--adapter ajev`, a pinned checkpoint revision, `--source` pointing to the
+upstream ajev-infer package, and an explicit `--base-revision`. Load the BF16
+base and unmerged released LoRA in memory; use SDPA and native bare/space label
+logsumexp scoring with the checkpoint's per-type temperatures. Native typed
+hints are retained. Preserve declared criterion order, authored Noul definitions,
+structured values and numeric Score levels in option descriptions. Disable state
+truncation and reject complete native prompts above the context limit (default
+32,768, bounded by checkpoint capacity). Score one case per call without shared
+prefix caching. Require native probability parity and validated smoke before
+full runs. Do not save and reload a merged Gemma 4 checkpoint.
+
+
+### Xor 26B-A4B
+
+Use `--adapter xor`, an immutable model revision and `--source` pointing to the
+verified release's serving bundle. `--server-host` and `--server-port` select the
+released SGLang backend, which must load the verified snapshot at `/models/xor`.
+Use the image digest specified by the release (including its logprob fix), one
+explicit GPU, a safe bind address and a fresh cache before each evaluation run.
+The adapter calls the released compatibility server in process; it does not
+start or stop the backend. It preserves structured definitions, authored Noul
+criteria, numeric Score levels and criterion order using native Choice transport
+and the released Choice temperature of 1.95. Native admission rejects overflow
+and more than 255 candidates. Validate native probabilities across all three
+tasks, then smoke and complete runs before presenting results. Parameter metadata
+uses immutable checkpoint headers with the shared static embedding exclusion.
+
+
+### Blink v0.3 26B-A4B NVFP4
+
+Use `--adapter blink`, a pinned NVFP4 release, `--source` pointing to the author's
+Blink source, and `--server-host` / `--server-port` for its vLLM backend. Load the
+verified snapshot at `/models/blink`, served as `blink`, using `modelopt_fp4`, FP8
+KV cache, disabled thinking and the release's 32K context. The adapter renders
+surogate decisions v1, preserving authored Noul criteria, structured descriptions,
+numeric Score levels and declared criterion order. It checks each complete prompt
+including the answer token and validates single-token label continuations before
+requesting every candidate's `logprob_token_ids`. Missing probabilities are errors;
+the release's top-20 demonstration is insufficient for wide distributions.
+Apply the released temperature, 1.3. Parameter metadata uses a native empty-model
+logical census; verify packed NVFP4 and per-expert shapes against that census
+before evaluation. Native source rendering/probability parity, three-task smoke,
+full traversal and saved-result/data validation are required. Backend lifecycle
+belongs to the runner; use only the selected physical GPU and safe bind address.
+
+
+### AutoTrust GEV 26B Decide
+
+Use `--adapter gev`, a pinned release and `--source` pointing to its snapshot.
+Use the released Transformers System 1 path: BF16 base plus in-memory merged
+LoRA, BOS-prefixed bare-v1 template and FP32 24-slot head with softcap 30 and the
+default calibration.json. Explicit Choice transport preserves authored Noul
+definitions, structured descriptions, numeric Score levels and criterion order.
+The released server's `_groups` and `s1_dist` orchestration functions are loaded
+verbatim without its vLLM server imports. Native tournament scoring reads every
+candidate in groups of at most 16, then refines 16 finalists while retaining
+probability mass for every original option (up to 256). Each HF branch is scored
+sequentially to bound GPU memory. Reject complete branch overflow before inference
+(default 32K; an explicit override is bounded by checkpoint capacity). Adaptive
+thinking is disabled. Verify model-card head parity for all tasks and native
+151-candidate tournament parity before validated smoke and full traversal.
+
+Torchcast Decision 27B: the `torchcast` bridge loads the pinned bundled native `torchcast_decision` package supplied through `--source`. It uses the native causal decoder, FP32 letter readout, and wide-choice tournament, with task-specific calibration. Evaluation uses a 32,768-token input limit, disabled CUDA graphs and images, and supported Transformers GPU kernels. Each actual tournament row retains native overflow rejection. Structured Score values and authored criterion order are carried through anonymous Choice criteria.
+
+Solomon: the `solomon` bridge loads the pinned author's `ServiceEngine` and validates its serving binding before prediction. The bundled release source is supplied through `--source`; the external Qwen base revision is read from the release manifest. Keep question-side FP32 LoRA unmerged, prefill the document with the adapter disabled, then branch through native trained heads. Explicit Choice criteria preserve authored Noul definitions; numeric Score criteria use the ordered S head. Native Choice capacity is 2–8 candidates and wider questions are rejected. The bridge rejects full prompts beyond 32,768 tokens before prefill. Native GPU parity and smoke checks remain required before full evaluation.
+
+Eikos FP8: `eikos-fp8` uses the released semif JSON renderer and a verified vLLM >=0.30 FP8 dynamic backend. Supply pinned native code through `--source` and the backend address through `--server-host` / `--server-port`. All selected candidate log probabilities must be present; missing tails are rejected. Structured and numeric criteria preserve authored order through explicit Choice transport. The runtime uses a 32,768-token limit including one answer token, identity calibration and hybrid prefix-cache alignment. Native GPU parity and smoke checks are required before full evaluation.
+
+JADE: `jade` uses the release's exact prompt, decision vocabulary, temperature and exported rank-256 vLLM adapter. Supply a materialized, checksum-valid release through `--source` and the backend address through `--server-host` / `--server-port`. Read requested log probabilities in native 128-token chunks over the same complete option set, then calibrate once. Keep its hard limit of 8,192 tokens including one answer token; larger inputs raise errors. Explicit Choice transport preserves authored Noul definitions and numeric Score criteria. GPU parity and smoke validation remain required before full runs.
+
+## Caller-managed llama.cpp
+
+The `llama-cpp` adapter connects to a running llama-server's native
+`/v1/systemone` endpoint. Start and stop the server yourself; the adapter does not
+build llama.cpp, download weights, start a process, or choose a GPU. It requires
+a native decision GGUF supported by that endpoint. Ordinary chat GGUFs are not
+supported by this adapter. No optional Python runtime extra is needed.
+
+Start your independently obtained model with a compatible llama.cpp build:
+
+```sh
+# On the shared workspace, inspect GPU 1 availability first.
+CUDA_VISIBLE_DEVICES=1 llama-server -m /path/to/decision.gguf \
+  --alias decision-model --host 127.0.0.1 --port 8080 \
+  -ngl 99 -c 16384 -b 16384 -ub 16384 --parallel 1 --no-context-shift
+```
+
+Choose context and batch sizes for the model and available GPU memory; these
+numbers are examples, not universal settings. When Tailscale is available, bind
+to that machine's Tailscale IPv4 address instead of localhost. Pin the model
+revision, GGUF hash, llama.cpp revision, precision, and effective server settings.
+The adapter does not verify an externally started server's weights against a Hub
+revision; `--revision` records the caller-declared checkpoint revision, while
+`served_model` verifies the response alias and detects model-name changes.
+
+From `evaluator/`, evaluate with constructor kwargs supplied as JSON:
+
+```sh
+uv run s1mb run --adapter llama-cpp \
+  --model organization/decision-model --revision CHECKPOINT_COMMIT \
+  --adapter-kwargs '{"base_url":"http://127.0.0.1:8080","served_model":"decision-model","timeout":600,"case_batch_size":1,"max_candidates":52,"runtime_settings":{"llama_cpp_revision":"SERVER_COMMIT","weights_sha256":"GGUF_SHA256","dtype":"Q8_0","context_size":16384}}' \
+  --category smoke-v1 --limit 2 --run-id llama-cpp-smoke-001
+uv run s1mb validate data/results/llama-cpp-smoke-001
+```
+
+For Python use, the same options are ordinary keyword arguments:
+
+```python
+from s1mb.adapters.llama_cpp import LlamaCppAdapter
+
+kwargs = {
+    "base_url": "http://127.0.0.1:8080",
+    "served_model": "decision-model",
+    "timeout": 600,
+    "case_batch_size": 1,
+    "max_candidates": 52,
+    "runtime_settings": {"llama_cpp_revision": "SERVER_COMMIT", "dtype": "Q8_0"},
+}
+adapter = LlamaCppAdapter("organization/decision-model", "CHECKPOINT_COMMIT", **kwargs)
+try:
+    predictions = adapter.predict(inference_case)  # an s1mb.data.InferenceCase
+finally:
+    adapter.close()  # closes the HTTP client; leaves llama-server running
+```
+
+Supported kwargs are `base_url`, `served_model`, `timeout`, `case_batch_size`
+(1..32), `max_questions` (1..64), `max_candidates`, `max_request_bytes` (default
+16 MiB), `retries` (0..5), and `runtime_settings` (recorded metadata only).
+`base_url` may contain a proxy path prefix. If the server requires a bearer token,
+set `S1MB_LLAMA_API_KEY` in a local ignored environment file. Do not put credentials
+in JSON kwargs, URLs, or runtime metadata. Changing concurrency may affect backend
+arithmetic; record it and smoke-test it before a full run.
+
+The adapter sends all questions of a case together, preserves joint-model
+semantics, and rejects oversized cases rather than splitting their questions.
+Question and Choice transport keys are anonymous. Structured state, instructions,
+and criteria use the native typed contract. Score levels are sent in ascending
+numeric-value order and response probabilities map back to the original option
+IDs; the original numeric values remain evaluator-side. The native API supports
+2..10 Score levels. Probabilities must validate without client renormalization.
+Request counts and token usage are recorded, and bounded retries apply only to
+transient failures. Batch failures remain individual failures.
+
+The native server renders/tokenizes the model-specific prompt and must reject
+context/batch overflow **before inference**. The client cannot pre-count that
+exact prompt through this API, does not truncate text, and rejects request-byte
+and configured candidate/question-capacity overflow locally. Server overflow
+errors are propagated without retry or fabricated probabilities. A generic
+`/tokenize` call on serialized request JSON would not count the native prompt.
+Do not use native runtimes that silently truncate, including the current Laya
+and LFM2-D1-Omni native renderers, with this adapter for S1MB until a separate
+no-truncation preflight is available. `--no-context-shift` alone does not disable
+model-specific renderer truncation. Backend temperature comes from the model's
+metadata; chat-generation parameters such as `temperature` and `top_p` are not
+constructor kwargs and are not passed to `/v1/systemone`.

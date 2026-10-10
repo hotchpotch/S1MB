@@ -197,6 +197,18 @@ metadata and compressed measurements, validates their summaries and writes
 `viewer/display/viewer-summary.json` plus a local `.report.json`. It does not need
 private evaluation inputs. Publication validation of original predictions remains
 the result submitter's responsibility. Review the reported source SHA and counts.
+Preparation also fills missing parameter counts and recalculates legacy AP/TP
+gaps of at most 1% using the static embedding-excluded definition in its temporary metadata copy
+from supported public checkpoint headers. Review the local
+`viewer-summary.json.parameters.report.json` for resolved checkpoint SHAs,
+evaluation versus linked-checkpoint sources, and unresolved reasons. Original
+result files and published model metadata remain unchanged. The checkpoint
+counting rules and limitations are in the
+[submission guide](contributing_results.md#model-metadata).
+
+To stage the changed metadata files for a separate results Dataset PR, add
+`--metadata-output ../tmp/parameter-metadata-submission`. This directory contains
+only the changed model folders' `metadata.json` files; measurements are preserved.
 
 To generate from the latest data and publish in one command:
 

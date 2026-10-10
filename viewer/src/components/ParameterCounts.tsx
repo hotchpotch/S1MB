@@ -12,8 +12,8 @@ function formatCount(value: number | null | undefined) {
 export function ParameterCountsHeader() {
   return <ColumnHelp label="TP: Total Parameters; AP: Active Parameters" description={<>
     <p><strong>TP — Total Parameters.</strong> The model’s total parameter count.</p>
-    <p className="mt-2"><strong>AP — Active Parameters.</strong> The reported count excludes lookup-only embeddings and retains shared output weights.</p>
-    <p className="mt-2">AP here counts non-lookup parameters, not per-input active parameters in a routed MoE model or memory usage. Large multilingual vocabulary embeddings can make AP much smaller than TP; those embeddings are still used during inference.</p>
+    <p className="mt-2"><strong>AP — Active Parameters.</strong> Static AP is TP minus embedding parameters, including embeddings shared with output heads.</p>
+    <p className="mt-2">AP here counts parameters without static embeddings, not per-input active parameters in a routed MoE model or memory usage. Large multilingual vocabulary embeddings can make AP much smaller than TP; those embeddings are still used during inference.</p>
     <p className="mt-2">M = million; B = billion (1,000M = 1B). M values are rounded to whole millions; B values to two decimal places. — means unknown.</p>
   </>}><span className="block">TP</span><span className="block">AP</span></ColumnHelp>;
 }

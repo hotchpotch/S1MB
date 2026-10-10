@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from s1mb.adapters.winnow import winnow_parameter_metadata
+from s1mb.parameters import METHOD
 
 
 def reader(monkeypatch, tensors, architecture="gemma4"):
@@ -26,8 +27,8 @@ def test_logical_shapes_and_tied_output(monkeypatch, separate_output):
     reader(monkeypatch, tensors)
     assert winnow_parameter_metadata("unused.gguf") == {
         "total_params": 5120 if separate_output else 3072,
-        "active_params": 3072,
-        "parameter_count_method": "non_lookup_parameters_v1",
+        "active_params": 3072 if separate_output else 1024,
+        "parameter_count_method": "embedding_excluded_parameters_v1",
     }
 
 
@@ -37,7 +38,6 @@ def test_logical_shapes_and_tied_output(monkeypatch, separate_output):
         [],
         [("token_embd.weight", [0, 64])],
         [("token_embd.weight", [32, 64])] * 2,
-        [("token_embd.weight", [32, 64]), ("per_layer_token_embd.weight", [32, 64])],
         [("token_embd.weight", [32, 64]), ("v.patch_embd.weight", [32, 64])],
     ],
 )
@@ -51,3 +51,14 @@ def test_reject_other_architectures(monkeypatch):
     reader(monkeypatch, [("token_embd.weight", [32, 64])], architecture="other")
     with pytest.raises(ValueError, match="Gemma 4"):
         winnow_parameter_metadata("unused.gguf")
+
+
+def test_per_layer_token_lookup_counts_total_but_not_active(monkeypatch):
+    reader(monkeypatch, [("token_embd.weight", [32, 64]),
+                        ("per_layer_token_embd.weight", [128, 64]),
+                        ("blk.0.attn_q.weight", [32, 32])])
+    assert winnow_parameter_metadata("unused.gguf") == {
+        "total_params": 11264,
+        "active_params": 1024,
+        "parameter_count_method": METHOD,
+    }

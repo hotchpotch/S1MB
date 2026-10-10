@@ -472,7 +472,7 @@ const parameterFixture: Snapshot = { ...radarFixture, results: radarFixture.resu
 })) };
 export const ParameterFilters: Story = {
   args: { snapshot: parameterFixture, initialFiltersOpen: true },
-  parameters: { docs: { description: { story: 'Synthetic parameter counts. Compact inline TP/AP filters match the leaderboard toolbar, with thin tracks and neutral handles. Independent ranges include unknown counts only when unrestricted. Filtering preserves ranks and selected comparison models.' } } },
+  parameters: { docs: { description: { story: 'Synthetic static parameter counts: AP excludes embedding weights even when shared with output heads. Compact inline TP/AP filters match the leaderboard toolbar, with thin tracks and neutral handles. Independent ranges include unknown counts only when unrestricted. Filtering preserves ranks and selected comparison models.' } } },
 };
 export const ParameterFiltersMobile: Story = {
   ...ParameterFilters,

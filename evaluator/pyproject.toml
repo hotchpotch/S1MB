@@ -18,6 +18,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+exaone-jev = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1"]
+lfm-rlcd = ["jsonschema>=4,<5"]
+lfm-pcd = ["jsonschema>=4,<5"]
+kodiak = ["scipy>=1.11,<2"]
+onejev = ["pillow>=12,<13", "torchvision==0.25.0"]
 winnow = ["gguf==0.19.0"]
 standardone = ["mistral-common>=1.11,<2"]
 decision-encoders = ["sentence-transformers==6.1.0", "flashdeberta==0.0.7"]
@@ -35,6 +40,14 @@ meta-encoder = [
     "transformers>=5.15,<6",
 ]
 open-models = ["torch==2.10.0", "transformers==5.17.0", "peft>=0.17,<1", "accelerate>=1,<2", "einops>=0.8,<1", "sentencepiece>=0.2,<1", "kernels==0.16.0"]
+kas = [
+    "decision-index",
+]
+rsi = [
+    "fastapi>=0.115,<1",
+    "pillow>=12.3.0",
+    "uvicorn>=0.30,<1",
+]
 
 [tool.uv]
 conflicts = [
@@ -52,6 +65,7 @@ explicit = true
 [tool.uv.sources]
 torch = { index = "torch-cu130" }
 torchvision = { index = "torch-cu130" }
+decision-index = { git = "https://github.com/apolinario/decision-index.git", rev = "9eb2dbe2a358004c8782c66e40a83ac07b953fec" }
 
 [project.scripts]
 s1mb = "s1mb:main"

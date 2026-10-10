@@ -26,7 +26,7 @@ class ModelMetadata(Record):
     hf_url: str | None = None
     total_params: int | None = Field(default=None, ge=0, strict=True)
     active_params: int | None = Field(default=None, ge=0, strict=True)
-    parameter_count_method: Literal["non_lookup_parameters_v1"] | None = None
+    parameter_count_method: Literal["non_lookup_parameters_v1", "embedding_excluded_parameters_v1"] | None = None
 
     @model_validator(mode="after")
     def check_metadata(self) -> Self:
@@ -36,8 +36,10 @@ class ModelMetadata(Record):
                 if parsed.scheme not in {"http", "https"} or not parsed.hostname:
                     raise ValueError("Model links must be HTTP(S) URLs")
         if self.active_params is not None:
-            if self.parameter_count_method != "non_lookup_parameters_v1":
-                raise ValueError("Active parameters require non_lookup_parameters_v1")
+            if self.parameter_count_method not in {
+                "non_lookup_parameters_v1", "embedding_excluded_parameters_v1"
+            }:
+                raise ValueError("Active parameters require a supported counting method")
             if self.total_params is not None and self.active_params > self.total_params:
                 raise ValueError("Active parameters exceed total parameters")
         return self

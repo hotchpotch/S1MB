@@ -1,4 +1,4 @@
-"""Needle parameter counts retain shared output weights and exclude lookup tables."""
+"""Needle parameter counts exclude all embeddings even when shared with output heads."""
 
 from types import SimpleNamespace
 
@@ -12,7 +12,7 @@ def tensor(*shape):
     return SimpleNamespace(shape=shape)
 
 
-def test_tied_token_embedding_and_all_heads_remain_active():
+def test_token_and_engram_embeddings_are_excluded():
     params = {
         "embedding": {"embedding": tensor(10, 4)},
         "engrams_0": {"embedding": tensor(3, 5), "k_proj": {"kernel": tensor(5, 4)}},
@@ -22,16 +22,16 @@ def test_tied_token_embedding_and_all_heads_remain_active():
     }
     assert needle_parameter_metadata(params) == {
         "total_params": 102,
-        "active_params": 77,
+        "active_params": 37,
         "parameter_count_method": METHOD,
     }
 
 
-def test_shared_weight_is_counted_once_and_active_use_wins():
+def test_shared_embedding_is_counted_once_and_excluded():
     shared = tensor(3, 4)
     params = {"engrams_0": {"embedding": shared}, "output": {"kernel": shared}}
     assert needle_parameter_metadata(params)["total_params"] == 12
-    assert needle_parameter_metadata(params)["active_params"] == 12
+    assert needle_parameter_metadata(params)["active_params"] == 0
 
 
 def test_empty_parameters_are_rejected():
@@ -44,5 +44,5 @@ def test_adapter_metadata_includes_counts_without_inference():
     adapter.model_id, adapter.revision, adapter.settings = "test/needle", "revision", {}
     adapter.parameter_counts = needle_parameter_metadata({"embedding": {"embedding": tensor(2, 3)}})
     info = adapter.metadata()
-    assert info.total_params == info.active_params == 6
+    assert info.total_params == 6 and info.active_params == 0
     assert info.parameter_count_method == METHOD
