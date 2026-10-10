@@ -51,6 +51,7 @@ def main() -> None:
             "laya",
             "typesafe",
             "knowline",
+            "llamacpp",
             "liquid",
             "unee",
             "system-ichi",
@@ -271,11 +272,11 @@ def validate_run_arguments(args, parser):
     ):
         parser.error("--microbatch-tokens must be positive and applies only to Bekko")
     if args.case_batch_size is not None and (
-        args.adapter not in {"bekko-v0", "kev", "open-jev", "clm", "tev", "liquid"}
+        args.adapter not in {"bekko-v0", "kev", "open-jev", "clm", "tev", "liquid", "llamacpp"}
         or args.case_batch_size < 1
     ):
         parser.error(
-            "--case-batch-size must be positive and applies only to Bekko v0, Kev, Open-Jev, CLM, Tev or Liquid"
+            "--case-batch-size must be positive and applies only to Bekko v0, Kev, Open-Jev, CLM, Tev, Liquid or llama.cpp"
         )
     if args.compile and args.adapter != "bekko-v0":
         parser.error("--compile applies only to Bekko v0")
@@ -853,6 +854,14 @@ def execute(args, parser):
         from .adapters.knowline import KnowLineAdapter
 
         adapter = KnowLineAdapter(
+            args.model,
+            args.revision,
+            case_batch_size=args.case_batch_size if args.case_batch_size is not None else 16,
+        )
+    elif args.adapter == "llamacpp":
+        from .adapters.llamacpp import LlamaCppAdapter
+
+        adapter = LlamaCppAdapter(
             args.model,
             args.revision,
             case_batch_size=args.case_batch_size if args.case_batch_size is not None else 16,
