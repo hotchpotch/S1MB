@@ -88,7 +88,7 @@ class SystemOneHTTPAdapter:
             detail = ""
             try:
                 detail = response.json().get("error", {}).get("message", "")[:200]
-            except Exception:
+            except Exception:  # noqa: BLE001, S110 - detail stays empty on non-JSON errors
                 pass
             raise RuntimeError(f"{self.provider} HTTP {response.status_code}: {detail}")
         payload = response.json()
@@ -248,6 +248,7 @@ class ClefCFAdapter:
                 completed = subprocess.run(
                     ["cf", "ai", "run", self.model, "--quiet", "--body", f"@{path}"],
                     capture_output=True,
+                    check=False,
                     text=True,
                     timeout=180,
                 )
