@@ -12,7 +12,7 @@ from s1mb.adapters.jev_omni import JevOmniAdapter, omni_inputs
 from s1mb.adapters.jevlite import JevLiteAdapter, extended_labels
 from s1mb.adapters.jevone import JevOneAdapter
 from s1mb.adapters.needle import NeedleAdapter
-from s1mb.adapters.rune import rune_messages
+from s1mb.adapters.rune import RuneAdapter, rune_messages
 
 
 def test_certo_preserves_authored_order_structures_and_numeric_levels():
@@ -224,15 +224,9 @@ def test_lev_rejects_complete_input_overflow_before_forward():
 
     adapter = LevAdapter.__new__(LevAdapter)
     adapter.context_limit = 1
-    adapter.tokenizer = None
-    adapter.api = cast(
-        Any,
-        SimpleNamespace(
-            SystemOneRequest=lambda **kw: kw,
-            to_record=lambda req: (req, None),
-        ),
+    adapter.engine = SimpleNamespace(
+        _candidate_cache={}, prepare=lambda *a, **kw: SimpleNamespace(width=2)
     )
-    adapter.engine = SimpleNamespace(encode=lambda *a, **kw: {"ids": [1, 2]})
     with pytest.raises(ValueError, match="refusing truncation"):
         adapter.predict(cases())
 
@@ -313,3 +307,8 @@ def test_opendecision_retains_instructions_when_native_noul_ignores_them():
     assert seen[0]["instructions"] in seen[0]["criteria"]["true"]
     assert seen[0]["criteria"]["true"].endswith("true: Yes")
     assert seen[0]["criteria"]["false"].endswith("false: No")
+
+
+def test_rune_invalid_budget_before_checkpoint_load():
+    with pytest.raises(ValueError, match="positive"):
+        RuneAdapter("unused", "main", "unused", "cuda:0", context_limit=0)

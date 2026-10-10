@@ -213,3 +213,46 @@ def test_von_literal_markers_are_not_candidate_delimiters():
     )
     assert len(ids) == 5
     assert positions == [2, 4]
+
+
+def test_pinned_checkpoint_download_preserves_sha_without_revision_lookup(monkeypatch, tmp_path):
+    from s1mb.adapters.upstream import checkpoint_path
+
+    revision = "a" * 40
+    calls = []
+
+    def download(model, **kwargs):
+        calls.append((model, kwargs))
+        return str(tmp_path)
+
+    hub = SimpleNamespace(snapshot_download=download)
+    monkeypatch.setattr("s1mb.adapters.upstream.importlib.import_module", lambda name: hub)
+    root, resolved = checkpoint_path("author/model", revision)
+    assert root == tmp_path
+    assert resolved == revision
+    assert calls[0][0] == "author/model"
+    assert calls[0][1]["revision"] == revision
+
+
+def test_missing_pinned_cache_downloads_the_same_revision(monkeypatch, tmp_path):
+    from s1mb.adapters.upstream import checkpoint_path
+
+    class MissingCache(Exception):
+        pass
+
+    revision = "b" * 40
+    calls = []
+
+    def download(model, **kwargs):
+        calls.append(kwargs)
+        if kwargs.get("local_files_only"):
+            raise MissingCache
+        return str(tmp_path)
+
+    hub = SimpleNamespace(snapshot_download=download,
+                          errors=SimpleNamespace(LocalEntryNotFoundError=MissingCache))
+    monkeypatch.setattr("s1mb.adapters.upstream.importlib.import_module", lambda name: hub)
+    assert checkpoint_path("author/model", revision) == (tmp_path, revision)
+    assert len(calls) == 2
+    assert all(call["revision"] == revision for call in calls)
+    assert not calls[1].get("local_files_only")

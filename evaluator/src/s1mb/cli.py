@@ -76,11 +76,49 @@ def main() -> None:
             "manchego",
             "neohorse",
             "jebadiah",
+            "torchcast",
+            "solomon",
             "openthai",
             "kotoba",
             "jeff",
             "firelex-jeff",
             "clef",
+            "julia",
+            "dinah",
+            "jevk5-lite",
+            "lavoir",
+            "lfm-rlcd",
+            "decision2",
+            "onejev",
+            "jev-style",
+            "sifr",
+            "jiwo",
+            "llm2jev",
+            "intern-decision",
+            "thisthat",
+            "exaone-jev",
+            "jev-style-2b",
+            "sieve",
+            "sieve-9b",
+            "ajev",
+            "xor",
+            "blink",
+            "jev27",
+            "jade",
+            "eikos-fp8",
+            "lfm-pcd",
+            "kodiak",
+            "lev1",
+            "kas",
+            "intelif",
+            "jet",
+            "rsi",
+            "gevva",
+            "gev",
+            "autotrust-jev",
+            "jevstral",
+            "nimble-v3",
+            "dm-jepa",
             "jevlite",
             "certo",
             "jev-omni",
@@ -125,12 +163,12 @@ def main() -> None:
     run.add_argument(
         "--temperature",
         type=float,
-        help="Explicit Meta Encoder cosine-softmax temperature",
+        help="Explicit Meta Encoder cosine-softmax or llm2jev calibration temperature",
     )
     run.add_argument(
-        "--server-host", default="127.0.0.1", help="Winnow bind IPv4: localhost or Tailscale"
+        "--server-host", default="127.0.0.1", help="Winnow/Xor/Blink server IPv4: localhost or Tailscale"
     )
-    run.add_argument("--server-port", type=int, default=8091, help="Winnow server port")
+    run.add_argument("--server-port", type=int, default=8091, help="Winnow/Xor/Blink server port")
     run.add_argument(
         "--max-candidates",
         type=int,
@@ -171,6 +209,7 @@ def main() -> None:
     run.add_argument(
         "--source", help="Upstream source checkout for System Ichi or open-model adapters"
     )
+    run.add_argument("--base-revision", help="Explicit dependency checkpoint revision")
     run.add_argument("--category", default="english-v1")
     run.add_argument("--benchmark", action="append", help="Select specific category benchmarks")
     run.add_argument(
@@ -189,6 +228,7 @@ def main() -> None:
     )
     args = parser.parse_args()
     if args.command == "run":
+        validate_run_arguments(args, parser)
         from .dataset_source import dataset_session
 
         with dataset_session(args.data_dir, offline=args.offline_dataset, category=args.category):
@@ -197,55 +237,8 @@ def main() -> None:
         execute(args, parser)
 
 
-def execute(args, parser):
-    if args.command in {"export-results", "sync-results", "validate-results"}:
-        from .result_repository import export_results, sync_results, validate_repository
-
-        if args.command == "export-results":
-            print(export_results(args.data_dir, args.paths, args.metadata, args.output))
-        elif args.command == "sync-results":
-            sync_results(
-                args.data_dir,
-                args.repo_id,
-                args.revision,
-                args.output or args.data_dir / "hub-results",
-            )
-        else:
-            count = validate_repository(
-                args.data_dir, args.repository, download=args.download_datasets
-            )
-            print(f"Validated {count} published results")
-        return
-    if args.command == "validate":
-        from .result_repository import result_files
-
-        files = result_files(args.paths)
-        if not files:
-            parser.error("No result files found")
-        identities = {}
-        models = {}
-        for path in files:
-            result = Result.model_validate(read_json(path))
-            validate_result(args.data_dir, result)
-            key = (result.run_id, result.benchmark.id)
-            payload = result.model_dump()
-            if key in identities and identities[key] != payload:
-                parser.error(f"Conflicting results: {key}")
-            identities[key] = payload
-            model_identity = (result.model, result.provenance, result.evaluator_version)
-            if result.run_id in models and models[result.run_id] != model_identity:
-                parser.error(f"Inconsistent model settings within run: {result.run_id}")
-            models[result.run_id] = model_identity
-        print(f"Validated {len(files)} files; {len(identities)} unique results")
-        return
-    category = load_category(args.data_dir, args.category)
-    benchmarks = [load_benchmark(args.data_dir, b) for b in category.benchmarks]
-    if args.command in {"list", "check-data"}:
-        for b in benchmarks:
-            if args.command == "check-data":
-                load_cases(args.data_dir, b)
-            print(f"{b.id}\t{b.task}\t{b.case_count} cases\t{b.decision_count} decisions")
-        return
+def parse_adapter_kwargs(args, parser):
+    """Validate caller-managed llama.cpp constructor options."""
     adapter_kwargs = {}
     if args.adapter_kwargs is not None:
         if args.adapter != "llama-cpp":
@@ -260,6 +253,12 @@ def execute(args, parser):
                    "max_candidates", "max_request_bytes", "retries", "runtime_settings"}
         if set(adapter_kwargs) - allowed:
             parser.error("Unsupported llama-cpp adapter kwargs")
+    return adapter_kwargs
+
+
+def validate_run_arguments(args, parser):
+    """Reject invalid runtime options before acquiring the installed dataset lock."""
+    parse_adapter_kwargs(args, parser)
     if args.query_length is not None or args.document_length is not None:
         if args.adapter not in {"system-ichi", "bekko-v0"}:
             parser.error("--query-length/--document-length apply only to Ichi/Bekko v0")
@@ -372,6 +371,40 @@ def execute(args, parser):
             "gliformer-jeff",
             "meta-encoder",
             "clef",
+            "julia",
+            "dinah",
+            "jevk5-lite",
+            "lavoir",
+            "lfm-rlcd",
+            "decision2",
+            "onejev",
+            "jev-style",
+            "sifr",
+            "jiwo",
+            "llm2jev",
+            "intern-decision",
+            "thisthat",
+            "exaone-jev",
+            "jev-style-2b",
+            "sieve",
+            "sieve-9b",
+            "ajev",
+            "xor",
+            "blink",
+            "jev27",
+            "eikos-fp8",
+            "lfm-pcd",
+            "lev1",
+            "kas",
+            "intelif",
+            "jet",
+            "rsi",
+            "gevva",
+            "gev",
+            "autotrust-jev",
+            "jevstral",
+            "nimble-v3",
+            "dm-jepa",
         }
     ):
         parser.error(
@@ -393,14 +426,71 @@ def execute(args, parser):
         "meta-encoder",
     }:
         parser.error("--attention applies only to measured upstream adapters")
+    if args.base_revision is not None and args.adapter not in {"sieve", "lev", "pngwn", "ajev"}:
+        parser.error("--base-revision applies only to Sieve, Lev, Pngwn or AJev")
+    if args.adapter in {"sieve", "lev", "pngwn", "ajev"} and not args.base_revision:
+        parser.error("--base-revision is required for Sieve, Lev, Pngwn or AJev")
+    if args.temperature is not None and args.adapter not in {"meta-encoder", "llm2jev"}:
+        parser.error("--temperature applies only to Meta Encoder or llm2jev")
     if args.temperature is not None and (
-        args.adapter != "meta-encoder"
-        or not math.isfinite(args.temperature)
-        or args.temperature <= 0
+        not math.isfinite(args.temperature) or args.temperature <= 0
     ):
-        parser.error("--temperature must be finite and positive and applies only to Meta Encoder")
+        parser.error("--temperature must be finite and positive for Meta Encoder or llm2jev")
     if args.adapter == "meta-encoder" and args.temperature is None:
         parser.error("--temperature is required for Meta Encoder")
+    if args.adapter == "llm2jev" and args.temperature is None:
+        parser.error("--temperature is required for llm2jev")
+
+
+def execute(args, parser):
+    if args.command in {"export-results", "sync-results", "validate-results"}:
+        from .result_repository import export_results, sync_results, validate_repository
+
+        if args.command == "export-results":
+            print(export_results(args.data_dir, args.paths, args.metadata, args.output))
+        elif args.command == "sync-results":
+            sync_results(
+                args.data_dir,
+                args.repo_id,
+                args.revision,
+                args.output or args.data_dir / "hub-results",
+            )
+        else:
+            count = validate_repository(
+                args.data_dir, args.repository, download=args.download_datasets
+            )
+            print(f"Validated {count} published results")
+        return
+    if args.command == "validate":
+        from .result_repository import result_files
+
+        files = result_files(args.paths)
+        if not files:
+            parser.error("No result files found")
+        identities = {}
+        models = {}
+        for path in files:
+            result = Result.model_validate(read_json(path))
+            validate_result(args.data_dir, result)
+            key = (result.run_id, result.benchmark.id)
+            payload = result.model_dump()
+            if key in identities and identities[key] != payload:
+                parser.error(f"Conflicting results: {key}")
+            identities[key] = payload
+            model_identity = (result.model, result.provenance, result.evaluator_version)
+            if result.run_id in models and models[result.run_id] != model_identity:
+                parser.error(f"Inconsistent model settings within run: {result.run_id}")
+            models[result.run_id] = model_identity
+        print(f"Validated {len(files)} files; {len(identities)} unique results")
+        return
+    category = load_category(args.data_dir, args.category)
+    benchmarks = [load_benchmark(args.data_dir, b) for b in category.benchmarks]
+    if args.command in {"list", "check-data"}:
+        for b in benchmarks:
+            if args.command == "check-data":
+                load_cases(args.data_dir, b)
+            print(f"{b.id}\t{b.task}\t{b.case_count} cases\t{b.decision_count} decisions")
+        return
     if args.benchmark:
         if set(args.benchmark) - set(category.benchmarks):
             parser.error("Selected benchmark is not in the category")
@@ -430,7 +520,7 @@ def execute(args, parser):
         from .adapters.llama_cpp import LlamaCppAdapter
 
         try:
-            adapter = LlamaCppAdapter(args.model, args.revision, **adapter_kwargs)
+            adapter = LlamaCppAdapter(args.model, args.revision, **parse_adapter_kwargs(args, parser))
         except (ValueError, TypeError) as exc:
             parser.error(str(exc))
     elif args.adapter == "laya":
@@ -471,6 +561,294 @@ def execute(args, parser):
         from .adapters.typesafe import TypeSafeAdapter
 
         adapter = TypeSafeAdapter(args.model)
+    elif args.adapter == "dm-jepa":
+        from .adapters.dm_jepa import DMJEPAAdapter
+
+        adapter = DMJEPAAdapter(
+            args.model, args.revision, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "nimble-v3":
+        if not args.source:
+            parser.error("--source is required for NimbleV3")
+        from .adapters.nimble_v3 import NimbleV3Adapter
+
+        adapter = NimbleV3Adapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "jevstral":
+        if not args.source:
+            parser.error("--source is required for Jevstral")
+        from .adapters.jevstral import JevstralAdapter
+
+        adapter = JevstralAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "jev27":
+        if not args.source:
+            parser.error("--source is required for JEV 27B")
+        from .adapters.jev27 import JEV27Adapter
+
+        adapter = JEV27Adapter(
+            args.model, args.revision, args.source, args.device,
+            args.server_host, args.server_port, context_limit=args.context_limit
+        )
+    elif args.adapter == "eikos-fp8":
+        if not args.source:
+            parser.error("--source is required for Eikos FP8")
+        from .adapters.eikos_fp8 import EikosFP8Adapter
+
+        adapter = EikosFP8Adapter(
+            args.model, args.revision, args.source, args.device,
+            args.server_host, args.server_port, context_limit=args.context_limit
+        )
+    elif args.adapter == "jade":
+        if not args.source:
+            parser.error("--source is required for JADE")
+        from .adapters.jade import JadeAdapter
+
+        adapter = JadeAdapter(
+            args.model, args.revision, args.source, args.device,
+            args.server_host, args.server_port
+        )
+    elif args.adapter == "blink":
+        if not args.source:
+            parser.error("--source is required for Blink")
+        from .adapters.blink import BlinkAdapter
+
+        adapter = BlinkAdapter(
+            args.model, args.revision, args.source, args.device,
+            args.server_host, args.server_port, context_limit=args.context_limit
+        )
+    elif args.adapter == "xor":
+        if not args.source:
+            parser.error("--source is required for Xor")
+        from .adapters.xor import XorAdapter
+
+        adapter = XorAdapter(
+            args.model, args.revision, args.source, args.device,
+            args.server_host, args.server_port, context_limit=args.context_limit
+        )
+    elif args.adapter == "ajev":
+        if not args.source or not args.base_revision:
+            parser.error("--source and --base-revision are required for AJev")
+        from .adapters.ajev import AJevAdapter
+
+        adapter = AJevAdapter(
+            args.model, args.revision, args.source, args.device,
+            base_revision=args.base_revision, context_limit=args.context_limit
+        )
+    elif args.adapter == "sieve-9b":
+        if not args.source:
+            parser.error("--source is required for Sieve-9B")
+        from .adapters.sieve_9b import Sieve9BAdapter
+
+        adapter = Sieve9BAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "autotrust-jev":
+        if not args.source:
+            parser.error("--source is required for AutoTrust JEV")
+        from .adapters.autotrust_jev import AutoTrustJevAdapter
+
+        adapter = AutoTrustJevAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "gev":
+        if not args.source:
+            parser.error("--source is required for GEV")
+        from .adapters.gev import GEVAdapter
+
+        adapter = GEVAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "gevva":
+        if not args.source:
+            parser.error("--source is required for Gevva")
+        from .adapters.gevva import GevvaAdapter
+
+        adapter = GevvaAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "rsi":
+        if not args.source:
+            parser.error("--source is required for RSI")
+        from .adapters.rsi import RSIAdapter
+
+        adapter = RSIAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "jet":
+        if not args.source:
+            parser.error("--source is required for Jet")
+        from .adapters.jet import JetAdapter
+
+        adapter = JetAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "intelif":
+        if not args.source:
+            parser.error("--source is required for Intelif")
+        from .adapters.intelif import IntelifAdapter
+
+        adapter = IntelifAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "kas":
+        if not args.source:
+            parser.error("--source is required for Kas")
+        from .adapters.kas import KasAdapter
+
+        adapter = KasAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "lev1":
+        if not args.source:
+            parser.error("--source is required for Lev1")
+        from .adapters.lev1 import Lev1Adapter
+
+        adapter = Lev1Adapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "kodiak":
+        if not args.source:
+            parser.error("--source is required for Kodiak")
+        from .adapters.kodiak import KodiakAdapter
+
+        adapter = KodiakAdapter(args.model, args.revision, args.source, args.device)
+    elif args.adapter == "lfm-pcd":
+        if not args.source:
+            parser.error("--source is required for LFM PCD")
+        from .adapters.lfm_pcd import LFMPCDAdapter
+
+        adapter = LFMPCDAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "sieve":
+        if not args.source:
+            parser.error("--source is required for Sieve")
+        from .adapters.sieve import SieveAdapter
+
+        adapter = SieveAdapter(
+            args.model, args.revision, args.source, args.device,
+            base_revision=args.base_revision, context_limit=args.context_limit,
+        )
+    elif args.adapter == "jev-style-2b":
+        if not args.source:
+            parser.error("--source is required for Jev-Style 2B")
+        from .adapters.jev_style_2b import JevStyle2BAdapter
+
+        adapter = JevStyle2BAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "exaone-jev":
+        if not args.source:
+            parser.error("--source is required for EXAONE-JEV")
+        from .adapters.exaone_jev import ExaoneJevAdapter
+
+        adapter = ExaoneJevAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "thisthat":
+        if not args.source:
+            parser.error("--source is required for this-that")
+        from .adapters.thisthat import ThisThatAdapter
+
+        adapter = ThisThatAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "intern-decision":
+        if not args.source:
+            parser.error("--source is required for Intern-Decision")
+        from .adapters.intern_decision import InternDecisionAdapter
+
+        adapter = InternDecisionAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "llm2jev":
+        if not args.source:
+            parser.error("--source is required for llm2jev")
+        from .adapters.llm2jev import LLM2JevAdapter
+
+        adapter = LLM2JevAdapter(
+            args.model, args.revision, args.source, args.device, temperature=args.temperature,
+            context_limit=args.context_limit,
+        )
+    elif args.adapter == "jiwo":
+        if not args.source:
+            parser.error("--source is required for jiwo")
+        from .adapters.jiwo import JiwoAdapter
+
+        adapter = JiwoAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "sifr":
+        if not args.source:
+            parser.error("--source is required for Sifr's Decision Index engine dependency")
+        from .adapters.sifr import SifrAdapter
+
+        adapter = SifrAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "jev-style":
+        if not args.source:
+            parser.error("--source is required for Jev-Style")
+        from .adapters.jev_style import JevStyleAdapter
+
+        adapter = JevStyleAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "onejev":
+        if not args.source:
+            parser.error("--source is required for OneJev")
+        from .adapters.onejev import OneJevAdapter
+
+        adapter = OneJevAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "decision2":
+        if not args.source:
+            parser.error("--source is required for Decision 2.0")
+        from .adapters.decision2 import Decision2Adapter
+
+        adapter = Decision2Adapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "lfm-rlcd":
+        if not args.source:
+            parser.error("--source is required for LFM RLCD")
+        from .adapters.lfm_rlcd import LFMRLCDAdapter
+
+        adapter = LFMRLCDAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "lavoir":
+        if not args.source:
+            parser.error("--source is required for Lavoir")
+        from .adapters.lavoir import LavoirAdapter
+
+        adapter = LavoirAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "jevk5-lite":
+        if not args.source:
+            parser.error("--source is required for JevK5-Lite")
+        from .adapters.jevk5_lite import JevK5LiteAdapter
+
+        adapter = JevK5LiteAdapter(
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "dinah":
+        from .adapters.dinah import DinahAdapter
+
+        adapter = DinahAdapter(
+            args.model, args.revision, args.device, context_limit=args.context_limit
+        )
+    elif args.adapter == "julia":
+        from .adapters.julia import JuliaAdapter
+
+        adapter = JuliaAdapter(
+            args.model, args.revision, args.device, context_limit=args.context_limit
+        )
     elif args.adapter == "knowline":
         from .adapters.knowline import KnowLineAdapter
 
@@ -508,6 +886,8 @@ def execute(args, parser):
         "manchego",
         "neohorse",
         "jebadiah",
+        "torchcast",
+        "solomon",
         "openthai",
         "kotoba",
         "jeff",
@@ -571,6 +951,8 @@ def execute(args, parser):
             "manchego": "ManchegoAdapter",
             "neohorse": "NeoHorseAdapter",
             "jebadiah": "JebadiahAdapter",
+            "torchcast": "TorchcastAdapter",
+            "solomon": "SolomonAdapter",
             "openthai": "OpenThaiAdapter",
             "kotoba": "KotobaAdapter",
             "jeff": "JeffAdapter",
@@ -642,6 +1024,8 @@ def execute(args, parser):
             options["subfolder"] = args.subfolder
         if args.case_batch_size is not None:
             options["case_batch_size"] = args.case_batch_size
+        if args.adapter in {"lev", "pngwn"}:
+            options["base_revision"] = args.base_revision
         if args.adapter == "winnow":
             options.update(server_host=args.server_host, server_port=args.server_port)
         adapter = getattr(module, classes[args.adapter])(

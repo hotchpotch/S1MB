@@ -7,7 +7,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from s1mb.adapters.jebadiah import JebadiahAdapter
+from s1mb.adapters.jebadiah import JebadiahAdapter, jebadiah_questions
 
 
 @pytest.mark.parametrize("merged", [False, True])
@@ -21,6 +21,7 @@ def test_jebadiah_loads_checkpoint_tokenizer_and_saved_temperatures(tmp_path, mo
         revision = "68c46c4b3498877f3ef123c856ecfde50c39f404"
     temperatures = {"choice": 1.1863, "noul": 1.0903, "score": 0.8329}
     native = SimpleNamespace(
+        FP32_CANDIDATE_LOGITS=True,
         load_tokenizer=Mock(return_value=object()),
         load_base=Mock(return_value=object()),
         load_adapter=Mock(return_value=object()),
@@ -61,3 +62,17 @@ def test_jebadiah_loads_checkpoint_tokenizer_and_saved_temperatures(tmp_path, mo
         "merged-bfloat16" if merged else "lora-adapter"
     )
     assert adapter.settings["temperatures"] == temperatures
+
+
+def test_jebadiah_retains_structured_criteria_numeric_values_and_authored_order():
+    from test_upstream_adapters import cases
+
+    case = cases()
+    case.questions[0].options[0].description_json = '{"nested":true}'
+    case.questions[1].options.reverse()
+    case.questions[2].options.reverse()
+    rendered = jebadiah_questions(case)
+    assert json.loads(rendered["choose"]["criteria"]["option_0"]) == {"nested": True}
+    assert list(rendered["judge"]["criteria"]) == ["false", "true"]
+    assert [json.loads(value)["value"] for value in rendered["rate"]["criteria"].values()] == [30, 10]
+    assert "gold-must-not-be-sent" not in str(rendered)
