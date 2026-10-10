@@ -1,6 +1,7 @@
 """Command-line evaluation and offline validation."""
 
 import argparse
+import json
 import math
 from datetime import UTC, datetime
 from pathlib import Path
@@ -46,6 +47,7 @@ def main() -> None:
         "--adapter",
         choices=[
             "dummy",
+            "llama-cpp",
             "laya",
             "typesafe",
             "knowline",
@@ -153,6 +155,7 @@ def main() -> None:
         ],
         required=True,
     )
+    run.add_argument("--adapter-kwargs", help="JSON object of llama-cpp constructor keyword arguments")
     run.add_argument("--model")
     run.add_argument("--revision", default="main")
     run.add_argument("--subfolder", help="Alex Openjev checkpoint subfolder")
@@ -234,8 +237,28 @@ def main() -> None:
         execute(args, parser)
 
 
+def parse_adapter_kwargs(args, parser):
+    """Validate caller-managed llama.cpp constructor options."""
+    adapter_kwargs = {}
+    if args.adapter_kwargs is not None:
+        if args.adapter != "llama-cpp":
+            parser.error("--adapter-kwargs applies only to llama-cpp")
+        try:
+            adapter_kwargs = json.loads(args.adapter_kwargs)
+        except json.JSONDecodeError:
+            parser.error("--adapter-kwargs must be a JSON object")
+        if not isinstance(adapter_kwargs, dict):
+            parser.error("--adapter-kwargs must be a JSON object")
+        allowed = {"base_url", "served_model", "timeout", "case_batch_size", "max_questions",
+                   "max_candidates", "max_request_bytes", "retries", "runtime_settings"}
+        if set(adapter_kwargs) - allowed:
+            parser.error("Unsupported llama-cpp adapter kwargs")
+    return adapter_kwargs
+
+
 def validate_run_arguments(args, parser):
     """Reject invalid runtime options before acquiring the installed dataset lock."""
+    parse_adapter_kwargs(args, parser)
     if args.query_length is not None or args.document_length is not None:
         if args.adapter not in {"system-ichi", "bekko-v0"}:
             parser.error("--query-length/--document-length apply only to Ichi/Bekko v0")
@@ -493,6 +516,13 @@ def execute(args, parser):
         from .adapters.dummy import DummyAdapter
 
         adapter = DummyAdapter()
+    elif args.adapter == "llama-cpp":
+        from .adapters.llama_cpp import LlamaCppAdapter
+
+        try:
+            adapter = LlamaCppAdapter(args.model, args.revision, **parse_adapter_kwargs(args, parser))
+        except (ValueError, TypeError) as exc:
+            parser.error(str(exc))
     elif args.adapter == "laya":
         from .adapters.laya import LayaAdapter
 
