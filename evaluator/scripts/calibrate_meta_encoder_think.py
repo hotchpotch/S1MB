@@ -39,11 +39,14 @@ def main() -> None:
     parser.add_argument("--maximum", type=float, default=2.0)
     parser.add_argument("--grid-size", type=int, default=161)
     parser.add_argument("--refine-size", type=int, default=401)
+    parser.add_argument("--include-temperature", type=float, action="append", default=[0.018467])
     args = parser.parse_args()
     if args.output.exists():
         parser.error("output already exists; choose a fresh directory")
     if args.grid_size < 3 or args.refine_size < 3 or not 0 < args.minimum < args.maximum:
         parser.error("invalid temperature grid")
+    if any(not math.isfinite(value) or value <= 0 for value in args.include_temperature):
+        parser.error("included temperatures must be finite and positive")
 
     inputs = result_files(args.paths)
     parsed = [Result.model_validate(read_json(path)) for path in inputs]
@@ -123,7 +126,13 @@ def main() -> None:
         cache[temperature] = row
         return row
 
-    broad = sorted(set(log_grid(args.minimum, args.maximum, args.grid_size) + [args.source_temperature]))
+    broad = sorted(
+        set(
+            log_grid(args.minimum, args.maximum, args.grid_size)
+            + [args.source_temperature]
+            + args.include_temperature
+        )
+    )
     for temperature in broad:
         evaluate(temperature)
     broad_best = max((cache[value] for value in broad if cache[value]["valid"]), key=lambda row: row["task_avg"])

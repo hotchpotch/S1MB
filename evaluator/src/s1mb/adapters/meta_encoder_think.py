@@ -97,6 +97,9 @@ def recalibrate_probabilities(
         not math.isfinite(value) or value <= 0 for value in probabilities.values()
     ):
         raise ValueError("source probabilities must be finite and strictly positive")
+    check_probabilities(probabilities, list(probabilities))
+    if effective_temperature == source_temperature:
+        return dict(probabilities)
     logits = [
         source_temperature / effective_temperature * math.log(value)
         for value in probabilities.values()

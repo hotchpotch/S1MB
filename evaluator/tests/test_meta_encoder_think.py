@@ -63,6 +63,13 @@ def test_probability_recalibration_preserves_order_sum_and_argmax():
     assert calibrated["b"] / calibrated["a"] == pytest.approx(expected_ratio)
 
 
+def test_source_temperature_preserves_persisted_fp32_rounding():
+    original = {"a": 0.7000001668930054, "b": 0.30000004172325134}
+    calibrated = recalibrate_probabilities(original, 0.03, 0.03)
+    assert calibrated == original
+    assert calibrated is not original
+
+
 def test_composite_parameter_counts_account_for_reasoner_and_encoder():
     encoder = ModelInfo(
         id="encoder",
