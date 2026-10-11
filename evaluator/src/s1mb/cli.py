@@ -50,6 +50,7 @@ def main() -> None:
             "llama-cpp",
             "laya",
             "typesafe",
+            "fastino-glide",
             "knowline",
             "liquid",
             "unee",
@@ -471,6 +472,10 @@ def execute(args, parser):
         from .adapters.typesafe import TypeSafeAdapter
 
         adapter = TypeSafeAdapter(args.model)
+    elif args.adapter == "fastino-glide":
+        from .adapters.jev_channels import FastinoGlideAdapter
+
+        adapter = FastinoGlideAdapter(args.model or "fastino/glide")
     elif args.adapter == "knowline":
         from .adapters.knowline import KnowLineAdapter
 
