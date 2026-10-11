@@ -178,3 +178,23 @@ class FastinoGlideAdapter(SystemOneHTTPAdapter):
         )
         self.client.headers["X-API-Key"] = os.environ["FASTINO_API_KEY"]
         self.coerce_string_instructions = True
+
+
+class OpenRouterAdapter(SystemOneHTTPAdapter):
+    """Generic transport for hosted System One models served via OpenRouter."""
+
+    def __init__(self, model: str, concurrency: int = 6):
+        if not model:
+            # No default: many vendors route through this transport, so the
+            # caller must name the model explicitly.
+            raise ValueError("openrouter adapter requires --model")
+        super().__init__(
+            provider="openrouter",
+            api_key_env="OPENROUTER_API_KEY",
+            base_url="https://openrouter.ai",
+            endpoint="/api/v1/systemone",
+            headers={},
+            model=model,
+            concurrency=concurrency,
+        )
+        self.client.headers["Authorization"] = f"Bearer {os.environ['OPENROUTER_API_KEY']}"
