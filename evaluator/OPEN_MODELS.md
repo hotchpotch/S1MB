@@ -126,6 +126,35 @@ CUDA_VISIBLE_DEVICES=0 uv run s1mb run \
   --run-id metaencoder-think-source-001
 ```
 
+### Candidate verification with shared reasoning
+
+Use `--think-scoring candidate_verify` to score each proposed answer against two
+fixed verifier texts: "The proposed answer is correct under the stated task and
+criteria." and "The proposed answer is incorrect under the stated task and
+criteria." Each request contains the same frozen reasoning context, the authored
+task, input and criteria, and one proposed option ID and description. The option
+score is the FP32 correct-minus-incorrect cosine gap. A stable FP64 softmax over
+these gaps gives probabilities in the original option order.
+
+```sh
+CUDA_VISIBLE_DEVICES=0 uv run s1mb run \
+  --adapter meta-encoder-think --think-scoring candidate_verify \
+  --model facebook/meta-encoder \
+  --revision 3d0df704aa5bf66d9c49da1393181f33e893e5f7 \
+  --reasoning-contexts ../tmp/metaencoder-think-contexts.json \
+  --temperature 0.0003 --device cuda:0 --attention sdpa \
+  --context-limit 32768 --category english-v1 \
+  --run-id metaencoder-think-verify-001
+```
+
+Verification uses length-sorted request batches of up to eight below 4,096 tokens,
+two below 8,192 tokens, and one for longer inputs. Memory or the known SDPA kernel
+failure reduces batch size. Inputs exceeding the configured context limit are
+rejected. The default `--think-scoring cosine` retains the original option-ID
+scoring. Choose one global format and temperature for all benchmarks, and record
+the selection procedure in the submission. The command above is a fixed reference
+setting; a temperature selected by a later sweep should be recorded explicitly.
+
 For a posthoc temperature study, the calibration script audits strictly positive
 persisted probabilities, preserves declared candidate order and Choice argmax,
 tests a broad logarithmic grid, refines around the best point, and applies one

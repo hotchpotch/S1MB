@@ -1,13 +1,14 @@
 """Verify the public MetaEncoder-think preprocessing and calibration contract."""
 
 import hashlib
+import math
 from pathlib import Path
 
 import pytest
 from test_hf_data import native_row
 
 from s1mb import cli
-from s1mb.adapters.meta_encoder import render_query
+from s1mb.adapters.meta_encoder import _parsed_text, render_query
 from s1mb.adapters.meta_encoder_think import (
     MetaEncoderThinkAdapter,
     composite_parameter_metadata,
@@ -16,6 +17,8 @@ from s1mb.adapters.meta_encoder_think import (
     reasoner_prompt,
     reasoning_context,
     recalibrate_probabilities,
+    verification_probabilities,
+    verification_queries,
 )
 from s1mb.data import ModelInfo
 from s1mb.hf_data import case_from_row
@@ -115,6 +118,38 @@ def test_adapter_looks_up_context_by_query_identity():
     assert adapter._render_query(case, question) == (
         f"Reasoning context:\nA target-free rationale.\n\n{query}"
     )
+
+
+def test_verification_preserves_option_order_and_shared_reasoning():
+    case = case_from_row(native_row()).inference()
+    question = case.questions[0]
+    record = {"status": "usable", "truncated_reasoning": "Shared evidence.", "raw_generation": "raw"}
+    requests = verification_queries(case, question, record)
+    assert len(requests) == len(question.options)
+    assert all(text.startswith("Reasoning context:\nShared evidence.\n\n") for text in requests)
+    assert len({text.rsplit("\nProposed answer:", 1)[0] for text in requests}) == 1
+    for text, option in zip(requests, question.options, strict=True):
+        description = _parsed_text(option.description_json, option.description)
+        assert text.endswith(f"Proposed answer: {option.id}: {description}")
+        assert "teacher-only" not in text
+
+
+def test_verification_softmax_is_over_correct_minus_incorrect_gaps():
+    p = verification_probabilities([[0.4, 0.1], [0.5, 0.4]], 0.1)
+    assert p[0] > p[1]
+    assert sum(p) == pytest.approx(1)
+    assert p[0] == pytest.approx(1 / (1 + math.exp(-2)), abs=1e-7)
+
+
+def test_verification_small_temperature_supports_saturated_probabilities():
+    assert verification_probabilities([[0.5, 0.2], [0.2, 0.4]], 1e-8) == [1.0, 0.0]
+    assert verification_probabilities([[0.5, 0.2], [0.5, 0.2]], 1e-8) == [0.5, 0.5]
+
+
+@pytest.mark.parametrize("temperature", [0, -1, float("nan")])
+def test_verification_invalid_temperature_is_rejected(temperature):
+    with pytest.raises(ValueError, match="temperature"):
+        verification_probabilities([[0.5, 0.2]], temperature)
 
 
 def test_cli_requires_reasoning_contexts_before_dataset_access(monkeypatch, capsys, tmp_path):

@@ -173,6 +173,11 @@ def main() -> None:
         help="Frozen target-free reasoning contexts for MetaEncoder-think",
     )
     run.add_argument(
+        "--think-scoring",
+        choices=["cosine", "candidate_verify"],
+        help="MetaEncoder-think scoring: option-ID cosine or per-candidate verification",
+    )
+    run.add_argument(
         "--server-host", default="127.0.0.1", help="Winnow/Xor/Blink server IPv4: localhost or Tailscale"
     )
     run.add_argument("--server-port", type=int, default=8091, help="Winnow/Xor/Blink server port")
@@ -455,6 +460,8 @@ def validate_run_arguments(args, parser):
         parser.error("--reasoning-contexts is required for MetaEncoder-think")
     if args.reasoning_contexts is not None and args.adapter != "meta-encoder-think":
         parser.error("--reasoning-contexts applies only to MetaEncoder-think")
+    if args.think_scoring is not None and args.adapter != "meta-encoder-think":
+        parser.error("--think-scoring applies only to MetaEncoder-think")
     if args.adapter == "llm2jev" and args.temperature is None:
         parser.error("--temperature is required for llm2jev")
 
@@ -910,6 +917,7 @@ def execute(args, parser):
             context_limit=args.context_limit,
             attention=args.attention or "sdpa",
             reasoning_contexts=args.reasoning_contexts,
+            scoring=args.think_scoring or "cosine",
         )
     elif args.adapter == "unee":
         from .adapters.unee import UneeAdapter

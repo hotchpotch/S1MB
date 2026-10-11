@@ -6,13 +6,14 @@ import hashlib
 import json
 import math
 import re
+import struct
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from s1mb.data import InferenceCase, ModelInfo, Question, check_probabilities
+from s1mb.data import InferenceCase, ModelInfo, Prediction, Question, check_probabilities
 
-from .meta_encoder import MetaEncoderAdapter, render_query
+from .meta_encoder import MetaEncoderAdapter, _parsed_text, _state_text, render_query
 
 REASONER_ID = "meta-models/Muse-Glimmer-30B"
 REASONER_REVISION = "a4e59da52a7bc87ae7251dd5545c0dd437c44b68"
@@ -27,6 +28,46 @@ CONCLUSION = re.compile(
     r"(?im)^\s*(?:therefore|thus|hence|so,?)?\s*(?:the\s+)?"
     r"(?:correct\s+)?(?:answer|option|choice)\s+(?:is|would be|:)\s*"
 )
+VERIFIER_CANDIDATES = (
+    "The proposed answer is correct under the stated task and criteria.",
+    "The proposed answer is incorrect under the stated task and criteria.",
+)
+
+
+def verification_queries(case: InferenceCase, question: Question, record: dict[str, Any]) -> list[str]:
+    """Render every proposed answer with the decision's shared frozen rationale."""
+    criteria = "\n".join(
+        f"- {o.id}: {_parsed_text(o.description_json, o.description)}" for o in question.options
+    )
+    body = "\n".join(
+        [
+            "Determine whether the proposed answer is the correct answer to the stated task under its criteria.",
+            f"Task: {_parsed_text(question.instructions_json, question.instructions)}",
+            f"Input: {_state_text(case)}",
+            "Criteria:",
+            criteria,
+        ]
+    )
+    prefix = f"Reasoning context:\n{reasoning_context(record)}\n\n{body}"
+    return [
+        f"{prefix}\nProposed answer: {o.id}: {_parsed_text(o.description_json, o.description)}"
+        for o in question.options
+    ]
+
+
+def verification_probabilities(pairs: list[list[float]], temperature: float) -> list[float]:
+    """Apply the measured FP32 correct-minus-incorrect gap and stable FP64 softmax."""
+    if not math.isfinite(temperature) or temperature <= 0:
+        raise ValueError("temperature must be finite and positive")
+    if not pairs or any(len(pair) != 2 for pair in pairs):
+        raise ValueError("verification requires correct/incorrect cosine pairs")
+    gaps = [struct.unpack("<f", struct.pack("<f", pair[0] - pair[1]))[0] for pair in pairs]
+    if any(not math.isfinite(gap) for gap in gaps):
+        raise ValueError("nonfinite verification gap")
+    peak = max(gaps)
+    weights = [math.exp((gap - peak) / temperature) for gap in gaps]
+    total = math.fsum(weights)
+    return [weight / total for weight in weights]
 
 
 def reasoner_prompt(query: str) -> str:
@@ -138,7 +179,10 @@ def composite_parameter_metadata(encoder: ModelInfo, reasoner: dict[str, Any]) -
 class MetaEncoderThinkAdapter(MetaEncoderAdapter):
     """Score official queries augmented with frozen, target-free reasoning contexts."""
 
-    def __init__(self, *args, reasoning_contexts: Path, **kwargs) -> None:
+    def __init__(self, *args, reasoning_contexts: Path, scoring: str = "cosine", **kwargs) -> None:
+        if scoring not in {"cosine", "candidate_verify"}:
+            raise ValueError("unknown MetaEncoder-think scoring strategy")
+        self.scoring = scoring
         payload = json.loads(reasoning_contexts.read_text())
         reasoner = payload.get("reasoner", {})
         if reasoner.get("id") != REASONER_ID or reasoner.get("revision") != REASONER_REVISION:
@@ -176,6 +220,54 @@ class MetaEncoderThinkAdapter(MetaEncoderAdapter):
             raise ValueError("missing reasoning context for rendered query")
         return contextual_query(query, self._contexts[key])
 
+    def predict(self, case: InferenceCase) -> list[Prediction]:
+        if self.scoring == "cosine":
+            return super().predict(case)
+        verifier = self._candidate_embeddings(list(VERIFIER_CANDIDATES))
+        predictions = []
+        for question in case.questions:
+            query = render_query(case, question)
+            key = (case.case_id, question.id, hashlib.sha256(query.encode()).hexdigest())
+            if key not in self._contexts:
+                raise ValueError("missing reasoning context for rendered query")
+            requests = verification_queries(case, question, self._contexts[key])
+            # Match the measured length buckets and preserve authored option order.
+            lengths = [
+                len(self.processor(text=[self._chat(text)], padding=False, truncation=False,
+                    add_special_tokens=False)["input_ids"][0])
+                for text in requests
+            ]
+            if max(lengths) > self.context_limit:
+                raise ValueError("Meta Encoder verification input exceeds context limit")
+            vectors = {}
+            for low, high, initial_batch in ((0, 4096, 8), (4096, 8192, 2), (8192, self.context_limit + 1, 1)):
+                order = sorted((i for i, n in enumerate(lengths) if low <= n < high),
+                               key=lambda i: (lengths[i], requests[i]))
+                offset, batch_size = 0, initial_batch
+                while offset < len(order):
+                    batch = order[offset:offset + batch_size]
+                    try:
+                        embeddings = self._encode([requests[i] for i in batch], len(batch))
+                    except RuntimeError as error:
+                        retryable = isinstance(error, self.torch.cuda.OutOfMemoryError) or (
+                            "mha_graph.execute" in str(error) and "is_good()" in str(error)
+                        )
+                        if not retryable or batch_size == 1:
+                            raise
+                        self.torch.cuda.empty_cache()
+                        batch_size = max(1, batch_size // 2)
+                        continue
+                    for i, embedding in zip(batch, embeddings, strict=True):
+                        vectors[i] = embedding
+                    offset += len(batch)
+            pairs = (self.torch.stack([vectors[i] for i in range(len(requests))]) @ verifier.T).cpu().tolist()
+            probabilities = dict(zip([o.id for o in question.options],
+                verification_probabilities(pairs, self.temperature), strict=True))
+            check_probabilities(probabilities, [o.id for o in question.options])
+            predictions.append(Prediction(case_id=case.case_id, question_id=question.id,
+                                          probabilities=probabilities))
+        return predictions
+
     def metadata(self) -> ModelInfo:
         base = super().metadata()
         settings = dict(base.settings)
@@ -200,6 +292,16 @@ class MetaEncoderThinkAdapter(MetaEncoderAdapter):
                 ),
             }
         )
+        settings["think_scoring"] = self.scoring
+        if self.scoring == "candidate_verify":
+            settings.update({
+                "renderer": "shared-frozen-reasoning-per-candidate-verification-v1",
+                "verification_candidates": list(VERIFIER_CANDIDATES),
+                "verification_score": "float32-cosine-correct-minus-incorrect",
+                "probability_computation": "stable-float64-softmax-from-raw-verification-gaps",
+                "verification_batch_size": 8,
+                "long_verification_batch_sizes": [2, 1],
+            })
         return base.model_copy(
             update={
                 "adapter": "meta-encoder-think",

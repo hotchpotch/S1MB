@@ -91,6 +91,10 @@ overflow rejection, and input rendering are documented in
 MetaEncoder-think uses the same extra and a local frozen reasoning-context file;
 generate and protect that intermediate as described in
 [its adapter notes](../evaluator/OPEN_MODELS.md#metaencoder-think).
+Its `--think-scoring candidate_verify` mode applies the same frozen rationale to
+each proposed answer and scores the correct-minus-incorrect embedding gap. The
+default mode scores the original query against option IDs. Record the selected
+mode and global temperature in the result provenance.
 
 Before evaluation, identify and record:
 
