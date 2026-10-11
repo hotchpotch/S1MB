@@ -45,9 +45,10 @@ All Python/Hub CLI commands below run from `evaluator/` unless stated otherwise.
 - Add missing benchmark files or replace existing ones. Explain replacements in
   the PR, including the changed configuration or reason for rerunning. Do not
   assemble an undisclosed best-of-many-configurations row.
-- Use a different model folder when versions or configurations should appear as
-  separate leaderboard entries. Use fresh local run IDs for reruns; replacing
-  a published benchmark does not require overwriting the original local run.
+- Publish one leaderboard row per underlying trained model, following the
+  [model identity and evaluation preference](#model-identity-and-evaluation-preference)
+  below. Use fresh local run IDs for reruns; replacing a published benchmark does
+  not require overwriting the original local run.
 - Disclose known evaluation/training overlap and non-default inference behavior.
   S1MB is a mosaic of specialized tasks; its scores do not establish unseen-task
   generalization or training-data non-overlap.
@@ -63,6 +64,43 @@ and context-overflow failures visibly incomplete; passing preparation checks or
 registering a queued run does not establish complete benchmark coverage. Publish
 only validated saved measurements after the actual run finishes.
 
+## Model identity and evaluation preference
+
+Quantization and deployment variants count as the **same model**, not additional
+leaderboard entries. FP8, INT4, GGUF, other checkpoint conversions, equivalent
+merged or unmerged LoRA packaging, inference precision, runtime, calibration and
+input-budget changes do not create a new model identity. Mirrors, renamed
+repositories and local versus hosted API routes also do not justify separate
+rows for the same trained model. Record these differences in measurement
+provenance instead.
+
+When both a hosted API and public weights are available for a model, normally
+evaluate the **public weights** using the released native decision interface and
+a pinned checkpoint revision. Prefer the original non-quantized weights when
+both original and quantized releases are available. If resource constraints
+require a quantized release, disclose that configuration and use the same model
+row. API-only models remain eligible; record the provider, requested model and
+resolved version, and disclose when the evaluated weights cannot be identified.
+An API alias does not prove equivalence to a particular public checkpoint.
+
+Before submitting, check existing rows, repository aliases and the model card's
+base-model or conversion relationship. Identical checkpoint checksums are useful
+evidence of a mirror. A shared architecture, parameter count or pretrained base
+alone does not establish that two trained models are identical. A genuinely
+different trained release or fine-tune may have a separate row; explain that
+distinction and record its exact revision. A repository commit that changes only
+documentation is not a new trained release.
+
+If the same model is already listed, submit missing benchmarks or an explicitly
+documented replacement in its existing folder rather than adding a variant row.
+Choose the canonical evaluation configuration for reproducibility and the
+preferences above, not for the highest observed score. Preserve original local
+runs, disclose configuration changes, and do not assemble an undisclosed
+best-of-many-configurations result. Maintainers may remove duplicate variant
+folders from the current Dataset while retaining their measurements in Hub
+history. For example, Eikos-27B and Eikos-27B-FP8 share one model identity, and
+the two mirrored Rune v3 BF16 repositories share one model identity.
+
 ## Repository layout
 
 The Hugging Face results dataset is a file repository with one folder per
@@ -77,8 +115,9 @@ hotchpotch__bekko_17M_v0/
   <benchmark-id>.json.xz
 ```
 
-Use `<organization-or-user>__<model-id>` for the folder name. A new model version
-can use a new ID. Add missing benchmark files or overwrite an existing benchmark;
+Use `<organization-or-user>__<model-id>` for the canonical model folder name. A
+genuinely different trained release can use a new ID; a quantization or hosting
+variant cannot. Add missing benchmark files or overwrite an existing benchmark;
 the Hub commit history preserves earlier versions. Different original run IDs,
 evaluator versions, and dataset revisions may coexist in one model folder.
 Each file keeps its original measurement provenance. One folder is one leaderboard
@@ -313,6 +352,9 @@ results and execution logs; do not infer missing settings from model names.
 - Leaderboard folder: `example__model_v1`
 - Model/checkpoint and model card URL:
 - Exact model revision, or API-resolved version:
+- Model identity: new trained release, or update to an existing canonical row:
+- Related existing rows / aliases / quantized builds, and why this is not a duplicate:
+- Public-weight availability and reason for any API or quantized evaluation:
 - Adapter and upstream source revision, if applicable:
 - Corresponding GitHub adapter PR, if a new adapter was created:
 - Evaluator version / Git commit (include uncommitted changes, if any):
@@ -346,7 +388,9 @@ for adjustment; its primary raw metric is Brier, where lower is better. See
 ### Maintainer review
 
 Before merging, check the model ID and metadata, the intended additions and
-replacements, coverage, and reproducibility information. Validate the PR revision
+replacements, coverage, and reproducibility information. Check for duplicate
+trained models, including mirrors, quantized builds and API routes, and apply the
+public-weight and non-quantized evaluation preferences above. Validate the PR revision
 using the preview command below. Review changes to inference code separately from
 result data. Partial files must remain marked partial, and demo results must
 remain demo results.
