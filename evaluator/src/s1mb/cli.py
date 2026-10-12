@@ -50,6 +50,7 @@ def main() -> None:
             "llama-cpp",
             "laya",
             "typesafe",
+            "fastino-glide",
             "knowline",
             "llamacpp",
             "liquid",
@@ -850,6 +851,10 @@ def execute(args, parser):
         adapter = JuliaAdapter(
             args.model, args.revision, args.device, context_limit=args.context_limit
         )
+    elif args.adapter == "fastino-glide":
+        from .adapters.jev_channels import FastinoGlideAdapter
+
+        adapter = FastinoGlideAdapter(args.model or "fastino/glide")
     elif args.adapter == "knowline":
         from .adapters.knowline import KnowLineAdapter
 
