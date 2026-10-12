@@ -2,11 +2,23 @@
 
 import importlib
 import json
+import math
 
-from s1mb.data import Prediction
+from s1mb.data import Prediction, check_probabilities
 
-from .base import questions_for_api
-from .upstream import UpstreamAdapter
+from .sifr import sifr_questions
+from .upstream import UpstreamAdapter, state_text
+
+
+def jebadiah_questions(case):
+    """Preserve structured values and criterion order through native Choice rendering."""
+    rendered = sifr_questions(case)
+    for definition in rendered.values():
+        definition["instructions"] = state_text(definition["instructions"])
+        definition["criteria"] = {
+            key: state_text(value) for key, value in definition["criteria"].items()
+        }
+    return rendered
 
 
 class JebadiahAdapter(UpstreamAdapter):
@@ -15,6 +27,8 @@ class JebadiahAdapter(UpstreamAdapter):
     def __init__(self, model, revision, source, device):
         self.setup("jebadiah", model, revision, source, device)
         self.native = importlib.import_module("jebadiah_model")
+        if not self.native.FP32_CANDIDATE_LOGITS:
+            raise ValueError("Jebadiah requires its native FP32 candidate readout")
         adapter_config = self.path / "adapter_config.json"
         if adapter_config.exists():
             base = json.loads(adapter_config.read_text())["base_model_name_or_path"]
@@ -43,6 +57,8 @@ class JebadiahAdapter(UpstreamAdapter):
             temperatures=self.native.read_temperatures(str(self.path)),
             device=device,
         )
+        if any(not math.isfinite(t) or t <= 0 for t in self.engine.temperatures.values()):
+            raise ValueError("Invalid native Jebadiah temperature")
         self.attention_model = model_object
         self.settings = {
             "dtype": "bfloat16-backbone-float32-candidate-logits",
@@ -56,24 +72,34 @@ class JebadiahAdapter(UpstreamAdapter):
             "temperatures": self.engine.temperatures,
             "renderer": "native-ainode-extended-alphabet-anonymous-choice-v1",
             "extended_input_condition": "32768 tokens instead of runtime 2048 default",
+            "typed_mapping": "all-choice-transport-original-task-temperature-authored-order-numeric-score",
         }
         self.enable_kernels()
 
     def predict(self, case):
         predictions = []
+        questions = jebadiah_questions(case)
         for q in case.questions:
-            native = questions_for_api([q], anonymous_choice=True)[q.id]
+            native = questions[q.id]
             rendered = self.engine.render(case.state, native)
             if rendered.truncated:
                 raise ValueError("Jebadiah input exceeds context limit; refusing truncation")
+            ids = self.engine.tok.encode(rendered.prompt, add_special_tokens=False)
+            if len(ids) > self.engine.max_tokens:
+                raise ValueError("Jebadiah input exceeds context limit; refusing truncation")
+            for letter, candidate in zip(rendered.letters, rendered.cand_ids, strict=True):
+                continuation = self.engine.tok.encode(rendered.prompt + letter, add_special_tokens=False)
+                if continuation != [*ids, candidate]:
+                    raise ValueError("Jebadiah label is not a single continuation token")
             probabilities = self.engine.score_rendered([(rendered, q.task)])[0]
             raw = dict(zip(rendered.keys, probabilities, strict=True))
             keys = [
-                o.id if q.task == "noul" else str(i) if q.task == "score" else f"option_{i}"
+                o.id if q.task == "noul" else f"option_{i}"
                 for i, o in enumerate(q.options)
             ]
             if set(raw) != set(keys):
                 raise ValueError("Jebadiah returned unexpected candidates")
+            check_probabilities(raw, keys)
             predictions.append(
                 Prediction(
                     case_id=case.case_id,

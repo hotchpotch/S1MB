@@ -15,10 +15,10 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from s1mb.data import ModelInfo
+from s1mb.data import ModelInfo, Prediction, check_probabilities
 from s1mb.parameters import METHOD
 
-from .base import decode_answers, questions_for_api
+from .sifr import sifr_questions
 from .upstream import source_path
 
 
@@ -27,7 +27,8 @@ def winnow_parameter_metadata(path):
 
     The Gemma 4 runtime uses token_embd.weight as output when output.weight is
     absent. Quantized storage bytes are not parameter counts. This text-only
-    checkpoint has no separate vision projector or per-layer lookup embeddings.
+    checkpoint excludes the separate vision projector. Per-layer token lookup
+    embeddings remain part of total parameters and are excluded from static AP.
     """
     reader = importlib.import_module("gguf").GGUFReader(path)
     if reader.fields["general.architecture"].contents() != "gemma4":
@@ -37,13 +38,13 @@ def winnow_parameter_metadata(path):
         shape = tuple(int(dimension) for dimension in tensor.shape)
         if tensor.name in sizes or not shape or any(dimension <= 0 for dimension in shape):
             raise ValueError("Invalid or duplicate Winnow tensor")
-        if tensor.name == "per_layer_token_embd.weight" or tensor.name.startswith("v."):
+        if tensor.name.startswith("v."):
             raise ValueError("Unsupported Winnow lookup or vision tensors")
         sizes[tensor.name] = math.prod(shape)
     if "token_embd.weight" not in sizes:
         raise ValueError("Missing Winnow token embeddings")
     total = sum(sizes.values())
-    excluded = sizes["token_embd.weight"]
+    excluded = sizes["token_embd.weight"] + sizes.get("per_layer_token_embd.weight", 0)
     return {
         "total_params": total,
         "active_params": total - excluded,
@@ -93,7 +94,11 @@ class WinnowAdapter:
         with (root / ".build/bin/winnow-server").open("rb") as binary:
             binary_digest = hashlib.file_digest(binary, "sha256").hexdigest()
         manifest = json.loads((root / "manifests/models.json").read_text())
-        artifact = manifest["release"]["model"]
+        if model == "EldanRing/Winnow-E4B":
+            assets = json.loads((root / "manifests/release-assets-v1.json").read_text())
+            artifact = assets["models"]["e4b-q8"]["model"]
+        else:
+            artifact = manifest["release"]["model"]
         hub = importlib.import_module("huggingface_hub")
         resolved = hub.model_info(model, revision=revision).sha
         if not resolved:
@@ -105,6 +110,13 @@ class WinnowAdapter:
                 sha.update(chunk)
         if sha.hexdigest() != artifact["sha256"] or path.stat().st_size != artifact["bytes"]:
             raise ValueError("Winnow GGUF differs from the runtime's verified release manifest")
+        reader = importlib.import_module("gguf").GGUFReader(path)
+        field = reader.fields.get("winnow.temperature")
+        # The verified E4B Q8 release card supplies its direct-text calibration.
+        temperature = (1.2574172017327816 if model == "EldanRing/Winnow-E4B"
+                       else 1.0 if field is None else float(field.contents()))
+        if not math.isfinite(temperature) or temperature <= 0:
+            raise ValueError("Invalid native Winnow calibration temperature")
         self.info = ModelInfo(
             id=model,
             adapter="winnow",
@@ -127,7 +139,11 @@ class WinnowAdapter:
                 "case_batch_size": 1,
                 "questions_per_call": 1,
                 "renderer": "native-systemone-structured-anonymous-choice-v1",
-                "temperature": 1.0,
+                "temperature": temperature,
+                "calibration_source": ("verified-E4B-Q8-release-direct-text"
+                                       if model == "EldanRing/Winnow-E4B"
+                                       else "GGUF-winnow.temperature" if field is not None
+                                       else "native-default"),
                 "head": "selected",
                 "prefix_reuse": True,
             },
@@ -192,18 +208,29 @@ class WinnowAdapter:
         return self.info
 
     def predict(self, case):
-        answers = {}
-        for key, question in questions_for_api(
-            case.questions, structured=True, anonymous_choice=True
-        ).items():
-            if len(question["criteria"]) > self.info.settings["max_candidates"]:
+        predictions = []
+        wire = sifr_questions(case)
+        for question in case.questions:
+            payload = wire[question.id]
+            if len(payload["criteria"]) > self.info.settings["max_candidates"]:
                 raise ValueError("Winnow candidate capacity exceeded; refusing truncation")
             result = self.request(
                 "/v1/systemone",
-                {"state": case.state, "questions": {"decision": question}},
+                {"state": case.state, "questions": {"decision": payload},
+                 "winnow": {"temperature": self.info.settings["temperature"]}},
             )
-            answers[key] = result["answers"]["decision"]
-        return decode_answers(case, answers, anonymous_choice=True)
+            answer = result["answers"]["decision"]
+            if answer["type"] != "choice":
+                raise ValueError("Winnow returned an unexpected decision type")
+            probabilities = answer["probabilities"]
+            keys = list(payload["criteria"])
+            check_probabilities(probabilities, keys)
+            predictions.append(Prediction(
+                case_id=case.case_id, question_id=question.id,
+                probabilities={o.id: probabilities[key] for o, key in
+                               zip(question.options, keys, strict=True)},
+            ))
+        return predictions
 
     def close(self):
         if self.process.poll() is None:

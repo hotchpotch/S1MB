@@ -6,6 +6,7 @@ import importlib
 import importlib.metadata
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -43,9 +44,17 @@ def checkpoint_path(model: str, revision: str, subfolder: str | None = None) -> 
                         digest.update(chunk)
         return root, digest.hexdigest()
     hub = importlib.import_module("huggingface_hub")
-    resolved = hub.model_info(model, revision=revision).sha
+    resolved = (revision if re.fullmatch(r"[0-9a-f]{40}", revision)
+                else hub.model_info(model, revision=revision).sha)
     if not resolved:
         raise ValueError("Hub did not return a resolved checkpoint revision")
+    if re.fullmatch(r"[0-9a-f]{40}", revision):
+        try:
+            root = Path(hub.snapshot_download(model, revision=resolved, local_files_only=True))
+        except hub.errors.LocalEntryNotFoundError:
+            pass
+        else:
+            return root / subfolder if subfolder else root, resolved
     root = Path(
         hub.snapshot_download(
             model,
