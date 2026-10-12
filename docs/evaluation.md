@@ -20,6 +20,31 @@ Consult the dataset card for access, provenance and license terms. For a new
 model interface, follow [adapter development](adapters.md); for display setup,
 see [the viewer guide](viewer.md).
 
+## Test set の利用方針
+
+**S1MB の test set を使ったパラメータ調整・設定選択は禁止します。**
+Test set は、事前に固定したモデルと評価設定の性能を測るためのものです。
+正解ラベルや評価スコアを見ながら設定を変え、最良のスコアを選ぶと、
+結果を知った上で test set に合わせ込む最適化になります。その数値は、
+固定した条件での性能を独立に測るベンチマークとしての意味と信頼性を損ないます。
+推論時の入力に正解を含めていなくても、この問題は変わりません。
+
+具体的には、test set の正解ラベル・評価指標を使って、温度、確率の校正、
+判定しきい値、プロンプト、推論方式、モデルの checkpoint などを選んではいけません。
+保存した予測や raw score から確率を再計算して最良の設定を選ぶ行為も含みます。
+全ベンチマーク共通のパラメータであっても禁止です。ベンチマークごとに
+最も高いスコアの設定を選んで一つの提出結果にまとめることも認めません。
+調整方法を開示していても、test set で調整した結果は通常の LB 掲載対象になりません。
+
+パラメータ調整と方式の選択には、S1MB の test set から分離した train / validation
+データを使ってください。その後、モデル、設定、後処理を固定して test set を評価し、
+設定の選択方法と使用したデータを提出時に記録してください。
+
+Smoke check や再実行は、接続、入力処理、メモリ使用量、実装上の不具合を確認・修正する
+ために行えます。ただし、そこで得た test set の正解やスコアを使って性能を調整したり、
+複数の実行から高スコアの結果を選んだりしてはいけません。技術的な修正による再実行は、
+変更内容と理由を開示し、元の測定結果を保存してください。
+
 ## 1. Prepare the evaluator and model
 
 Use Python 3.11 and uv. From the project root:
