@@ -51,6 +51,7 @@ def main() -> None:
             "laya",
             "typesafe",
             "fastino-glide",
+            "openrouter",
             "knowline",
             "llamacpp",
             "liquid",
@@ -855,6 +856,10 @@ def execute(args, parser):
         from .adapters.jev_channels import FastinoGlideAdapter
 
         adapter = FastinoGlideAdapter(args.model or "fastino/glide")
+    elif args.adapter == "openrouter":
+        from .adapters.jev_channels import OpenRouterAdapter
+
+        adapter = OpenRouterAdapter(args.model)
     elif args.adapter == "knowline":
         from .adapters.knowline import KnowLineAdapter
 
