@@ -2,6 +2,7 @@
 
 import importlib
 import json
+import logging
 import math
 import os
 import urllib.request
@@ -9,6 +10,7 @@ import urllib.request
 from s1mb.data import ModelInfo, Prediction, check_probabilities
 from s1mb.parameters import parameter_metadata
 
+from .input_budget import budget_state
 from .sifr import sifr_questions
 from .upstream import UpstreamAdapter, checkpoint_path
 
@@ -52,8 +54,12 @@ def jade_parameter_metadata(base_path, release):
 
 class JadeAdapter(UpstreamAdapter):
     case_batch_size = 1
+    state_token_reduction = 0.0
 
-    def __init__(self, model, revision, source, device, server_host, server_port):
+    def __init__(self, model, revision, source, device, server_host, server_port, state_token_reduction=0.0):
+        if not math.isfinite(state_token_reduction) or not 0 <= state_token_reduction <= 1:
+            raise ValueError("State token reduction must be within [0, 1]")
+        self.state_token_reduction = state_token_reduction
         self.setup("jade", model, revision, source, device)
         self.native = importlib.import_module("jade.engine")
         self.prompt = importlib.import_module("jade.decision_prompt")
@@ -96,6 +102,35 @@ class JadeAdapter(UpstreamAdapter):
             "runtime_models": models, "release_id": manifest["release_id"],
         }
 
+        if self.state_token_reduction:
+            self.settings.update({
+                "input_length_policy": "explicit-state-head-tail-v1",
+                "max_state_token_reduction": self.state_token_reduction,
+                "state_budget_policy": "longest-unprotected-string-first;head-tail;json-structure-preserved",
+                "state_budget_min_string_tokens": 32,
+                "candidate_budget_policy": "preserve-all-options-and-authored-criteria",
+            })
+
+    def render_prompt(self, state, definition):
+        return self.tokenizer.apply_chat_template(
+            self.prompt.decision_messages({"state": state, "question": definition}, self.config["codes"]),
+            tokenize=False, add_generation_prompt=True, enable_thinking=False,
+        )
+
+    def budgeted_state(self, case, definition):
+        if not self.state_token_reduction:
+            return case.state
+        render = self.prompt.describe
+        measure = lambda state: len(self.tokenizer.encode(self.render_prompt(state, definition), add_special_tokens=False)) + 1
+        result = budget_state(case.state, self.tokenizer, render, measure, 8192, self.state_token_reduction)
+        if result.request_before != result.request_after:
+            logging.getLogger(__name__).warning(
+                "Explicit state budget: case=%s request=%d->%d state=%d->%d policy=head-tail-v1",
+                case.case_id, result.request_before, result.request_after,
+                result.state_before, result.state_after,
+            )
+        return result.state
+
     def metadata(self):
         return ModelInfo(id=self.model_id, adapter=self.name, revision=self.revision,
                          **self.counts, settings={"device": self.device,
@@ -110,10 +145,7 @@ class JadeAdapter(UpstreamAdapter):
             keys, _ = self.prompt.options(definition)
             if not 1 <= len(keys) <= 255:
                 raise ValueError("JADE requires 1..255 candidates")
-            rendered = self.tokenizer.apply_chat_template(
-                self.prompt.decision_messages({"state": case.state, "question": definition}, self.config["codes"]),
-                tokenize=False, add_generation_prompt=True, enable_thinking=False,
-            )
+            rendered = self.render_prompt(self.budgeted_state(case, definition), definition)
             ids = self.tokenizer.encode(rendered, add_special_tokens=False)
             if len(ids) + 1 > 8192:
                 raise ValueError("Complete JADE prompt exceeds native 8192-token capacity")

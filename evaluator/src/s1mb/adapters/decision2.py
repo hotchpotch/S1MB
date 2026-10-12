@@ -1,11 +1,14 @@
 """Pinned native Decision 2.0 package with exact, bounded typed-question inference."""
 
 import importlib
+import logging
+import math
 import shutil
 import tempfile
 from pathlib import Path
 
 from .base import decode_answers, questions_for_api
+from .input_budget import budget_state
 from .upstream import UpstreamAdapter
 
 
@@ -27,8 +30,14 @@ def decision2_questions(case):
 
 class Decision2Adapter(UpstreamAdapter):
     case_batch_size = 1
+    state_token_reduction = 0.0
 
-    def __init__(self, model, revision, source, device, context_limit=None):
+    def __init__(
+        self, model, revision, source, device, context_limit=None, state_token_reduction=0.0
+    ):
+        if not math.isfinite(state_token_reduction) or not 0 <= state_token_reduction <= 1:
+            raise ValueError("State token reduction must be within [0, 1]")
+        self.state_token_reduction = state_token_reduction
         if context_limit is not None and context_limit < 1:
             raise ValueError("Decision 2.0 context_limit must be positive")
         self.setup("decision2", model, revision, source, device)
@@ -77,10 +86,55 @@ class Decision2Adapter(UpstreamAdapter):
             }
         )
 
+        if self.state_token_reduction:
+            self.settings.update(
+                {
+                    "input_length_policy": "explicit-state-head-tail-v1",
+                    "max_state_token_reduction": self.state_token_reduction,
+                    "state_budget_policy": "longest-unprotected-string-first;head-tail;json-structure-preserved",
+                    "state_budget_min_string_tokens": 32,
+                    "candidate_budget_policy": "preserve-all-options-and-authored-criteria",
+                }
+            )
+
+    def budgeted_state(self, case, question):
+        if not self.state_token_reduction:
+            return case.state
+        infer = importlib.import_module("decision2._vendor.dev2model.infer")
+        model = importlib.import_module("decision2._vendor.dev2model.decision_model")
+        backend = self.engine.backend
+
+        def measure(state):
+            row = infer.question_to_row({"id": "decision", "state": state}, "decision", question)
+            return len(
+                (backend.encode_fn or model.encode)(row, backend.tokenizer, 2**31 - 1)["ids"]
+            )
+
+        result = budget_state(
+            case.state,
+            backend.tokenizer,
+            model._payload,
+            measure,
+            backend.cap,
+            self.state_token_reduction,
+        )
+        if result.request_before != result.request_after:
+            logging.getLogger(__name__).warning(
+                "Explicit state budget: case=%s request=%d->%d state=%d->%d policy=head-tail-v1",
+                case.case_id,
+                result.request_before,
+                result.request_after,
+                result.state_before,
+                result.state_after,
+            )
+        return result.state
+
     def predict(self, case):
         answers = {}
         for key, question in decision2_questions(case).items():
-            response = self.engine.system_one(state=case.state, questions={"decision": question})
+            response = self.engine.system_one(
+                state=self.budgeted_state(case, question), questions={"decision": question}
+            )
             native = response.get("answers")
             if not isinstance(native, dict) or set(native) != {"decision"}:
                 raise ValueError("Decision 2.0 returned incorrect answer count")

@@ -164,6 +164,45 @@ version saved in the results. `jev` is an API selector; a leaderboard folder suc
 as `typesafe__jev_1_14` is a display identity, not necessarily an API model name.
 Choose that folder only when the recorded version supports the name.
 
+### Explicit state shortening for constrained models
+
+Dinah, Decision 2.0 and JADE accept `--state-token-reduction FRACTION`.
+The default `0` preserves strict overflow rejection. Use `1` only when the
+experiment explicitly permits shortening as much body text as needed to fit
+its native input limit; smaller fractions bound the removed share of rendered
+state tokens. This changes the evaluated configuration and must be disclosed.
+
+The adapter shortens long unprotected body strings first, keeping their head
+and tail and an omission marker. It preserves structured fields, question
+text, instructions, authored criteria and all candidates. Each trial measures
+the complete native request, including JADE's answer token. A request still
+fails if protected content cannot fit. Model metadata records the policy and
+allowed fraction; evaluation logs record case IDs and token counts before and
+after shortening. Keep these logs outside result roots. Use a fresh run ID
+and preserve the original strict measurements.
+
+`--native-adaptive-budget` is a separate opt-in for Julia, Lavoir,
+JevK5-Lite and Kodiak. It uses their released inference and token-budgeting
+algorithms with explicitly disclosed input preparation. Julia and Lavoir use
+native head budgets and may shorten question and candidate descriptions as
+well as state. JevK5-Lite uses its native body budget; when a non-Score head
+still overflows, it omits redundant anonymous label prefixes, retains prefixes
+for duplicate descriptions, and shortens long label text by head/tail only
+as needed. It preserves all labels in one native head, retains at least 16
+original tokens in each shortened label, and reserves the native 16-token
+body floor. Numeric Score labels are never shortened by this head policy.
+
+Kodiak uses separate native state, question and label token limits. Its v2
+policy also fits text to native character limits with explicit head/tail
+shortening before schema validation. Its v3 policy distinguishes duplicate
+or collapsed label text with anonymous option prefixes. Candidate count,
+output alignment and numeric Score mapping remain checked. Metadata records
+`explicit-native-adaptive-budget-v1` for Julia/Lavoir, `v2` for JevK5-Lite,
+and `v3` for Kodiak; logs record shortened requests. Runtime and source
+revisions remain pinned. These policies do not resolve native candidate-count
+limits, and no candidate splitting or cross-call probability aggregation is
+performed.
+
 ### Bekko standalone CPU smoke
 
 The `bekko-v0` adapter supports an explicit CPU diagnostic when a GPU is

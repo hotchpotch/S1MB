@@ -67,3 +67,45 @@ def test_invalid_distribution_rejected():
 def test_invalid_limit_before_download(limit):
     with pytest.raises(ValueError):
         JevK5LiteAdapter("unused", "main", "unused", "cuda:0", context_limit=limit)
+
+
+def test_explicit_budget_allows_body_shortening_and_preserves_alignment():
+    model = adapter(body_length=1)
+    model.native_adaptive_budget = True
+    results = model.predict(cases())
+    assert results[0].probabilities == {"x": 0.2, "y": 0.8}
+    assert results[2].probabilities == {"low": 0.2, "high": 0.8}
+
+
+def test_explicit_budget_still_rejects_oversized_fixed_schema():
+    model = adapter(encoded_length=6)
+    model.native_adaptive_budget = True
+    model.engine.classify = lambda *args: pytest.fail("Oversized schema reached GPU")
+    with pytest.raises(ValueError, match="fixed schema"):
+        model.predict(cases())
+
+
+def test_compact_native_labels_keep_complete_descriptions_and_numeric_levels():
+    case = cases()
+    _, _, labels = lite_inputs(case.state, case.questions[0], compact_labels=True)
+    assert labels == ['0: Same', '1: Same']
+    _, _, labels = lite_inputs(case.state, case.questions[1], compact_labels=True)
+    assert labels == ['Yes', 'No']
+    assert lite_inputs(case.state, case.questions[2], compact_labels=True) == lite_inputs(case.state, case.questions[2])
+
+
+def test_head_budget_preserves_question_all_labels_and_head_tail_text():
+    from test_input_budget import CharacterTokenizer
+
+    from s1mb.adapters.jevk5_lite import budget_lite_head
+
+    engine = SimpleNamespace(tok=CharacterTokenizer(), _piece=lambda text: list(text))
+    labels = ['FIRST' + 'x' * 700 + 'END1', 'SECOND' + 'y' * 700 + 'END2']
+    tasks, shortened, result = budget_lite_head(engine, 'Question', labels, 512)
+    assert list(tasks) == ['Question']
+    assert len(shortened) == 2
+    assert shortened[0].startswith('FIRST') and shortened[0].endswith('END1')
+    assert shortened[1].startswith('SECOND') and shortened[1].endswith('END2')
+    assert len(set(shortened)) == 2
+    assert result.request_after <= 512 - 19
+    assert labels[0].count('x') == 700

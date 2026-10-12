@@ -2,6 +2,7 @@
 
 import importlib
 import importlib.metadata
+import logging
 
 from s1mb.data import Prediction, check_probabilities
 
@@ -26,8 +27,10 @@ def lavoir_question(question):
 
 class LavoirAdapter(UpstreamAdapter):
     case_batch_size = 1
+    native_adaptive_budget = False
 
-    def __init__(self, model, revision, source, device, context_limit=None):
+    def __init__(self, model, revision, source, device, context_limit=None, native_adaptive_budget=False):
+        self.native_adaptive_budget = native_adaptive_budget
         if context_limit is not None and not 1 <= context_limit <= 1024:
             raise ValueError("Lavoir context_limit must be between 1 and 1024")
         self.setup("lavoir", model, revision, source, device)
@@ -55,13 +58,38 @@ class LavoirAdapter(UpstreamAdapter):
             }
         )
 
+        if self.native_adaptive_budget:
+            self.settings.update({
+                "input_length_policy": "explicit-native-adaptive-budget-v1",
+                "candidate_budget_policy": "preserve-all-candidate-counts;native-description-truncation",
+                "native_truncation_enabled": True,
+            })
+
     def predict(self, case):
         predictions = []
         for question in case.questions:
             internal = self.items.to_internal(lavoir_question(question))
-            item = full_sequence(
-                self.engine.tokenizer, case.state, internal, self.common, self.context_limit, 256
-            )
+            try:
+                item = full_sequence(
+                    self.engine.tokenizer, case.state, internal, self.common, self.context_limit, 256
+                )
+            except ValueError:
+                if not self.native_adaptive_budget:
+                    raise
+                original = full_sequence(self.engine.tokenizer, case.state, internal, self.common, 2**31-1, None)
+                native_item = self.items.make_item(
+                    self.engine.tokenizer, {"state": case.state, "question": lavoir_question(question)},
+                    max_len=self.context_limit, head_max_len_noslot=256,
+                )
+                if native_item is None or len(native_item["option_pos"]) != len(question.options):
+                    raise ValueError("Lavoir native budget cannot preserve all candidate markers")
+                item = {"ids": native_item["ids"], "markers": native_item["option_pos"],
+                        "qtype": native_item["qtype"]}
+                if len(item["ids"]) > self.context_limit:
+                    raise ValueError("Lavoir native budget exceeds context limit")
+                logging.getLogger(__name__).warning(
+                    "Explicit native budget: case=%s question=%s adapter=lavoir tokens=%d->%d candidates=%d",
+                    case.case_id, question.id, len(original["ids"]), len(item["ids"]), len(question.options))
             ids, markers = item["ids"], item["markers"]
             segments = [0] * len(ids)
             end = ids.index(self.engine.tokenizer.sep_token_id, markers[-1])

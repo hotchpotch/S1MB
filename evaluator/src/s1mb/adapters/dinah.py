@@ -1,9 +1,12 @@
 """Pinned Dinah Torch runtime with native lossless marker encoding."""
 
 import importlib.util
+import logging
+import math
 import sys
 
 from .base import decode_answers, questions_for_api
+from .input_budget import budget_state
 from .upstream import UpstreamAdapter, checkpoint_path
 
 
@@ -26,8 +29,12 @@ def dinah_questions(case):
 
 class DinahAdapter(UpstreamAdapter):
     case_batch_size = 1
+    state_token_reduction = 0.0
 
-    def __init__(self, model, revision, device, context_limit=None):
+    def __init__(self, model, revision, device, context_limit=None, state_token_reduction=0.0):
+        if not math.isfinite(state_token_reduction) or not 0 <= state_token_reduction <= 1:
+            raise ValueError("State token reduction must be within [0, 1]")
+        self.state_token_reduction = state_token_reduction
         if not device.startswith("cuda"):
             raise ValueError("Dinah requires explicit CUDA; no CPU fallback")
         if context_limit is not None and not 1 <= context_limit <= 8192:
@@ -56,11 +63,56 @@ class DinahAdapter(UpstreamAdapter):
                 "backend": "torch",
             }
         )
+        if self.state_token_reduction:
+            self.settings.update(
+                {
+                    "input_length_policy": "explicit-state-head-tail-v1",
+                    "max_state_token_reduction": self.state_token_reduction,
+                    "state_budget_policy": "longest-unprotected-string-first;head-tail;json-structure-preserved",
+                    "state_budget_min_string_tokens": 32,
+                    "candidate_budget_policy": "preserve-all-options-and-authored-criteria",
+                }
+            )
+
+    def budgeted_state(self, case, question):
+        if not self.state_token_reduction:
+            return case.state
+        criteria = question["criteria"]
+        options = (
+            list(criteria.values())
+            if question["type"] == "choice"
+            else [criteria[key] for key in ["false", "true"]]
+            if question["type"] == "noul"
+            else criteria
+        )
+        render = self.native.render
+        fixed = 3 + len(self.engine._ids(render(question["instructions"])))
+        fixed += sum(1 + len(self.engine._ids(render(option))) for option in options)
+        result = budget_state(
+            case.state,
+            self.engine.tokenizer,
+            render,
+            lambda state: fixed + len(self.engine._ids(render(state))),
+            self.engine.max_length,
+            self.state_token_reduction,
+        )
+        if result.request_before != result.request_after:
+            logging.getLogger(__name__).warning(
+                "Explicit state budget: case=%s request=%d->%d state=%d->%d policy=head-tail-v1",
+                case.case_id,
+                result.request_before,
+                result.request_after,
+                result.state_before,
+                result.state_after,
+            )
+        return result.state
 
     def predict(self, case):
         answers = {}
         for key, question in dinah_questions(case).items():
-            results = self.engine.predict([dict(question, state=case.state)], batch_size=1)
+            results = self.engine.predict(
+                [dict(question, state=self.budgeted_state(case, question))], batch_size=1
+            )
             if len(results) != 1:
                 raise ValueError("Dinah returned incorrect answer count")
             answers[key] = results[0]

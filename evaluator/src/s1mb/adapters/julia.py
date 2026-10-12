@@ -2,6 +2,7 @@
 
 import importlib
 import json
+import logging
 import math
 
 from s1mb.data import Prediction, check_probabilities
@@ -42,8 +43,10 @@ def julia_row(case, question):
 
 class JuliaAdapter(UpstreamAdapter):
     case_batch_size = 1
+    native_adaptive_budget = False
 
-    def __init__(self, model, revision, device, context_limit=None):
+    def __init__(self, model, revision, device, context_limit=None, native_adaptive_budget=False):
+        self.native_adaptive_budget = native_adaptive_budget
         if not device.startswith("cuda"):
             raise ValueError("Julia requires explicit CUDA; no CPU fallback")
         if context_limit is not None and not 517 <= context_limit <= 8192:
@@ -72,14 +75,36 @@ class JuliaAdapter(UpstreamAdapter):
             "backend": "TransformerEngine",
         }
 
+        if self.native_adaptive_budget:
+            self.settings.update({
+                "input_length_policy": "explicit-native-adaptive-budget-v1",
+                "candidate_budget_policy": "preserve-all-candidate-counts;native-description-truncation",
+                "native_truncation_enabled": True,
+            })
+
     def predict(self, case):
         predictions = []
         for question in case.questions:
             row, keys = julia_row(case, question)
             self.native.validate_row(row, 1)
-            row["_encoded"] = self.native.sequence(
-                self.engine.tokenizer, row, self.context_limit, 512, strict=True
-            )
+            try:
+                row["_encoded"] = self.native.sequence(
+                    self.engine.tokenizer, row, self.context_limit, 512, strict=True
+                )
+            except ValueError:
+                if not self.native_adaptive_budget:
+                    raise
+                row["_encoded"] = self.native.sequence(
+                    self.engine.tokenizer, row, self.context_limit, 512, strict=False
+                )
+                tokenizer = self.engine.tokenizer
+                state_text = row["state"] if isinstance(row["state"], str) else json.dumps(row["state"], ensure_ascii=False)
+                texts = [f"{row['type']} question: {row['question']}",
+                         *[" " + option for option in row["options"]], state_text]
+                before = 4 + len(keys) + sum(len(tokenizer.encode(text.replace(tokenizer.mask_token, " "), add_special_tokens=False)) for text in texts)
+                logging.getLogger(__name__).warning(
+                    "Explicit native budget: case=%s question=%s adapter=julia tokens=%d->%d candidates=%d",
+                    case.case_id, question.id, before, len(row["_encoded"]["ids"]), len(keys))
             values = self.engine.logits([row])
             if len(values) != 1 or len(values[0]) != len(keys):
                 raise ValueError("Julia returned incorrect candidate alignment")

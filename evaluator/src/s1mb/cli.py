@@ -189,6 +189,14 @@ def main() -> None:
         help="Input limit for supported adapters; Bekko v0 uses adaptive truncation",
     )
     run.add_argument(
+        "--native-adaptive-budget", action="store_true",
+        help="Explicit native text shortening for Julia, Lavoir, JevK5-Lite and Kodiak; preserves candidate counts",
+    )
+    run.add_argument(
+        "--state-token-reduction", type=float, default=0.0,
+        help="Explicit maximum removed fraction of state tokens for Dinah/Decision 2.0/JADE (0 strict, 1 fit-to-budget)",
+    )
+    run.add_argument(
         "--query-length",
         type=int,
         help="Ichi/Bekko query token cap including special tokens; v0 truncates adaptively",
@@ -262,6 +270,12 @@ def parse_adapter_kwargs(args, parser):
 def validate_run_arguments(args, parser):
     """Reject invalid runtime options before acquiring the installed dataset lock."""
     parse_adapter_kwargs(args, parser)
+    if args.native_adaptive_budget and args.adapter not in {"julia", "lavoir", "jevk5-lite", "kodiak"}:
+        parser.error("--native-adaptive-budget is supported by Julia, Lavoir, JevK5-Lite and Kodiak")
+    if not 0 <= args.state_token_reduction <= 1 or (
+        args.state_token_reduction and args.adapter not in {"dinah", "decision2", "jade"}
+    ):
+        parser.error("--state-token-reduction must be within [0, 1] and currently applies only to Dinah, Decision 2.0 and JADE")
     if args.query_length is not None or args.document_length is not None:
         if args.adapter not in {"system-ichi", "bekko-v0"}:
             parser.error("--query-length/--document-length apply only to Ichi/Bekko v0")
@@ -611,7 +625,7 @@ def execute(args, parser):
 
         adapter = JadeAdapter(
             args.model, args.revision, args.source, args.device,
-            args.server_host, args.server_port
+            args.server_host, args.server_port, state_token_reduction=args.state_token_reduction
         )
     elif args.adapter == "blink":
         if not args.source:
@@ -717,7 +731,7 @@ def execute(args, parser):
             parser.error("--source is required for Kodiak")
         from .adapters.kodiak import KodiakAdapter
 
-        adapter = KodiakAdapter(args.model, args.revision, args.source, args.device)
+        adapter = KodiakAdapter(args.model, args.revision, args.source, args.device, native_adaptive_budget=args.native_adaptive_budget)
     elif args.adapter == "lfm-pcd":
         if not args.source:
             parser.error("--source is required for LFM PCD")
@@ -814,7 +828,8 @@ def execute(args, parser):
         from .adapters.decision2 import Decision2Adapter
 
         adapter = Decision2Adapter(
-            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit,
+            state_token_reduction=args.state_token_reduction,
         )
     elif args.adapter == "lfm-rlcd":
         if not args.source:
@@ -830,7 +845,7 @@ def execute(args, parser):
         from .adapters.lavoir import LavoirAdapter
 
         adapter = LavoirAdapter(
-            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit, native_adaptive_budget=args.native_adaptive_budget
         )
     elif args.adapter == "jevk5-lite":
         if not args.source:
@@ -838,19 +853,20 @@ def execute(args, parser):
         from .adapters.jevk5_lite import JevK5LiteAdapter
 
         adapter = JevK5LiteAdapter(
-            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit, native_adaptive_budget=args.native_adaptive_budget
         )
     elif args.adapter == "dinah":
         from .adapters.dinah import DinahAdapter
 
         adapter = DinahAdapter(
-            args.model, args.revision, args.device, context_limit=args.context_limit
+            args.model, args.revision, args.device, context_limit=args.context_limit,
+            state_token_reduction=args.state_token_reduction,
         )
     elif args.adapter == "julia":
         from .adapters.julia import JuliaAdapter
 
         adapter = JuliaAdapter(
-            args.model, args.revision, args.device, context_limit=args.context_limit
+            args.model, args.revision, args.device, context_limit=args.context_limit, native_adaptive_budget=args.native_adaptive_budget
         )
     elif args.adapter == "fastino-glide":
         from .adapters.jev_channels import FastinoGlideAdapter
