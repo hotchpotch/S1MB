@@ -200,6 +200,17 @@ def test_context_record_count_is_bounded(monkeypatch):
         validate_reasoning_payload(payload)
 
 
+@pytest.mark.parametrize("version", [1, 2])
+def test_supported_context_versions_preserve_exact_artifact_identity(tmp_path, version):
+    payload = valid_payload()
+    payload["format_version"] = version
+    path = tmp_path / "contexts.json"
+    path.write_text(json.dumps(payload))
+    loaded, digest = load_reasoning_contexts(path)
+    assert loaded["format_version"] == version
+    assert digest == hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def test_invalid_context_is_rejected_before_model_loading(tmp_path, monkeypatch):
     path = tmp_path / "contexts.json"
     path.write_text("not JSON")

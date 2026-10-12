@@ -35,6 +35,7 @@ VERIFIER_CANDIDATES = (
     "The proposed answer is incorrect under the stated task and criteria.",
 )
 CONTEXT_FORMAT_VERSION = 1
+SUPPORTED_CONTEXT_FORMAT_VERSIONS = (1, 2)
 MAX_CONTEXT_FILE_BYTES = 512 * 1024 * 1024
 MAX_CONTEXT_RECORDS = 100_000
 MAX_CONTEXT_TEXT_CHARS = 131_072
@@ -66,7 +67,7 @@ def validate_reasoning_payload(payload: Any) -> None:
     if not isinstance(payload, dict):
         raise TypeError("reasoning context artifact must be a JSON object")
     version = payload.get("format_version")
-    if type(version) is not int or version != CONTEXT_FORMAT_VERSION:
+    if type(version) is not int or version not in SUPPORTED_CONTEXT_FORMAT_VERSIONS:
         raise ValueError("unsupported reasoning context format version")
     reasoner = payload.get("reasoner")
     if not isinstance(reasoner, dict):

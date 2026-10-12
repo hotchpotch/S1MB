@@ -162,7 +162,8 @@ results record the effective device map. These commands use physical GPU 1 on
 the maintainers' shared workspace. On other machines, explicitly select an
 available GPU and use its logical CUDA index.
 
-Context files use format version 1. Loading is limited to 512 MiB, 100,000
+Generation writes format version 1. The loader accepts versions 1 and 2 with
+the same validated record fields. Loading is limited to 512 MiB, 100,000
 records, 1,024 characters per case/question ID, and 131,072 characters per raw
 generation or retained prefix. These limits accommodate full-run artifacts;
 oversized or malformed files are rejected before model loading. The loader
