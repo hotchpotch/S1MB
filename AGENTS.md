@@ -2,8 +2,14 @@
 
 S1MB means **System One Mosaic Benchmark**. It combines specialized Choice,
 Noul, and Score tasks. It does not establish unseen-task generalization or
-training-data non-overlap. Communicate in the user's language; write project
-documentation, comments and docstrings in English.
+training-data non-overlap. Communicate with the user in their language. Unless
+the user specifies otherwise, write all project documentation, PR titles and
+descriptions, published comments, and code comments and docstrings in English.
+When the user explicitly specifies a language for these artifacts, always ask
+the human once whether they really want that language before writing or
+publishing them. Wait for their confirmation; do not treat the initial language
+instruction as confirmation. Once the human answers that confirmation question,
+do not ask again for the same artifacts.
 
 ## Structure and public source boundary
 

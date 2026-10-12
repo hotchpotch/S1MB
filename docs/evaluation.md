@@ -20,30 +20,33 @@ Consult the dataset card for access, provenance and license terms. For a new
 model interface, follow [adapter development](adapters.md); for display setup,
 see [the viewer guide](viewer.md).
 
-## Test set の利用方針
+## Test-set policy
 
-**S1MB の test set を使ったパラメータ調整・設定選択は禁止します。**
-Test set は、事前に固定したモデルと評価設定の性能を測るためのものです。
-正解ラベルや評価スコアを見ながら設定を変え、最良のスコアを選ぶと、
-結果を知った上で test set に合わせ込む最適化になります。その数値は、
-固定した条件での性能を独立に測るベンチマークとしての意味と信頼性を損ないます。
-推論時の入力に正解を含めていなくても、この問題は変わりません。
+**Do not use the S1MB test set to tune parameters or select evaluation settings.**
+The test set measures a model and evaluation configuration fixed in advance.
+Changing settings after inspecting test labels or evaluation scores and choosing
+the best score optimizes against results that are already known. This undermines
+the benchmark's purpose and reliability as an independent measurement under
+fixed conditions. Keeping correct answers out of inference inputs does not
+prevent this form of test-set tuning.
 
-具体的には、test set の正解ラベル・評価指標を使って、温度、確率の校正、
-判定しきい値、プロンプト、推論方式、モデルの checkpoint などを選んではいけません。
-保存した予測や raw score から確率を再計算して最良の設定を選ぶ行為も含みます。
-全ベンチマーク共通のパラメータであっても禁止です。ベンチマークごとに
-最も高いスコアの設定を選んで一つの提出結果にまとめることも認めません。
-調整方法を開示していても、test set で調整した結果は通常の LB 掲載対象になりません。
+Do not use test labels or metrics to select temperatures, probability calibration,
+decision thresholds, prompts, inference methods, model checkpoints, or other
+settings. This includes recomputing probabilities from saved predictions or raw
+scores to select the best configuration. A single parameter shared across all
+benchmarks is still prohibited. Do not combine the highest-scoring configuration
+for each benchmark into one submission. Results tuned on the test set are not
+eligible for the ordinary leaderboard, even when the tuning procedure is disclosed.
 
-パラメータ調整と方式の選択には、S1MB の test set から分離した train / validation
-データを使ってください。その後、モデル、設定、後処理を固定して test set を評価し、
-設定の選択方法と使用したデータを提出時に記録してください。
+Use training or validation data separate from the S1MB test set for parameter
+tuning and method selection. Then freeze the model, settings, and postprocessing
+before evaluating the test set. Record the selection procedure and the data used
+in the submission.
 
-Smoke check や再実行は、接続、入力処理、メモリ使用量、実装上の不具合を確認・修正する
-ために行えます。ただし、そこで得た test set の正解やスコアを使って性能を調整したり、
-複数の実行から高スコアの結果を選んだりしてはいけません。技術的な修正による再実行は、
-変更内容と理由を開示し、元の測定結果を保存してください。
+Smoke checks and reruns may diagnose and fix connectivity, input handling, memory
+usage, or implementation bugs. Do not use the resulting test labels or scores to
+tune performance or select the highest-scoring run. For reruns following technical
+fixes, disclose the changes and reasons and preserve the original measurements.
 
 ## 1. Prepare the evaluator and model
 

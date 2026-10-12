@@ -26,10 +26,11 @@ All Python/Hub CLI commands below run from `evaluator/` unless stated otherwise.
 
 ## Submission rules
 
-- S1MB の test set の正解や評価スコアを使ったパラメータ調整・設定選択は禁止です。
-  温度や確率の校正などは別の train / validation データで決め、固定した設定で評価してください。
-  開示済みでも test set で調整した結果は通常の LB 掲載対象になりません。
-  詳細は [Test set の利用方針](evaluation.md#test-set-の利用方針) を参照してください。
+- Do not use S1MB test labels or evaluation scores to tune parameters or select
+  settings. Choose temperatures, probability calibration, and other settings on
+  separate training or validation data, then evaluate a fixed configuration.
+  Test-set-tuned results are not eligible for the ordinary leaderboard, even when
+  disclosed. See the [test-set policy](evaluation.md#test-set-policy).
 - Submit actual model measurements. The dummy adapter produces demo results and
   cannot represent a measured leaderboard entry.
 - Aim for complete `english-v1` coverage across Choice, Noul, and Score. Partial
