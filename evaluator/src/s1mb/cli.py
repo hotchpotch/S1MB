@@ -165,7 +165,7 @@ def main() -> None:
     run.add_argument(
         "--temperature",
         type=float,
-        help="Explicit Meta Encoder cosine-softmax or llm2jev calibration temperature",
+        help="Meta Encoder cosine-softmax or llm2jev temperature; candidate_verify is fixed at 0",
     )
     run.add_argument(
         "--reasoning-contexts",
@@ -450,7 +450,14 @@ def validate_run_arguments(args, parser):
         "llm2jev",
     }:
         parser.error("--temperature applies only to Meta Encoder or llm2jev")
-    if args.temperature is not None and (
+    fixed_verification = (
+        args.adapter == "meta-encoder-think" and args.think_scoring == "candidate_verify"
+    )
+    if fixed_verification:
+        if args.temperature not in (None, 0.0):
+            parser.error("candidate_verify temperature is fixed at zero; omit --temperature")
+        args.temperature = 0.0
+    elif args.temperature is not None and (
         not math.isfinite(args.temperature) or args.temperature <= 0
     ):
         parser.error("--temperature must be finite and positive for Meta Encoder or llm2jev")

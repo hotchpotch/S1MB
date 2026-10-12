@@ -5,7 +5,9 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 import re
+import stat
 import struct
 from collections import Counter
 from pathlib import Path
@@ -32,6 +34,68 @@ VERIFIER_CANDIDATES = (
     "The proposed answer is correct under the stated task and criteria.",
     "The proposed answer is incorrect under the stated task and criteria.",
 )
+CONTEXT_FORMAT_VERSION = 1
+MAX_CONTEXT_FILE_BYTES = 512 * 1024 * 1024
+MAX_CONTEXT_RECORDS = 100_000
+MAX_CONTEXT_TEXT_CHARS = 131_072
+
+
+def load_reasoning_contexts(path: Path) -> tuple[dict[str, Any], str]:
+    """Read a bounded artifact once; validate it and hash the exact consumed bytes."""
+    if not path.is_file():
+        raise ValueError("reasoning context artifact must be a regular file")
+    with path.open("rb") as stream:
+        file_stat = os.fstat(stream.fileno())
+        if not stat.S_ISREG(file_stat.st_mode):
+            raise ValueError("reasoning context artifact must be a regular file")
+        if file_stat.st_size > MAX_CONTEXT_FILE_BYTES:
+            raise ValueError("reasoning context artifact exceeds the 512 MiB size limit")
+        raw = stream.read(MAX_CONTEXT_FILE_BYTES + 1)
+    if len(raw) > MAX_CONTEXT_FILE_BYTES:
+        raise ValueError("reasoning context artifact exceeds the 512 MiB size limit")
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError, RecursionError) as error:
+        raise ValueError("reasoning context artifact must contain valid UTF-8 JSON") from error
+    validate_reasoning_payload(payload)
+    return payload, hashlib.sha256(raw).hexdigest()
+
+
+def validate_reasoning_payload(payload: Any) -> None:
+    """Reject malformed records before any model is loaded."""
+    if not isinstance(payload, dict):
+        raise TypeError("reasoning context artifact must be a JSON object")
+    version = payload.get("format_version")
+    if type(version) is not int or version != CONTEXT_FORMAT_VERSION:
+        raise ValueError("unsupported reasoning context format version")
+    reasoner = payload.get("reasoner")
+    if not isinstance(reasoner, dict):
+        raise TypeError("reasoning context reasoner must be an object")
+    if reasoner.get("id") != REASONER_ID or reasoner.get("revision") != REASONER_REVISION:
+        raise ValueError("reasoning context checkpoint identity does not match the recipe")
+    records = payload.get("records")
+    if not isinstance(records, list) or not 1 <= len(records) <= MAX_CONTEXT_RECORDS:
+        raise ValueError("reasoning context records must contain 1 to 100000 entries")
+    for index, record in enumerate(records):
+        prefix = f"reasoning context record {index}"
+        if not isinstance(record, dict):
+            raise TypeError(f"{prefix} must be an object")
+        for field in ("case_id", "question_id"):
+            value = record.get(field)
+            if not isinstance(value, str) or not 1 <= len(value) <= 1024:
+                raise ValueError(f"{prefix} has an invalid {field}")
+        query_hash = record.get("query_sha256")
+        if not isinstance(query_hash, str) or re.fullmatch(r"[0-9a-f]{64}", query_hash) is None:
+            raise ValueError(f"{prefix} has an invalid query_sha256")
+        if record.get("status") not in ("usable", "missing_boundary", "ambiguous_boundary"):
+            raise ValueError(f"{prefix} has an invalid status")
+        for field in ("raw_generation", "truncated_reasoning"):
+            value = record.get(field)
+            if not isinstance(value, str) or len(value) > MAX_CONTEXT_TEXT_CHARS:
+                raise ValueError(f"{prefix} has an invalid or oversized {field}")
+        if record["status"] == "usable" and not record["truncated_reasoning"].strip():
+            raise ValueError(f"{prefix} has an empty usable reasoning prefix")
+        reasoning_context(record)
 
 
 def verification_queries(case: InferenceCase, question: Question, record: dict[str, Any]) -> list[str]:
@@ -55,19 +119,17 @@ def verification_queries(case: InferenceCase, question: Question, record: dict[s
     ]
 
 
-def verification_probabilities(pairs: list[list[float]], temperature: float) -> list[float]:
-    """Apply the measured FP32 correct-minus-incorrect gap and stable FP64 softmax."""
-    if not math.isfinite(temperature) or temperature <= 0:
-        raise ValueError("temperature must be finite and positive")
+def verification_probabilities(pairs: list[list[float]], temperature: float = 0.0) -> list[float]:
+    """Select the largest FP32 verification gap, breaking ties by option order."""
+    if not math.isfinite(temperature) or temperature != 0:
+        raise ValueError("candidate_verify temperature is fixed at zero")
     if not pairs or any(len(pair) != 2 for pair in pairs):
         raise ValueError("verification requires correct/incorrect cosine pairs")
     gaps = [struct.unpack("<f", struct.pack("<f", pair[0] - pair[1]))[0] for pair in pairs]
     if any(not math.isfinite(gap) for gap in gaps):
         raise ValueError("nonfinite verification gap")
-    peak = max(gaps)
-    weights = [math.exp((gap - peak) / temperature) for gap in gaps]
-    total = math.fsum(weights)
-    return [weight / total for weight in weights]
+    winner = max(range(len(gaps)), key=gaps.__getitem__)
+    return [float(index == winner) for index in range(len(gaps))]
 
 
 def reasoner_prompt(query: str) -> str:
@@ -124,37 +186,6 @@ def contextual_query(query: str, record: dict[str, Any]) -> str:
     return f"Reasoning context:\n{reasoning_context(record)}\n\n{query}"
 
 
-def recalibrate_probabilities(
-    probabilities: dict[str, float], source_temperature: float, effective_temperature: float
-) -> dict[str, float]:
-    """Apply FP64-equivalent power-softmax recalibration to persisted probabilities."""
-    for name, value in {
-        "source temperature": source_temperature,
-        "effective temperature": effective_temperature,
-    }.items():
-        if not math.isfinite(value) or value <= 0:
-            raise ValueError(f"{name} must be finite and positive")
-    if not probabilities or any(
-        not math.isfinite(value) or value <= 0 for value in probabilities.values()
-    ):
-        raise ValueError("source probabilities must be finite and strictly positive")
-    check_probabilities(probabilities, list(probabilities))
-    if effective_temperature == source_temperature:
-        return dict(probabilities)
-    logits = [
-        source_temperature / effective_temperature * math.log(value)
-        for value in probabilities.values()
-    ]
-    peak = max(logits)
-    weights = [math.exp(value - peak) for value in logits]
-    total = math.fsum(weights)
-    calibrated = dict(zip(probabilities, (value / total for value in weights), strict=True))
-    if any(value == 0.0 for value in calibrated.values()):
-        raise ValueError("effective temperature underflowed a probability to zero")
-    check_probabilities(calibrated, list(probabilities))
-    return calibrated
-
-
 def composite_parameter_metadata(encoder: ModelInfo, reasoner: dict[str, Any]) -> dict[str, Any]:
     """Sum independently loaded reasoner and encoder checkpoints when both are verified."""
     reasoner_parameters = reasoner.get("parameters")
@@ -179,17 +210,22 @@ def composite_parameter_metadata(encoder: ModelInfo, reasoner: dict[str, Any]) -
 class MetaEncoderThinkAdapter(MetaEncoderAdapter):
     """Score official queries augmented with frozen, target-free reasoning contexts."""
 
-    def __init__(self, *args, reasoning_contexts: Path, scoring: str = "cosine", **kwargs) -> None:
+    def __init__(
+        self, *args, reasoning_contexts: Path, scoring: str = "cosine",
+        temperature: float | None = None, **kwargs
+    ) -> None:
         if scoring not in {"cosine", "candidate_verify"}:
             raise ValueError("unknown MetaEncoder-think scoring strategy")
         self.scoring = scoring
-        payload = json.loads(reasoning_contexts.read_text())
-        reasoner = payload.get("reasoner", {})
-        if reasoner.get("id") != REASONER_ID or reasoner.get("revision") != REASONER_REVISION:
-            raise ValueError("reasoning context checkpoint identity does not match the recipe")
-        records = payload.get("records")
-        if not isinstance(records, list):
-            raise TypeError("reasoning context file must contain a records list")
+        if temperature is None:
+            if scoring != "candidate_verify":
+                raise ValueError("cosine scoring requires an explicit positive temperature")
+            temperature = 0.0
+        self._validate_temperature(temperature)
+        payload, self._context_sha256 = load_reasoning_contexts(reasoning_contexts)
+        self._context_format_version = payload["format_version"]
+        reasoner = payload["reasoner"]
+        records = payload["records"]
         self._contexts = {}
         for record in records:
             key = (record["case_id"], record["question_id"], record["query_sha256"])
@@ -203,6 +239,7 @@ class MetaEncoderThinkAdapter(MetaEncoderAdapter):
                 "revision",
                 "dtype",
                 "attention",
+                "effective_device_map",
                 "generation",
                 "prompt_policy",
                 "truncation_policy",
@@ -211,7 +248,14 @@ class MetaEncoderThinkAdapter(MetaEncoderAdapter):
             if key in reasoner
         }
         self._context_counts = Counter(record.get("status") for record in records)
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, temperature=temperature, **kwargs)
+
+    def _validate_temperature(self, temperature: float) -> None:
+        if self.scoring == "candidate_verify":
+            if not math.isfinite(temperature) or temperature != 0:
+                raise ValueError("candidate_verify temperature is fixed at zero")
+        else:
+            super()._validate_temperature(temperature)
 
     def _render_query(self, case: InferenceCase, question: Question) -> str:
         query = render_query(case, question)
@@ -287,6 +331,10 @@ class MetaEncoderThinkAdapter(MetaEncoderAdapter):
                     "earliest-answer-boundary-else-entire-nonempty-generation-v1"
                 ),
                 "reasoning_context_status_counts": dict(self._context_counts),
+                "reasoning_context_artifact": {
+                    "sha256": self._context_sha256,
+                    "format_version": self._context_format_version,
+                },
                 "fallback_contexts": sum(
                     count for status, count in self._context_counts.items() if status != "usable"
                 ),
@@ -298,7 +346,9 @@ class MetaEncoderThinkAdapter(MetaEncoderAdapter):
                 "renderer": "shared-frozen-reasoning-per-candidate-verification-v1",
                 "verification_candidates": list(VERIFIER_CANDIDATES),
                 "verification_score": "float32-cosine-correct-minus-incorrect",
-                "probability_computation": "stable-float64-softmax-from-raw-verification-gaps",
+                "probability_rule": "one-hot-verification-argmax",
+                "probability_computation": "one-hot-argmax-from-float32-verification-gaps",
+                "verification_tie_break": "first-declared-option",
                 "verification_batch_size": 8,
                 "long_verification_batch_sizes": [2, 1],
             })

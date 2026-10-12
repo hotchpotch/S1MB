@@ -10,15 +10,21 @@ import argparse
 import hashlib
 import importlib
 import json
+import os
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
-from s1mb.adapters.meta_encoder import render_query
+from s1mb.adapters.meta_encoder import render_query, validate_gpu_placement
 from s1mb.adapters.meta_encoder_think import (
+    CONTEXT_FORMAT_VERSION,
+    MAX_CONTEXT_FILE_BYTES,
+    MAX_CONTEXT_RECORDS,
     REASONER_ID,
     REASONER_REVISION,
     parse_reasoning_generation,
     reasoner_prompt,
+    validate_reasoning_payload,
 )
 from s1mb.data import load_benchmark, load_cases, load_category
 from s1mb.parameters import parameter_metadata
@@ -26,6 +32,30 @@ from s1mb.parameters import parameter_metadata
 MAX_NEW_TOKENS = 1024
 CONTEXT_LIMIT = 32768
 SEED = 4242
+
+
+def publish_contexts(output: Path, payload: dict) -> None:
+    """Atomically publish a complete artifact without replacing an existing path."""
+    validate_reasoning_payload(payload)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=output.parent,
+            prefix=f".{output.name}.", suffix=".tmp", delete=False,
+        ) as stream:
+            temporary = Path(stream.name)
+            json.dump(payload, stream, indent=2, ensure_ascii=False)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        if temporary.stat().st_size > MAX_CONTEXT_FILE_BYTES:
+            raise ValueError("reasoning context artifact exceeds the 512 MiB size limit")
+        # Same-directory hard-link creation is atomic and fails if output exists.
+        os.link(temporary, output)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def main() -> None:
@@ -59,10 +89,11 @@ def main() -> None:
         args.reasoner,
         revision=args.reasoner_revision,
         dtype=torch.bfloat16,
-        device_map="auto",
+        device_map={"": args.device},
         attn_implementation="sdpa",
         low_cpu_mem_usage=True,
     )
+    effective_device_map = validate_gpu_placement(model, args.device, torch)
     model.eval()
 
     category = load_category(args.data_dir, args.category)
@@ -76,6 +107,8 @@ def main() -> None:
         for case in load_cases(args.data_dir, benchmark):
             inference = case.inference()
             for question in inference.questions:
+                if len(records) >= MAX_CONTEXT_RECORDS:
+                    raise ValueError("reasoning context record count exceeds 100000")
                 query = render_query(inference, question)
                 query_sha = hashlib.sha256(query.encode()).hexdigest()
                 if query_sha in by_query:
@@ -137,13 +170,14 @@ def main() -> None:
                 by_query[query_sha] = record
 
     payload = {
-        "format_version": 1,
+        "format_version": CONTEXT_FORMAT_VERSION,
         "created_at": datetime.now(UTC).isoformat(),
         "reasoner": {
             "id": args.reasoner,
             "revision": args.reasoner_revision,
             "dtype": "bfloat16",
             "attention": "sdpa",
+            "effective_device_map": effective_device_map,
             "generation": {
                 "do_sample": False,
                 "seed": SEED,
@@ -156,8 +190,7 @@ def main() -> None:
         },
         "records": records,
     }
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
+    publish_contexts(args.output, payload)
     print(f"Wrote {len(records)} contexts ({len(by_query)} distinct queries) to {args.output}")
 
 

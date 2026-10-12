@@ -70,6 +70,17 @@ def chat_messages(text: str) -> list[dict[str, Any]]:
     ]
 
 
+def validate_gpu_placement(model: Any, device: str, torch: Any) -> dict[str, str]:
+    """Require every model parameter and buffer to reside on the requested GPU."""
+    expected = torch.device(device)
+    if expected.index is None:
+        expected = torch.device("cuda", torch.cuda.current_device())
+    for tensor in (*model.parameters(), *model.buffers()):
+        if tensor.device != expected:
+            raise RuntimeError(f"model placement must be entirely on {expected}; refusing CPU offload")
+    return {"": str(expected)}
+
+
 class MetaEncoderAdapter:
     """Embed each query and declared candidate, then normalize cosine scores."""
 
@@ -89,8 +100,7 @@ class MetaEncoderAdapter:
     ) -> None:
         if not device.startswith("cuda"):
             raise ValueError("Meta Encoder requires explicit CUDA; refusing CPU fallback")
-        if not math.isfinite(temperature) or temperature <= 0:
-            raise ValueError("Meta Encoder temperature must be finite and positive")
+        self._validate_temperature(temperature)
         if context_limit is not None and context_limit < 1:
             raise ValueError("Meta Encoder context limit must be positive")
         if attention not in {"sdpa", "flash_attention_2"}:
@@ -119,10 +129,11 @@ class MetaEncoderAdapter:
         self.engine = model_class.from_pretrained(
             str(self.path),
             dtype=self.torch.bfloat16,
-            device_map="auto",
+            device_map={"": device},
             attn_implementation=attention,
             low_cpu_mem_usage=True,
         )
+        self._effective_device_map = validate_gpu_placement(self.engine, device, self.torch)
         self.engine.config.use_cache = False
         self.engine.eval()
         text_config = getattr(self.engine.config, "text_config", self.engine.config)
@@ -139,6 +150,10 @@ class MetaEncoderAdapter:
 
         self._parameter_metadata = parameter_metadata(self.engine)
         self._candidate_cache: OrderedDict[str, Any] = OrderedDict()
+
+    def _validate_temperature(self, temperature: float) -> None:
+        if not math.isfinite(temperature) or temperature <= 0:
+            raise ValueError("Meta Encoder temperature must be finite and positive")
 
     def _chat(self, text: str) -> str:
         return self.processor.apply_chat_template(
@@ -245,7 +260,7 @@ class MetaEncoderAdapter:
                 "attention_implementation": getattr(
                     self.engine.config, "_attn_implementation", self.attention
                 ),
-                "device_map": "auto",
+                "device_map": {"": self.device},
                 "max_input_tokens": self.context_limit,
                 "checkpoint_context_limit": self.checkpoint_context_limit,
                 "input_length_policy": "reject-overflow",
@@ -268,6 +283,7 @@ class MetaEncoderAdapter:
                 "normalization": "l2",
                 "probability_rule": "joint-cosine-softmax",
                 "temperature": self.temperature,
+                "effective_device_map": self._effective_device_map,
                 "runtime_versions": versions,
             },
         )

@@ -113,11 +113,11 @@ Generate contexts before loading the encoder. The context file contains raw
 model generations: keep it local and never include it in a source or results PR.
 
 ```sh
-uv run python scripts/generate_meta_encoder_think_contexts.py \
+CUDA_VISIBLE_DEVICES=1 uv run python scripts/generate_meta_encoder_think_contexts.py \
   --data-dir data --category english-v1 \
-  --output ../tmp/metaencoder-think-contexts.json
+  --output ../tmp/metaencoder-think-contexts.json --device cuda:0
 
-CUDA_VISIBLE_DEVICES=0 uv run s1mb run \
+CUDA_VISIBLE_DEVICES=1 uv run s1mb run \
   --adapter meta-encoder-think --model facebook/meta-encoder \
   --revision 3d0df704aa5bf66d9c49da1393181f33e893e5f7 \
   --reasoning-contexts ../tmp/metaencoder-think-contexts.json \
@@ -133,16 +133,18 @@ fixed verifier texts: "The proposed answer is correct under the stated task and
 criteria." and "The proposed answer is incorrect under the stated task and
 criteria." Each request contains the same frozen reasoning context, the authored
 task, input and criteria, and one proposed option ID and description. The option
-score is the FP32 correct-minus-incorrect cosine gap. A stable FP64 softmax over
-these gaps gives probabilities in the original option order.
+score is the FP32 correct-minus-incorrect cosine gap. The largest gap receives
+probability one and all other options receive zero. Ties select the first option
+in the original declared order. This is fixed zero-temperature selection;
+`--temperature` can be omitted or set to zero, and positive values are rejected.
 
 ```sh
-CUDA_VISIBLE_DEVICES=0 uv run s1mb run \
+CUDA_VISIBLE_DEVICES=1 uv run s1mb run \
   --adapter meta-encoder-think --think-scoring candidate_verify \
   --model facebook/meta-encoder \
   --revision 3d0df704aa5bf66d9c49da1393181f33e893e5f7 \
   --reasoning-contexts ../tmp/metaencoder-think-contexts.json \
-  --temperature 0.0003 --device cuda:0 --attention sdpa \
+  --device cuda:0 --attention sdpa \
   --context-limit 32768 --category english-v1 \
   --run-id metaencoder-think-verify-001
 ```
@@ -151,33 +153,24 @@ Verification uses length-sorted request batches of up to eight below 4,096 token
 two below 8,192 tokens, and one for longer inputs. Memory or the known SDPA kernel
 failure reduces batch size. Inputs exceeding the configured context limit are
 rejected. The default `--think-scoring cosine` retains the original option-ID
-scoring. Choose one global format and temperature for all benchmarks, and record
-the selection procedure in the submission. The command above is a fixed reference
-setting; a temperature selected by a later sweep should be recorded explicitly.
+scoring, with an explicit positive temperature selected separately from test
+data. Keep inference settings fixed before test evaluation. The adapter does
+not provide a test-set temperature-selection workflow.
 
-For a posthoc temperature study, the calibration script audits strictly positive
-persisted probabilities, preserves declared candidate order and Choice argmax,
-tests a broad logarithmic grid, refines around the best point, and applies one
-global temperature to every benchmark. It optimizes the official equal-type
-Task Avg with native task-specific scoring; it does not choose separate
-temperatures per benchmark or task.
+Both checkpoints are placed entirely on the requested GPU, with no CPU offload;
+results record the effective device map. These commands use physical GPU 1 on
+the maintainers' shared workspace. On other machines, explicitly select an
+available GPU and use its logical CUDA index.
 
-```sh
-uv run python scripts/calibrate_meta_encoder_think.py \
-  data/results/metaencoder-think-source-001 \
-  --data-dir data --source-temperature 0.03 \
-  --output ../tmp/metaencoder-think-calibrated
-uv run s1mb validate ../tmp/metaencoder-think-calibrated/results
-```
-
-This recalibration computes
-`softmax((source_temperature / effective_temperature) * log(p_source))` in
-Python FP64 arithmetic. It starts from persisted probabilities, so it cannot
-exactly recover the original cosine logits. Selecting temperature on the full
-evaluation set is posthoc calibration and is not evidence of untuned test
-generalization. The derived result provenance must retain the source run IDs,
-source file identities, source and effective temperatures, evaluator revision
-and dataset revision. It must not claim a GPU rerun at the selected temperature.
+Context files use format version 1. Loading is limited to 512 MiB, 100,000
+records, 1,024 characters per case/question ID, and 131,072 characters per raw
+generation or retained prefix. These limits accommodate full-run artifacts;
+oversized or malformed files are rejected before model loading. The loader
+validates UTF-8 JSON, checkpoint identity, record fields and nonempty contexts.
+Results store the SHA256 of the exact consumed bytes and the format version,
+not the artifact path or raw reasoning. Generation writes a complete temporary
+file in the destination directory, flushes it, and atomically publishes it
+without replacing an existing artifact.
 
 ## Additional English model runtimes
 

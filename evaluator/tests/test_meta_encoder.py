@@ -14,6 +14,7 @@ from s1mb.adapters.meta_encoder import (
     chat_messages,
     render_candidate,
     render_query,
+    validate_gpu_placement,
 )
 from s1mb.hf_data import case_from_row
 
@@ -72,6 +73,17 @@ def test_constructor_rejects_invalid_runtime_before_loading(
             context_limit=context_limit,
             attention=attention,
         )
+
+
+@pytest.mark.parametrize("actual", ["cpu", "cuda:1", "meta"])
+def test_model_placement_rejects_cpu_offload_or_another_gpu(actual):
+    fake_torch = SimpleNamespace(device=lambda device: SimpleNamespace(index=0, name=device))
+    model = SimpleNamespace(
+        parameters=lambda: iter([SimpleNamespace(device=fake_torch.device(actual))]),
+        buffers=lambda: iter([]),
+    )
+    with pytest.raises(RuntimeError, match="entirely on"):
+        validate_gpu_placement(model, "cuda:0", fake_torch)
 
 
 def test_encode_rejects_complete_overflow_before_model_forward():
