@@ -31,7 +31,7 @@ def result_paths(info):
         if metadata not in files:
             raise ValueError(f"Missing {metadata}")
         paths.append(metadata)
-    if len(paths) > 20000:
+    if len(paths) > 50000:
         raise ValueError("Too many result files")
     for name in paths:
         size = files[name].size

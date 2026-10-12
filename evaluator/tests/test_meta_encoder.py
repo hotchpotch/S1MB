@@ -127,6 +127,11 @@ def test_cli_requires_scoped_explicit_temperature(
         args.extend(["--model", "facebook/meta-encoder", "--device", "cuda:0"])
     args.extend(extra)
     monkeypatch.setattr("sys.argv", args)
+
+    def unexpected_dataset_session(*args, **kwargs):
+        pytest.fail("Invalid CLI options must be rejected before acquiring the dataset lock")
+
+    monkeypatch.setattr("s1mb.dataset_source.dataset_session", unexpected_dataset_session)
     with pytest.raises(SystemExit, match="2"):
         cli.main()
     assert message in capsys.readouterr().err

@@ -7,7 +7,7 @@ import string
 
 from s1mb.data import Prediction, check_probabilities
 
-from .firelex_jeff import decision_row
+from .sifr import sifr_questions
 from .upstream import UpstreamAdapter
 
 SYSTEM = (
@@ -46,8 +46,14 @@ class RuneAdapter(UpstreamAdapter):
     case_batch_size = 1
 
     def __init__(self, model, revision, source, device, context_limit=None):
+        if context_limit is not None and context_limit < 1:
+            raise ValueError("Rune context_limit must be positive")
         self.setup("rune", model, revision, source, device)
         transformers = importlib.import_module("transformers")
+        capacity = transformers.AutoConfig.from_pretrained(str(self.path)).get_text_config().max_position_embeddings
+        self.context_limit = context_limit or 32768
+        if self.context_limit > capacity:
+            raise ValueError("Rune context limit exceeds checkpoint capacity")
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(str(self.path))
         if self.tokenizer is None:
             raise ValueError("Rune tokenizer could not be loaded")
@@ -58,7 +64,6 @@ class RuneAdapter(UpstreamAdapter):
             attn_implementation="sdpa",
         ).eval()
         self.attention_model = self.engine
-        self.context_limit = context_limit or 32768
         self.codes, seen = [], set()
         for code in list(string.ascii_uppercase) + [
             "".join(p) for p in itertools.product(string.ascii_uppercase, repeat=2)
@@ -78,10 +83,12 @@ class RuneAdapter(UpstreamAdapter):
             "order_averaging": False,
             "runtime": "transformers",
             "renderer": "surogate-decisions-v1-anonymous-choice-numeric-score",
+            "typed_mapping": "all-choice-preserving-authored-criterion-order-and-numeric-levels",
         }
 
     def predict(self, case):
         predictions = []
+        questions = sifr_questions(case)
         for question in case.questions:
             count = len(question.options)
             codes = list(string.ascii_uppercase[:count]) if count <= 26 else self.codes[:count]
@@ -89,15 +96,14 @@ class RuneAdapter(UpstreamAdapter):
                 raise ValueError(
                     "Rune tokenizer has insufficient distinct single-token option codes"
                 )
-            row = decision_row(case.state, question)
             prompt = self.tokenizer.apply_chat_template(
-                rune_messages(row["state"], row["question"], codes),
+                rune_messages(case.state, questions[question.id], codes),
                 tokenize=False,
                 add_generation_prompt=True,
                 enable_thinking=False,
             )
             ids = self.tokenizer.encode(prompt, add_special_tokens=False)
-            if len(ids) > self.context_limit:
+            if len(ids) + 1 > self.context_limit:
                 raise ValueError("Rune input exceeds context limit; refusing truncation")
             candidates = []
             for code in codes:
@@ -115,12 +121,10 @@ class RuneAdapter(UpstreamAdapter):
                         logits_to_keep=1,
                     )
                     .logits[0, -1]
-                    .float()
+                    .double()
                 )
                 values = logits[candidates].softmax(-1).cpu().tolist()
-            keys = (
-                ["false", "true"] if question.task == "noul" else [o.id for o in question.options]
-            )
+            keys = [o.id for o in question.options]
             probabilities = dict(zip(keys, values, strict=True))
             check_probabilities(probabilities, [o.id for o in question.options])
             predictions.append(

@@ -4,7 +4,7 @@ import importlib
 
 from s1mb.data import Prediction
 
-from .firelex_jeff import decision_row
+from .sifr import sifr_questions
 from .upstream import UpstreamAdapter, candidate_batches
 
 
@@ -12,6 +12,8 @@ class KevAdapter(UpstreamAdapter):
     case_batch_size = 16
 
     def __init__(self, model, revision, source, device, context_limit=None, case_batch_size=16):
+        if context_limit is not None and context_limit < 1:
+            raise ValueError("Kev context_limit must be positive")
         if case_batch_size < 1:
             raise ValueError("case_batch_size must be positive")
         self.case_batch_size = case_batch_size
@@ -31,6 +33,8 @@ class KevAdapter(UpstreamAdapter):
         self.engine.eval()
         self.attention_model = self.engine.lm
         self.context_limit = context_limit or 8192
+        if self.context_limit > self.attention_model.config.get_text_config().max_position_embeddings:
+            raise ValueError("Kev context limit exceeds checkpoint capacity")
         self.settings = {
             "dtype": "bfloat16",
             "temperature": checkpoint.meta.temperature,
@@ -42,6 +46,7 @@ class KevAdapter(UpstreamAdapter):
             "case_batch_size": self.case_batch_size,
             "microbatch_tokens": 4096,
             "renderer": "native-anonymous-choice-numeric-score-batched-v3",
+            "typed_mapping": "all-choice-preserving-authored-order-and-structured-numeric-score",
         }
 
         self.enable_kernels()
@@ -58,10 +63,11 @@ class KevAdapter(UpstreamAdapter):
             ]
         rows = []
         for index, case in enumerate(cases):
+            questions = sifr_questions(case)
             for q in case.questions:
                 req = self.api.SystemOneRequest(
                     state=case.state,
-                    questions={"decision": decision_row(case.state, q)["question"]},
+                    questions={"decision": questions[q.id]},
                 )
                 record, _ = self.api.to_record(req)
                 enc = self.engine.encode(
@@ -82,7 +88,7 @@ class KevAdapter(UpstreamAdapter):
                 ps = [z[0].float().softmax(-1) for z in logits]
                 values = self.torch.cat(ps).cpu().split([len(p) for p in ps])
                 for (index, case_id, q, _), p in zip(batch, values, strict=True):
-                    ids = ["false", "true"] if q.task == "noul" else [o.id for o in q.options]
+                    ids = [o.id for o in q.options]
                     outputs[index][q.id] = Prediction(
                         case_id=case_id,
                         question_id=q.id,

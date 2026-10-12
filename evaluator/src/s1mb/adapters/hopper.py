@@ -3,6 +3,7 @@
 import importlib
 import json
 import string
+import sys
 from typing import Any, cast
 
 from s1mb.data import Prediction, check_probabilities
@@ -13,9 +14,19 @@ from .upstream import UpstreamAdapter, state_text
 
 
 class HopperAdapter(UpstreamAdapter):
+    codes: list[str]
+    prompt: Any
+    calibration: Any
+    context_limit: int
     case_batch_size = 1
 
     def __init__(self, model, revision, source, device, context_limit=None, max_candidates=None):
+        if context_limit is not None and context_limit < 1:
+            raise ValueError("Hopper context_limit must be positive")
+        if max_candidates is not None and not 2 <= max_candidates <= 26:
+            raise ValueError("Hopper supports at most 26 native candidate slots")
+        if sys.version_info < (3, 12):
+            raise RuntimeError("The pinned Hopper runtime requires Python 3.12 or newer")
         self.setup("hopper", model, revision, source, device)
         native = importlib.import_module("hopper_decisions.model")
         self.prompt = cast(Any, importlib.import_module("hopper_decisions.prompt"))
@@ -57,7 +68,11 @@ class HopperAdapter(UpstreamAdapter):
             "shortlist": None,
             "renderer": "native-json-authored-noul-numeric-score-v1",
         }
-        self.enable_kernels()
+        capacity = self.engine.model.config.get_text_config().max_position_embeddings
+        if self.context_limit > capacity:
+            raise ValueError("Hopper context limit exceeds checkpoint capacity")
+        self.settings["native_kernels"] = self.engine.kernels
+        self.settings["native_slow_kernels"] = self.engine.slow_kernels
 
     def predict(self, case):
         predictions = []

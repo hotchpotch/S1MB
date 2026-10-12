@@ -143,7 +143,7 @@ def test_winnow_keeps_structured_state_and_authored_questions(monkeypatch):
 
     adapter = WinnowAdapter.__new__(WinnowAdapter)
     adapter.info = ModelInfo(
-        id="test", adapter="winnow", revision="test", settings={"max_candidates": 64}
+        id="test", adapter="winnow", revision="test", settings={"max_candidates": 64, "temperature": 1.2574172017327816}
     )
     requests = []
 
@@ -152,12 +152,14 @@ def test_winnow_keeps_structured_state_and_authored_questions(monkeypatch):
         requests.append(body)
         question = body["questions"]["decision"]
         assert body["state"] == {"evidence": "text"}
-        if question["type"] == "noul":
+        assert question["type"] == "choice"
+        assert body["winnow"]["temperature"] == 1.2574172017327816
+        if set(question["criteria"]) == {"true", "false"}:
             assert question["criteria"] == {"true": "Yes", "false": "No"}
-            answer = {"type": "noul", "noul": 0.8}
-        else:
-            keys = list(question["criteria"]) if question["type"] == "choice" else ["0", "1"]
-            answer = {"type": question["type"], "probabilities": dict(zip(keys, [0.3, 0.7]))}
+        if any(isinstance(v, dict) for v in question["criteria"].values()):
+            assert [v["value"] for v in question["criteria"].values()] == [10.0, 30.0]
+        keys = list(question["criteria"])
+        answer = {"type": "choice", "probabilities": dict(zip(keys, [0.3, 0.7]))}
         return {"answers": {"decision": answer}}
 
     monkeypatch.setattr(adapter, "request", request)
