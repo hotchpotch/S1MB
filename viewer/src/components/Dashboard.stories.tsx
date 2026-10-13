@@ -516,3 +516,21 @@ export const UnknownTrainingSnapshot: Story = {
   }, initialRun: 'synthetic-demo' },
   parameters: { docs: { description: { story: 'Synthetic training provenance with explicitly unknown revision, config and split. Expand Known domains in the model sidebar to inspect the unknown labels.' } } },
 };
+
+export const HeroSpaceOverlay: Story = {
+  args: { snapshot: scopeDesignFixture },
+  decorators: [(Story) => <div className="relative">
+    <div aria-label="Synthetic Hugging Face mini header" className="absolute right-3 top-4 z-50 flex h-11 max-w-[calc(100%-24px)] items-center rounded-xl border border-slate-700 bg-slate-950 px-4 text-sm text-slate-300">
+      🤗 hotchpotch / <strong className="ml-1">S1MB-Leaderboard</strong><span className="ml-4">♡ 69</span>
+    </div>
+    <Story />
+  </div>],
+  parameters: { docs: { description: { story: 'Synthetic measurements and a simulated Hugging Face mini header. The left title and scope/resources form one group; the right task introduction reserves space above for the overlay.' } } },
+};
+export const HeroSpaceOverlayMobile: Story = { ...HeroSpaceOverlay, globals: { viewport: { value: 'mobile1', isRotated: false } } };
+
+export const HeroSpaceOverlayTablet: Story = {
+  ...HeroSpaceOverlay,
+  decorators: [...(Array.isArray(HeroSpaceOverlay.decorators) ? HeroSpaceOverlay.decorators : []), (Story) => <div style={{ width: 960, maxWidth: '100%' }}><Story /></div>],
+  parameters: { docs: { description: { story: 'Synthetic measurements at a 960px content width, covering the two-column header below the desktop breakpoint.' } } },
+};
