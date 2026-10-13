@@ -588,13 +588,24 @@ export function Dashboard({
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12">
       <main className="pb-6 space-y-6">
-        <section aria-label="About S1MB" className="mosaic-hero -mx-4 sm:-mx-8 lg:-mx-12 border-b bg-background text-foreground px-4 sm:px-8 lg:px-12 py-8 sm:py-10">
-          <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr] lg:items-end lg:gap-12">
+        <section aria-label="About S1MB" className="mosaic-hero -mx-4 sm:-mx-8 lg:-mx-12 border-b bg-background text-foreground px-4 sm:px-8 lg:px-12 pt-20 pb-8 sm:pb-10 md:pt-8">
+          <div className="grid gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:items-start md:gap-8 lg:gap-12">
             <div>
-              <a href="/" aria-label="S1MB home" className="mb-6 inline-block text-2xl font-bold tracking-tight">S1MB<span className="text-primary">.</span></a>
-              <h1 className="text-[clamp(2.8rem,5.1vw,4.6rem)] font-semibold leading-[0.98] tracking-[-0.06em]">System One<br /><span className="text-primary">Mosaic</span> Benchmark</h1>
+              <a href="/" aria-label="S1MB home" className="mb-4 inline-block text-2xl font-bold tracking-tight">S1MB<span className="text-primary">.</span></a>
+              <h1 className="text-[clamp(2.2rem,3.5vw,3.25rem)] font-semibold leading-[0.98] tracking-[-0.06em]">System One<br /><span className="text-primary">Mosaic</span> Benchmark</h1>
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-3 mt-6 border-t border-border/60 pt-4">
+                <EvaluationScopeSwitch categories={snapshot.categories} selected={category.id} onSelect={chooseScope} />
+                <div aria-label="Benchmark resources" className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <a href="https://huggingface.co/blog/hotchpotch/system-one-mosaic-benchmark/" target="_blank" rel="noreferrer" aria-label="Guide: explainer article" className="inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-foreground">
+                    <BookOpen aria-hidden="true" className="size-3.5" />Guide<ArrowUpRight aria-hidden="true" className="size-3" />
+                  </a>
+                  <a href="https://github.com/hotchpotch/S1MB" target="_blank" rel="noreferrer" aria-label="GitHub: hotchpotch/S1MB" className="inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-foreground">
+                    <GitHubIcon />GitHub<ArrowUpRight aria-hidden="true" className="size-3" />
+                  </a>
+                </div>
+              </div>
             </div>
-            <div className="w-full max-w-lg space-y-5 lg:justify-self-end lg:pb-1">
+            <div className="w-full max-w-lg space-y-5 md:justify-self-end md:pt-12">
               <p className="text-[clamp(1.6rem,2.5vw,2.25rem)] font-semibold leading-[1.08] tracking-[-0.06em] text-foreground">Compare models across<br /><span className="text-primary">{benchmarks.length} specialized benchmarks.</span></p>
               <div className="grid grid-cols-3 gap-3 sm:gap-5">
                 {([
@@ -605,17 +616,6 @@ export function Dashboard({
                   <div data-task={task} className="task-accent border-t-2 border-current pt-3 flex items-center gap-2 text-sm font-semibold"><Icon aria-hidden="true" className="size-4 shrink-0" strokeWidth={1.5} />{label}</div>
                   <p className="text-[11px] sm:text-xs leading-relaxed text-muted-foreground">{description}</p>
                 </div>)}
-              </div>
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-border/60 pt-4">
-                <EvaluationScopeSwitch categories={snapshot.categories} selected={category.id} onSelect={chooseScope} />
-                <div aria-label="Benchmark resources" className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <a href="https://huggingface.co/blog/hotchpotch/system-one-mosaic-benchmark/" target="_blank" rel="noreferrer" aria-label="Guide: explainer article" className="inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-foreground">
-                    <BookOpen aria-hidden="true" className="size-3.5" />Guide<ArrowUpRight aria-hidden="true" className="size-3" />
-                  </a>
-                  <a href="https://github.com/hotchpotch/S1MB" target="_blank" rel="noreferrer" aria-label="GitHub: hotchpotch/S1MB" className="inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-foreground">
-                    <GitHubIcon />GitHub<ArrowUpRight aria-hidden="true" className="size-3" />
-                  </a>
-                </div>
               </div>
             </div>
           </div>
