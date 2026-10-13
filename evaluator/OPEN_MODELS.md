@@ -1251,3 +1251,33 @@ no-truncation preflight is available. `--no-context-shift` alone does not disabl
 model-specific renderer truncation. Backend temperature comes from the model's
 metadata; chat-generation parameters such as `temperature` and `top_p` are not
 constructor kwargs and are not passed to `/v1/systemone`.
+
+## Saihai 8B (BF16)
+
+The `saihai` adapter uses the released `saihai.model.TorchDecisionModel` backend
+and exactly the input conversion in the checkpoint's `saihai/jdmb_eval.py`.
+It preserves structured state, authored instructions and definitions, anonymous
+Choice/Score labels, authored numeric Score order, and false/true Noul order.
+Inference reads candidate LM-head logits without generating text, using BF16,
+SDPA and temperature 1.0. It rejects overflow at the native 8,192-token limit;
+Choice supports 1–255 candidates and Score supports 2–10 levels. The native JSON
+serializer uses six significant digits for numbers, as recorded by the release.
+
+Use Python 3.12+ and install S1MB's `open-models` extra. Download the complete
+self-contained checkpoint, keeping its original Apache-2.0 license and pinned
+code/weights together. No checkpoint files belong in the source repository.
+From `evaluator/`:
+
+```sh
+hf download hotchpotch/saihai-v1-8b --revision 798638665cc835e21f84e970531c8565043ce098
+CUDA_VISIBLE_DEVICES=1 uv run --python 3.12 --extra open-models s1mb run \
+  --adapter saihai --model hotchpotch/saihai-v1-8b \
+  --revision 798638665cc835e21f84e970531c8565043ce098 \
+  --source /path/to/the/pinned/checkpoint/snapshot --device cuda:0 \
+  --category smoke-v1 --limit 2 --run-id saihai-bf16-smoke-UNIQUE
+```
+
+Validate saved smoke results before running `--category english-v1` with a fresh
+run ID and no `--limit`. Metadata records measured parameter counts, checkpoint
+and code provenance, and native inference settings. The JDMB score in the model
+card is a separate benchmark measurement and is not an S1MB result.

@@ -136,6 +136,7 @@ def main() -> None:
             "evalengine",
             "deem",
             "hopper",
+            "saihai",
             "reflex",
             "verdict-small",
             "opendecision",
@@ -914,6 +915,7 @@ def execute(args, parser):
 
         adapter = UneeAdapter(args.model)
     elif args.adapter in {
+        "saihai",
         "lumma",
         "tinyjev",
         "nimble",
@@ -1006,6 +1008,7 @@ def execute(args, parser):
             "evalengine": "EvalEngineAdapter",
             "deem": "DeemAdapter",
             "hopper": "HopperAdapter",
+            "saihai": "SaihaiAdapter",
             "reflex": "ReflexAdapter",
             "verdict-small": "VerdictSmallAdapter",
             "opendecision": "OpenDecisionAdapter",

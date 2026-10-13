@@ -506,3 +506,7 @@ Inputs are sent without local truncation. Probability distributions are normaliz
 only within four-decimal rounding tolerance. Use fresh run IDs for subsequent runs.
 Use `--case-batch-size 8` for up to eight concurrent independent requests; the
 default is one and the maximum is 32. Smoke-test the chosen concurrency first.
+
+Saihai submissions should identify the merged BF16 checkpoint and its native
+Transformers decision backend. Record the exact checkpoint/code revision and
+8,192-token overflow policy; do not reuse JDMB results as S1MB measurements.
