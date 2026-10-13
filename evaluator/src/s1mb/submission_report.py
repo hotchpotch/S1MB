@@ -171,7 +171,7 @@ def render_report(benchmarks: list[Benchmark], models: list[ModelSummary]) -> st
     return "\n".join(lines) + "\n"
 
 
-def main() -> None:
+def main(*, template: bool = False) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--results-dir",
@@ -195,6 +195,10 @@ def main() -> None:
         help="Reject incomplete submitted models; references may be partial",
     )
     parser.add_argument("--output", type=Path, help="Markdown file; stdout if omitted")
+    if template:
+        parser.add_argument(
+            "--explanation-file", type=Path, help="Author-written English explanation to append"
+        )
     args = parser.parse_args()
     try:
         category = load_category(args.data_dir, args.category)
@@ -216,6 +220,13 @@ def main() -> None:
                 )
             )
         report = render_report(benchmarks, models)
+        if template:
+            from .submission_template import render_template
+
+            explanation = (
+                args.explanation_file.read_text(encoding="utf-8") if args.explanation_file else None
+            )
+            report += "\n" + render_template(args.results_dir, args.category, explanation)
         if args.output is None:
             print(report, end="")
         else:

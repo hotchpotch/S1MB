@@ -124,3 +124,40 @@ def test_no_silent_missing_baseline_or_unclipped_score():
         eligible("noul", {})
     with pytest.raises(ValueError, match="clipped"):
         task_score([benchmark("a")], {"a": measurement(-0.4)})
+
+
+def test_pr_template_keeps_mixed_provenance_and_author_explanation(tmp_path):
+    """Do not collapse distinct revisions or leak per-example hashes into PR text."""
+    import lzma
+
+    from s1mb.submission_template import render_template
+
+    folder = tmp_path / "example__model"
+    folder.mkdir()
+    for revision in ("old", "new"):
+        record = {
+            "run_id": revision,
+            "benchmark": benchmark(revision).model_dump(),
+            "model": {"id": "example/model", "adapter": "test", "revision": revision},
+            "created_at": "2026-10-13",
+            "evaluator_version": "test",
+            "provenance": "measured",
+            "status": "complete",
+            "counts": {"cases": 1, "expected": 1, "succeeded": 1, "failed": 0},
+            "metrics": {},
+            "elapsed_seconds": 1,
+            "environment": {
+                "dataset_source": {"revision": revision},
+                "input_hashes": {"private-id": "hash"},
+            },
+            "predictions": [],
+        }
+        (folder / f"{revision}.json.xz").write_bytes(lzma.compress(json.dumps(record).encode()))
+    report = render_template(tmp_path, "english-v1", "My assessment.")
+    assert "| choice | 2 | 2 | 2 | 0 |" in report
+    assert '"revision": "old"' in report and '"revision": "new"' in report
+    assert "dataset_source" in report
+    assert "private-id" not in report and "input_hashes" not in report
+    assert "My assessment." in report
+    assert "Replace this section" not in report
+    assert "Replace this section" in render_template(tmp_path, "english-v1", None)

@@ -352,6 +352,31 @@ use deletion patterns. Verify the returned PR's file inventory and preview its
 revision before merging; the table supports review but does not replace result
 validation. Publish display data and redeploy only after merge.
 
+### Generate the PR body
+
+Use `scripts/create_results_pr.py` for results PRs. Its default category is
+`english-v1`. Generated evidence must be accompanied by your own explanation
+and assessment: explain additions/replacements, model availability, exact run
+commands, retries, limitations, training overlap, and your interpretation of the
+results. Generated output alone is not a complete submission.
+
+```sh
+uv run python scripts/create_results_pr.py \
+  --results-dir ../tmp/results-submission \
+  --reference-dir ../tmp/results-reference --require-complete \
+  --explanation-file ../tmp/author-explanation.md \
+  --output ../tmp/results-pr-body.md
+```
+
+Run from `evaluator/`. References are optional and repeatable; `--category`
+overrides the default. The script validates results before generating comparison,
+per-task saved coverage, decision counts and recorded provenance/settings.
+Use `--download-datasets` if needed. Without an explanation file, it emits an
+editable checklist. Complete all placeholders before submitting. Review the
+output and pin reference and PR parent commits in your explanation. Saved-file
+counts are distinct from active-category coverage. Keep this Markdown outside
+model folders and use it as the Dataset PR body.
+
 ### PR description template
 
 Copy this into the PR and replace each placeholder. Record facts from the saved
