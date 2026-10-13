@@ -56,6 +56,33 @@ def render_template(repository: Path, category: str, explanation: str | None) ->
         ]
     lines += [
         "",
+        "## Training source and domain disclosure",
+        "",
+        (
+            "For English v1 and Japanese v1, please disclose, to the best of your knowledge, "
+            "whether the submitted model was trained on the "
+            "[Bekko System One Dataset](https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0), "
+            "the [Saihai Dataset](https://huggingface.co/datasets/hotchpotch/saihai-v1-dataset), "
+            "or other datasets covering the same tasks or source domains as these evaluations."
+        ),
+        "",
+        (
+            "Identify the source families actually used, the affected S1MB benchmarks, "
+            "and the training revisions, configurations, splits and filtering when known. "
+            "Link model cards, training manifests, code or technical reports supporting the disclosure. "
+            "Record supported benchmark-level declarations in model metadata as `training_exposure`, "
+            "distinguishing `same_source_family`, `related_domain` and `evaluation_examples`. "
+            "Training on an NLI dataset, for example, does not by itself establish exposure "
+            "to every NLI benchmark. Filtering evaluation duplicates does not remove source-family exposure."
+        ),
+        "",
+        (
+            "If source details cannot be confirmed, state what is unknown. "
+            "Missing disclosure does not mean a domain was unseen: other models may also have trained "
+            "on these domains without public confirmation. Known-domain marks communicate documented "
+            "training exposure, not an explanation or prediction of high scores; scores are unchanged."
+        ),
+        "",
         "## Author explanation and assessment",
         "",
         explanation.strip()

@@ -19,7 +19,12 @@ export function checkedSnapshot(value: unknown): Snapshot {
   if (!ids.size || ids.size !== s.benchmarks.length || !s.categories.length || s.categories.some(c => c.benchmarks.some(id => !ids.has(id)))) throw new Error('Invalid display definitions');
   if (s.issues.length || new Set(s.categories.map(c => c.id)).size !== s.categories.length || s.categories.some(c => new Set(c.benchmarks).size !== c.benchmarks.length)) throw new Error('Invalid display categories or issues');
   const keys = new Set<string>();
+  const displayIdentities = new Map<string, string>();
   for (const r of s.results) {
+    const identity = JSON.stringify([r.model.display_name ?? null, r.model.short_name ?? null,
+      r.model.url ?? null, r.model.hf_url ?? null]);
+    if (displayIdentities.has(r.run_id) && displayIdentities.get(r.run_id) !== identity) throw new Error('Conflicting display model identity');
+    displayIdentities.set(r.run_id, identity);
     if (r.model.training_exposure?.some(e => !ids.has(e.benchmark_id))) throw new Error("Unknown training exposure benchmark");
     const current = s.benchmarks.find(b => b.id === r.benchmark.id);
     if (!current || ['task', 'dataset', 'split', 'primary_metric'].some(k => current[k as keyof typeof current] !== r.benchmark[k as keyof typeof r.benchmark])) throw new Error('Incompatible display benchmark');
@@ -58,8 +63,9 @@ export function decodeDisplay(value: unknown): { artifact: DisplayData; snapshot
   });
   const snapshot = checkedSnapshot({ benchmarks: p.definitions.map(i => p.benchmarks[i]), categories: p.categories,
     results, issues: [], sources: [{ name: a.source?.repo ?? 'local', files: results.length }] });
-  if (!results.length || new Set(p.results.map(r => r.model)).size !== p.models.length
-    || new Set(p.models.map(m => JSON.stringify(m))).size !== p.models.length) throw new Error('Empty display data or unused model');
+  const modelKeys = p.models.map(m => JSON.stringify(m));
+  if (new Set(modelKeys).size !== modelKeys.length) throw new Error('Duplicate display model entry');
+  if (!results.length || new Set(p.results.map(r => r.model)).size !== p.models.length) throw new Error('Empty display data or unused model');
   return { artifact: a, snapshot: { ...snapshot, display: { generatedAt: a.generatedAt, source: a.source, digest: a.digest } } };
 }
 
@@ -75,6 +81,7 @@ export function encodeDisplay(value: Snapshot, source: DisplayData['source']): D
   };
   const definitions = snapshot.benchmarks.map(benchmarkIndex);
   const results = snapshot.results.map(({ run_id, model, benchmark, ...r }) => {
+    // A published row may retain different adapters/settings across benchmark runs.
     const key = JSON.stringify({ run_id, model });
     if (!modelIds.has(key)) { modelIds.set(key, models.length); models.push({ run_id, model }); }
     return { ...r, model: modelIds.get(key)!, benchmark: benchmarkIndex(benchmark) };

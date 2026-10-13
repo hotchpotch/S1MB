@@ -5,9 +5,10 @@ Noul, and Score tasks. It does not establish unseen-task generalization or
 training-data non-overlap. Communicate with the user in their language. Unless
 the user specifies otherwise, write all project documentation, PR titles and
 descriptions, published comments, and code comments and docstrings in English.
-When the user explicitly specifies a language for these artifacts, always ask
-the human once whether they really want that language before writing or
-publishing them. Wait for their confirmation; do not treat the initial language
+Use English without asking for language confirmation, including when the user
+explicitly requests English. When the user explicitly requests a language other
+than English for these artifacts, ask the human once whether they really want
+that language before writing or publishing them. Wait for their confirmation; do not treat the initial language
 instruction as confirmation. Once the human answers that confirmation question,
 do not ask again for the same artifacts.
 

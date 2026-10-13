@@ -5,7 +5,7 @@ import re
 import shutil
 import tempfile
 from pathlib import Path, PurePosixPath
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 from urllib.parse import urlsplit
 
 import pyarrow as pa
@@ -52,6 +52,24 @@ class ModelMetadata(Record):
                 raise ValueError("Active parameters require a supported counting method")
             if self.total_params is not None and self.active_params > self.total_params:
                 raise ValueError("Active parameters exceed total parameters")
+        return self
+
+
+class TrainingDisclosure(Record):
+    model_ids: list[Annotated[str, Field(
+        max_length=256, pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*__[A-Za-z0-9][A-Za-z0-9._-]*$"
+    )]] = Field(min_length=1, max_length=256)
+    training_exposure: list[TrainingExposure] = Field(min_length=1, max_length=256)
+
+
+class TrainingExposureRegistry(Record):
+    disclosures: list[TrainingDisclosure] = Field(min_length=1, max_length=256)
+
+    @model_validator(mode="after")
+    def unique_model_ids(self) -> Self:
+        ids = [model_id for group in self.disclosures for model_id in group.model_ids]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Duplicate training disclosure model IDs")
         return self
 
 
@@ -167,12 +185,13 @@ def validate_published(root: Path, result: Result, *, download: bool = False) ->
 def export_results(root: Path, paths: list[Path], metadata_path: Path, output: Path) -> Path:
     metadata = ModelMetadata.model_validate(read_json(metadata_path))
     registry = root.parent / "model-training-exposure.json"
-    if metadata.training_exposure is None and registry.is_file():
-        disclosure = read_json(registry)
-        if metadata.model_id in disclosure["model_ids"]:
-            metadata = ModelMetadata.model_validate({
-                **metadata.model_dump(), "training_exposure": disclosure["training_exposure"]
-            })
+    if registry.is_file():
+        disclosures = TrainingExposureRegistry.model_validate(read_json(registry)).disclosures
+        if metadata.training_exposure is None:
+            for disclosure in disclosures:
+                if metadata.model_id in disclosure.model_ids:
+                    metadata.training_exposure = disclosure.training_exposure
+                    break
     validate_training_exposure(root, metadata)
     files = result_files(paths)
     if not files:

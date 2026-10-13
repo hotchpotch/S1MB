@@ -157,7 +157,7 @@ test('authored exposure registry is scoped to exact row IDs and explicit metadat
   try {
     const loader = new FilesystemResults(f.root, [f.results], undefined, path.join(f.root, 'model-training-exposure.json'));
     const original = (await loader.refresh()).results[0];
-    await writeFile(path.join(f.root, 'model-training-exposure.json'), JSON.stringify({ model_ids: ['example__model'], training_exposure: [exposure] }));
+    await writeFile(path.join(f.root, 'model-training-exposure.json'), JSON.stringify({ disclosures: [{ model_ids: ['other__model'], training_exposure: [{ ...exposure, revision: null }] }, { model_ids: ['example__model'], training_exposure: [exposure] }] }));
     const disclosed = (await loader.refresh()).results[0];
     assert.deepEqual(disclosed.model.training_exposure, [exposure]);
     assert.deepEqual(disclosed.metrics, original.metrics);
@@ -166,9 +166,58 @@ test('authored exposure registry is scoped to exact row IDs and explicit metadat
     await writeFile(metadataPath, JSON.stringify({ model_id: 'example__model', display_name: 'Synthetic', short_name: 'Synthetic', training_exposure: [explicit] }));
     assert.deepEqual((await loader.refresh()).results[0].model.training_exposure, [explicit]);
     await writeFile(metadataPath, JSON.stringify({ model_id: 'example__model', display_name: 'Synthetic', short_name: 'Synthetic' }));
-    await writeFile(path.join(f.root, 'model-training-exposure.json'), JSON.stringify({ model_ids: ['other__model'], training_exposure: [exposure] }));
+    await writeFile(path.join(f.root, 'model-training-exposure.json'), JSON.stringify({ disclosures: [{ model_ids: ['other__model'], training_exposure: [exposure] }] }));
     assert.equal((await loader.refresh()).results[0].model.training_exposure, undefined);
-    await writeFile(path.join(f.root, 'model-training-exposure.json'), JSON.stringify({ model_ids: ['example__model'], training_exposure: [{ ...exposure, benchmark_id: 'unknown' }] }));
+    await writeFile(path.join(f.root, 'model-training-exposure.json'), JSON.stringify({ disclosures: [{ model_ids: ['example__model'], training_exposure: [{ ...exposure, benchmark_id: 'unknown' }] }] }));
     await assert.rejects(loader.refresh(), /Unknown training exposure benchmark/);
+    const unknownSnapshot = { ...exposure, revision: null, config: null, split: null };
+    await writeFile(path.join(f.root, 'model-training-exposure.json'), JSON.stringify({ disclosures: [{ model_ids: ['example__model'], training_exposure: [unknownSnapshot] }] }));
+    assert.deepEqual((await loader.refresh()).results[0].model.training_exposure, [unknownSnapshot]);
+    for (const value of [
+      { disclosures: [{ model_ids: ['example__model', 'example__model'], training_exposure: [exposure] }] },
+      { disclosures: [{ model_ids: ['example__model'], training_exposure: [exposure] }, { model_ids: ['example__model'], training_exposure: [exposure] }] },
+      { disclosures: [] },
+      { model_ids: ['example__model'], training_exposure: [exposure] },
+    ]) {
+      await writeFile(path.join(f.root, 'model-training-exposure.json'), JSON.stringify(value));
+      await assert.rejects(loader.refresh(), /Invalid registry file/);
+    }
+  } finally { await rm(f.root, { recursive: true, force: true }); }
+});
+
+
+test('display dictionary preserves per-benchmark model settings within one leaderboard row', async () => {
+  const { encodeDisplay, decodeDisplay } = await import('./display-data');
+  const { createHash } = await import('node:crypto');
+  const f = await fixture();
+  try {
+    const original = await new FilesystemResults(f.root, [f.results]).refresh();
+    const first = original.results[0];
+    const secondBenchmark = { ...first.benchmark, id: 'second-choice' };
+    const second = { ...first, benchmark: secondBenchmark,
+      model: { ...first.model, adapter: 'historical-adapter', settings: { questions_per_call: 2 } } };
+    const snapshot = { ...original, benchmarks: [...original.benchmarks, secondBenchmark],
+      categories: original.categories.map(c => ({ ...c, benchmarks: [...c.benchmarks, secondBenchmark.id] })),
+      results: [first, second] };
+    const artifact = encodeDisplay(snapshot, null);
+    assert.equal(artifact.version, 1);
+    assert.equal(artifact.payload.models.length, 2);
+    const decoded = decodeDisplay(artifact).snapshot;
+    assert.deepEqual(decoded.results, snapshot.results);
+    assert.equal(new Set(decoded.results.map(r => r.run_id)).size, 1);
+    const rehash = (value: typeof artifact) => ({ ...value,
+      digest: createHash('sha256').update(JSON.stringify(value.payload)).digest('hex') });
+    const duplicate = structuredClone(artifact);
+    duplicate.payload.models.push(structuredClone(duplicate.payload.models[0]));
+    assert.throws(() => decodeDisplay(rehash(duplicate)), /Duplicate display model entry/);
+    const unused = structuredClone(artifact);
+    unused.payload.models.push({ ...unused.payload.models[0], run_id: 'unused-row' });
+    assert.throws(() => decodeDisplay(rehash(unused)), /unused model/);
+    const conflicting = structuredClone(artifact);
+    conflicting.payload.models[1].model.display_name = 'Different display identity';
+    assert.throws(() => decodeDisplay(rehash(conflicting)), /Conflicting display model identity/);
+    assert.throws(() => encodeDisplay({ ...snapshot, results: [first, {
+      ...second, model: { ...second.model, short_name: 'Another identity' },
+    }] }, null), /Conflicting display model identity/);
   } finally { await rm(f.root, { recursive: true, force: true }); }
 });

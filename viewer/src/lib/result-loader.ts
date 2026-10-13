@@ -19,7 +19,13 @@ export const resultSchema = z.object({
   metrics: z.record(z.string(), z.number().finite().nullable()),
 });
 type Metadata = z.infer<typeof metadataSchema>;
-const registrySchema = z.object({ model_ids: z.array(z.string().max(256).regex(/^[A-Za-z0-9][A-Za-z0-9._-]*__[A-Za-z0-9][A-Za-z0-9._-]*$/)).max(256), training_exposure: trainingExposuresSchema }).strict();
+const registrySchema = z.object({ disclosures: z.array(z.object({
+  model_ids: z.array(z.string().max(256).regex(/^[A-Za-z0-9][A-Za-z0-9._-]*__[A-Za-z0-9][A-Za-z0-9._-]*$/)).min(1).max(256),
+  training_exposure: trainingExposuresSchema.unwrap().unwrap(),
+}).strict()).min(1).max(256) }).strict().refine(registry => {
+  const ids = registry.disclosures.flatMap(group => group.model_ids);
+  return ids.length === new Set(ids).size;
+}, 'Duplicate training disclosure model IDs');
 type Registry = z.infer<typeof registrySchema>;
 type Entry = { file: string; stamp: string; kind: 'benchmark' | 'category' | 'metadata' | 'registry' | 'result'; published: boolean };
 type Parsed = Benchmark | Category | Metadata | Registry | ResultSummary;
@@ -137,7 +143,7 @@ export class FilesystemResults {
     const metadata = new Map<string, Metadata>();
     for (const e of entries.filter(e => e.kind === 'metadata')) {
       const m = next.get(e.file)!.value as Metadata;
-      if (m.training_exposure == null && registry?.model_ids.includes(m.model_id)) m.training_exposure = registry.training_exposure;
+      if (m.training_exposure == null) m.training_exposure = registry?.disclosures.find(group => group.model_ids.includes(m.model_id))?.training_exposure;
       for (const exposure of m.training_exposure ?? []) if (!known.has(exposure.benchmark_id)) throw new Error('Unknown training exposure benchmark');
       if (m.model_id !== path.basename(path.dirname(e.file))) throw new Error('Model directory/metadata ID mismatch');
       metadata.set(path.dirname(e.file), m);

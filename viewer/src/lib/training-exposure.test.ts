@@ -34,6 +34,16 @@ test('missing disclosure is unknown, and badges apply only to named benchmarks',
   assert.equal(exposureLabel([{ ...exposure, relationship: 'evaluation_examples' }]), 'Evaluation examples used');
 });
 
+test('a pinned declaration with unpublished training source details survives display conversion', () => {
+  const unknown = { ...exposure, dataset: null, revision: null, config: null, split: null };
+  metadataSchema.parse({ ...metadata, training_exposure: [unknown] });
+  const exposed = summarize({ ...raw, model: { ...raw.model, training_exposure: [unknown] } });
+  const snapshot = { categories: [{ id: 'all', name: 'All', description: '', benchmarks: ['choice'] }], benchmarks: [benchmark], results: [exposed], sources: [], issues: [] };
+  const decoded = decodeDisplay(encodeDisplay(snapshot, null)).snapshot;
+  assert.deepEqual(decoded.results[0].model.training_exposure, [unknown]);
+  assert.equal(exposureLabel(exposuresFor(decoded.results[0].model)), 'Known domain');
+});
+
 test('reject unpinned, unbounded, secret-bearing and unexpected training metadata', () => {
   for (const bad of [{ revision: 'main' }, { evidence_url: 'https://user:secret@example.org' },
     { evidence_url: 'javascript:alert(1)' }, { split: 'x'.repeat(65) }, { predictions: [] }, { note: 'x'.repeat(1001) }, { relationship: 'unseen' }]) {

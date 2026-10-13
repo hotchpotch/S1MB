@@ -5,7 +5,11 @@ import pytest
 
 from s1mb import cli, dataset_source
 from s1mb.data import DATA_DIR, TrainingExposure, load_benchmark, load_category
-from s1mb.result_repository import ModelMetadata
+from s1mb.result_repository import (
+    ModelMetadata,
+    TrainingExposureRegistry,
+    validate_training_exposure,
+)
 
 
 def test_all_refreshes_both_once_and_offline_skips(tmp_path, monkeypatch):
@@ -36,17 +40,31 @@ def test_japanese_active_inventory_is_ordinary_and_disjoint():
 
 
 def test_bekko_registry_is_bounded_pinned_and_explicit():
-    registry = json.loads((DATA_DIR.parent / 'model-training-exposure.json').read_text())
+    registry = next(group for group in json.loads((DATA_DIR.parent / 'model-training-exposure.json').read_text())['disclosures'] if 'hotchpotch__bekko-system-one-v0-17m' in group['model_ids'])
     assert len(registry['model_ids']) == 3
     entries = [TrainingExposure.model_validate(e) for e in registry['training_exposure']]
     assert len(entries) == 98
     assert len({e.config for e in entries}) == 77
-    assert {e.relationship for e in entries} == {'same_source_family'}
+    assert {e.relationship for e in entries} == {'same_source_family', 'evaluation_examples'}
     assert {e.benchmark_id for e in entries} <= set(load_category(DATA_DIR, 'english-v1').benchmarks)
     for model_id in registry['model_ids']:
         metadata = ModelMetadata(model_id=model_id, display_name=model_id, short_name=model_id, training_exposure=entries)
         assert ModelMetadata.model_validate(metadata.model_dump()) == metadata
     assert ModelMetadata(model_id='owner__unknown', display_name='Unknown', short_name='Unknown').training_exposure is None
+
+
+def test_authored_disclosures_validate_all_model_groups_against_current_definitions():
+    registry = TrainingExposureRegistry.model_validate(json.loads(
+        (DATA_DIR.parent / 'model-training-exposure.json').read_text()
+    ))
+    for group in registry.disclosures:
+        for model_id in group.model_ids:
+            metadata = ModelMetadata(
+                model_id=model_id, display_name=model_id, short_name=model_id,
+                training_exposure=group.training_exposure,
+            )
+            validate_training_exposure(DATA_DIR, metadata)
+            assert ModelMetadata.model_validate(metadata.model_dump()) == metadata
 
 
 def test_all_evaluates_union_with_one_adapter_and_one_run_id(tmp_path, monkeypatch):

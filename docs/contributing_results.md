@@ -79,10 +79,17 @@ All Python/Hub CLI commands below run from `evaluator/` unless stated otherwise.
 - Disclose known evaluation/training overlap and non-default inference behavior.
   S1MB is a mosaic of specialized tasks; its scores do not establish unseen-task
   generalization or training-data non-overlap.
-- If training used the [Saihai Dataset](https://huggingface.co/datasets/hotchpotch/saihai-v1-dataset),
-  declare the source families actually used as `same_source_family` in
-  `training_exposure`, even after duplicate and evaluation-overlap filtering.
-  Follow [the Japanese training disclosure guide](training_exposure.md#training-for-japanese-decisions).
+- For English v1 and Japanese v1, disclose to the best of your knowledge whether
+  training used the [Bekko System One Dataset](https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0),
+  the [Saihai Dataset](https://huggingface.co/datasets/hotchpotch/saihai-v1-dataset),
+  or other datasets covering the same tasks or source domains. Identify the source
+  families actually used and the affected benchmarks, with available training
+  provenance and evidence. Record supported `training_exposure` declarations,
+  even after duplicate filtering; distinguish same-source training, related
+  domains and actual evaluation-example use. State unknown details explicitly.
+  Missing disclosure does not establish unseen domains, and known-domain marks
+  communicate available evidence without changing scores. Follow the
+  [training disclosure guide](training_exposure.md).
 
 The format and score checks establish consistency, not the identity of the model
 that generated predictions. Maintainers review the submitted evidence and may
@@ -392,7 +399,9 @@ Run from `evaluator/`. References are optional and repeatable; `--category`
 overrides the default. The script validates results before generating comparison,
 per-task saved coverage, decision counts and recorded provenance/settings.
 Use `--download-datasets` if needed. Without an explanation file, it emits an
-editable checklist. Complete all placeholders before submitting. Review the
+editable checklist. Every generated body also includes the English/Japanese
+training-source and domain disclosure request, including when an explanation
+file is supplied. Complete all placeholders before submitting. Review the
 output and pin reference and PR parent commits in your explanation. Saved-file
 counts are distinct from active-category coverage. Keep this Markdown outside
 model folders and use it as the Dataset PR body.

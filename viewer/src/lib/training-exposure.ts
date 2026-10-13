@@ -4,9 +4,9 @@ import type { ModelInfo } from './types';
 export const trainingExposureSchema = z.object({
   benchmark_id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/),
   relationship: z.enum(['same_source_family', 'related_domain', 'evaluation_examples']),
-  dataset: z.string().max(256).regex(/^[A-Za-z0-9][A-Za-z0-9._-]*\/[A-Za-z0-9][A-Za-z0-9._-]*$/),
-  revision: z.string().regex(/^[0-9a-f]{40}$/),
-  config: z.string().min(1).max(128), split: z.string().min(1).max(64),
+  dataset: z.string().max(256).regex(/^[A-Za-z0-9][A-Za-z0-9._-]*\/[A-Za-z0-9][A-Za-z0-9._-]*$/).nullish(),
+  revision: z.string().regex(/^[0-9a-f]{40}$/).nullish(),
+  config: z.string().min(1).max(128).nullish(), split: z.string().min(1).max(64).nullish(),
   evidence_url: z.url().max(2048).refine(value => { const u = new URL(value); return ['http:', 'https:'].includes(u.protocol) && !u.username && !u.password; }),
   note: z.string().min(1).max(1000),
 }).strict();
