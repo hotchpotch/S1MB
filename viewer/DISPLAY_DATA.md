@@ -35,7 +35,11 @@ Raw measurements and their history remain unchanged.
 
 Format version 1 contains a generation timestamp, source Dataset ID and exact
 measurement commit SHA, SHA-256 digest, and a compact payload. The payload stores
-models and benchmark descriptions once and refers to them by index from results.
+distinct model configurations and benchmark descriptions once and refers to them
+by index from results. Multiple configurations may share a published model-folder
+identity, so measurements from different runs or languages retain their display
+settings while contributing to the same leaderboard row. Every model entry must
+be referenced, and duplicate identity/configuration pairs are rejected.
 Recorded benchmark descriptions retain revision-specific counts; current
 definitions separately control display membership. Raw inputs, predictions,
 credentials and full model settings are excluded.

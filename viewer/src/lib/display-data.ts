@@ -58,7 +58,8 @@ export function decodeDisplay(value: unknown): { artifact: DisplayData; snapshot
   });
   const snapshot = checkedSnapshot({ benchmarks: p.definitions.map(i => p.benchmarks[i]), categories: p.categories,
     results, issues: [], sources: [{ name: a.source?.repo ?? 'local', files: results.length }] });
-  if (!results.length || new Set(results.map(r => r.run_id)).size !== p.models.length) throw new Error('Empty display data or unused model');
+  if (!results.length || new Set(p.results.map(r => r.model)).size !== p.models.length
+    || new Set(p.models.map(m => JSON.stringify(m))).size !== p.models.length) throw new Error('Empty display data or unused model');
   return { artifact: a, snapshot: { ...snapshot, display: { generatedAt: a.generatedAt, source: a.source, digest: a.digest } } };
 }
 
@@ -74,9 +75,9 @@ export function encodeDisplay(value: Snapshot, source: DisplayData['source']): D
   };
   const definitions = snapshot.benchmarks.map(benchmarkIndex);
   const results = snapshot.results.map(({ run_id, model, benchmark, ...r }) => {
-    if (!modelIds.has(run_id)) { modelIds.set(run_id, models.length); models.push({ run_id, model }); }
-    else if (JSON.stringify(models[modelIds.get(run_id)!].model) !== JSON.stringify(model)) throw new Error('Conflicting display model');
-    return { ...r, model: modelIds.get(run_id)!, benchmark: benchmarkIndex(benchmark) };
+    const key = JSON.stringify({ run_id, model });
+    if (!modelIds.has(key)) { modelIds.set(key, models.length); models.push({ run_id, model }); }
+    return { ...r, model: modelIds.get(key)!, benchmark: benchmarkIndex(benchmark) };
   });
   const payload = { benchmarks, definitions, categories: snapshot.categories, models, results };
   const artifact = { version: 1 as const, generatedAt: new Date().toISOString(), source, digest: sha(JSON.stringify(payload)), payload };
