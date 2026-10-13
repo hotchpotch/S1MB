@@ -509,4 +509,4 @@ default is one and the maximum is 32. Smoke-test the chosen concurrency first.
 
 Saihai submissions should identify the merged BF16 checkpoint and its native
 Transformers decision backend. Record the exact checkpoint/code revision and
-8,192-token overflow policy; do not reuse JDMB results as S1MB measurements.
+native input limit and strict overflow policy; do not reuse JDMB results as S1MB measurements.

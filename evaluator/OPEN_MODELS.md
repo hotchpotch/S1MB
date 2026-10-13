@@ -1259,7 +1259,8 @@ and exactly the input conversion in the checkpoint's `saihai/jdmb_eval.py`.
 It preserves structured state, authored instructions and definitions, anonymous
 Choice/Score labels, authored numeric Score order, and false/true Noul order.
 Inference reads candidate LM-head logits without generating text, using BF16,
-SDPA and temperature 1.0. It rejects overflow at the native 8,192-token limit;
+SDPA and temperature 1.0. It reads the input limit from the pinned native contract
+(65,536 tokens at the revision below) and rejects overflow without truncation;
 Choice supports 1–255 candidates and Score supports 2–10 levels. The native JSON
 serializer uses six significant digits for numbers, as recorded by the release.
 
@@ -1269,10 +1270,10 @@ code/weights together. No checkpoint files belong in the source repository.
 From `evaluator/`:
 
 ```sh
-hf download hotchpotch/saihai-v1-8b --revision 798638665cc835e21f84e970531c8565043ce098
+hf download hotchpotch/saihai-v1-8b --revision c8aa3bbb015471496dbec3a7db2fef86581bd3cf
 CUDA_VISIBLE_DEVICES=1 uv run --python 3.12 --extra open-models s1mb run \
   --adapter saihai --model hotchpotch/saihai-v1-8b \
-  --revision 798638665cc835e21f84e970531c8565043ce098 \
+  --revision c8aa3bbb015471496dbec3a7db2fef86581bd3cf \
   --source /path/to/the/pinned/checkpoint/snapshot --device cuda:0 \
   --category smoke-v1 --limit 2 --run-id saihai-bf16-smoke-UNIQUE
 ```
