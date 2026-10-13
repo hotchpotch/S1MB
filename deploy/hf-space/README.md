@@ -32,14 +32,16 @@ S1MB provides a practical reference point for comparison within these tasks.
 Its scores do not establish unseen-task generalization or training-data non-overlap.
 
 [Read the benchmark introduction](https://huggingface.co/blog/hotchpotch/system-one-mosaic-benchmark/)
-· [Explore the evaluation dataset](https://huggingface.co/datasets/hotchpotch/s1mb-dataset)
+· [English evaluation dataset](https://huggingface.co/datasets/hotchpotch/S1MB-english-v1)
+· [Japanese evaluation dataset](https://huggingface.co/datasets/hotchpotch/S1MB-japanese-v1)
 · [Browse published results](https://huggingface.co/datasets/hotchpotch/s1mb-result)
 
 ## About this Space
 
 This is an interactive viewer of saved benchmark measurements; it does not load
 model weights or run inference. The Docker image includes compact display data
-prepared from the public results Dataset. New results appear after the display
+prepared from the shared public results Dataset for `english-v1` and
+`japanese-v1`. Use the evaluation language selector to switch scopes. New results appear after the display
 data is regenerated and the Space is redeployed.
 
 The viewer's source code is MIT-licensed. Evaluation datasets and model checkpoints

@@ -1,4 +1,4 @@
-"""Saihai's released BF16 backend with the exact JDMB input conversion."""
+"""Saihai's released BF16 backend with its native input conversion."""
 
 import importlib
 import json
@@ -10,7 +10,7 @@ from .upstream import UpstreamAdapter
 
 
 def saihai_input(case, question):
-    """Preserve JDMB's authored ordering, structured values and native Noul order."""
+    """Preserve authored ordering, structured values and native Noul order."""
     options = list(question.options)
     if question.task == "noul":
         options.sort(key=lambda option: option.id == "true")
@@ -56,7 +56,7 @@ class SaihaiAdapter(UpstreamAdapter):
             "max_input_tokens": contract["max_input_tokens"],
             "input_length_policy": "reject-overflow-native",
             "native_backend": "saihai.model.TorchDecisionModel",
-            "renderer": "native-saihai-jdmb-exact-input-v1",
+            "renderer": "native-saihai-exact-input-v1",
             "prompt_version": contract["prompt_version"],
             "codebook": "pplx-decider", "candidate_limit": len(contract["codes"]),
             "score_level_limit": 10, "temperature": 1.0,

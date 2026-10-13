@@ -183,3 +183,17 @@ test('metric ranks preserve ties and exclude missing or nonfinite scores', async
   assert.deepEqual([...metricRanks(entries)], [['a', 1], ['b', 1], ['c', 3]]);
   assert.deepEqual([...metricRanks(entries, true)], [['c', 1], ['a', 2], ['b', 2]]);
 });
+
+test('Japanese Task Avg weights tasks equally and requires complete measured coverage', async () => {
+  const { overallIndex } = await import('./types');
+  const extra = { ...benchmarks[0], id: 'extra-choice' };
+  const defs = [...benchmarks, extra];
+  const cat = { ...category, id: 'japanese-v1', benchmarks: defs.map(b => b.id) };
+  const results = defs.map(b => result('model', b, 0.5, { metrics: { baseline_adjusted_score: b.task === 'choice' ? 1 : 0 } }));
+  const data: Snapshot = { ...snapshot(results), benchmarks: defs, categories: [cat], scoring: Object.fromEntries(defs.map(b => [b.id, { eligible: true, reason: null }])) };
+  assert.equal(overallIndex(data, cat, results), 1 / 3);
+  assert.equal(overallIndex(data, cat, results.slice(1)), null);
+  assert.equal(overallIndex(data, cat, results.map(r => ({ ...r, provenance: 'demo' }))), null);
+  assert.equal(overallIndex(data, { ...cat, benchmarks: [] }, results), null);
+  assert.equal(overallIndex({ ...data, scoring: {} }, cat, results), null);
+});

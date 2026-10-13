@@ -80,7 +80,7 @@ and evaluation conditions before treating small differences as meaningful.
 
 ## Reproducibility and data boundaries
 
-The [evaluation dataset](https://huggingface.co/datasets/hotchpotch/s1mb-dataset)
+The [evaluation dataset](https://huggingface.co/datasets/hotchpotch/S1MB-english-v1)
 holds inputs and targets. Each result records its dataset repository and exact
 commit SHA, model revision, and evaluator provenance. Published model folders may
 combine results from different recorded releases; each is validated and its
@@ -98,3 +98,9 @@ Consult the dataset card and [third-party notices](../THIRD_PARTY_NOTICES.md).
 Downloaded data, weights, measurements, credentials, and generated reports stay
 outside source commits; tracked definitions and synthetic fixtures remain code
 repository assets.
+
+## Japanese v1
+
+Japanese v1 replaces retired experiments with the 27 Japanese benchmarks
+(8,067 judgments). See [language scopes](language_scopes.md) for original source
+partitions, shared result publication and scoring within each language.

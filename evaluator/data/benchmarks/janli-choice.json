@@ -1,0 +1,10 @@
+{
+  "id": "janli-choice",
+  "task": "choice",
+  "dataset": "datasets/janli-choice",
+  "split": "test",
+  "case_count": 285,
+  "decision_count": 285,
+  "primary_metric": "target_mass_at_prediction",
+  "evaluation_family": "ordinary"
+}

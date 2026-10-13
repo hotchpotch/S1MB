@@ -23,7 +23,7 @@ The current arrangement is:
 | GitHub `hotchpotch/S1MB` | Source and deployment workflow | Private |
 | GHCR `ghcr.io/hotchpotch/s1mb-leaderboard` | Docker image with public display JSON | Public |
 | HF Space `hotchpotch/S1MB-leaderboard` | Hosted viewer | Public |
-| HF Dataset `hotchpotch/s1mb-result` | Published measurements | Public |
+| HF Dataset `hotchpotch/s1mb-result` | English and Japanese measurements / display summary | Public |
 
 A maintainer needs permission to push or trigger the repository's deployment
 workflow. Its configured credentials must permit publishing the GHCR package and
@@ -192,7 +192,8 @@ uv sync --locked
 uv run python ../viewer/scripts/publish-display.py
 ```
 
-This resolves the latest `hotchpotch/s1mb-result` commit, downloads only model
+This resolves the latest shared `hotchpotch/s1mb-result` commit for English and
+Japanese measurements, downloads only model
 metadata and compressed measurements, validates their summaries and writes
 `viewer/display/viewer-summary.json` plus a local `.report.json`. It does not need
 private evaluation inputs. Publication validation of original predictions remains

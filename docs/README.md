@@ -46,7 +46,7 @@ or current coverage specification.
 | Material | Location | Publication path |
 | --- | --- | --- |
 | Code, benchmark/category definitions, synthetic test fixtures | This repository | Source PR |
-| Evaluation inputs and targets | [Evaluation dataset](https://huggingface.co/datasets/hotchpotch/s1mb-dataset) | Dataset release; consult its card for access and terms |
+| Evaluation inputs and targets | [Evaluation dataset](https://huggingface.co/datasets/hotchpotch/S1MB-english-v1) | Dataset release; consult its card for access and terms |
 | Model measurements and display metadata | [Results dataset](https://huggingface.co/datasets/hotchpotch/s1mb-result) | Validated results Dataset PR |
 | Downloaded data, weights, raw runs, caches, reports, credentials | Ignored local storage | Keep out of source commits |
 
@@ -55,3 +55,10 @@ source for definitions and results. The viewer reads saved metrics without
 evaluation inputs; prediction validation remains the evaluator's responsibility.
 The source code's MIT license does not grant dataset or checkpoint redistribution
 rights. See [third-party notices](../THIRD_PARTY_NOTICES.md).
+
+## Language scopes and training disclosure
+
+See [language scopes](language_scopes.md) for English/Japanese datasets, language
+switching, `s1mb run --all`, migration provenance and shared result publication.
+See [training exposure](training_exposure.md) for model metadata and known-domain
+badges. Japanese and English contributions and PR descriptions are welcome.

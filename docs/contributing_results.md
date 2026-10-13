@@ -14,10 +14,25 @@ the adapter, its tests and setup instructions, and link the two PRs. Publishing
 results alone leaves others unable to reproduce the evaluation in a different
 environment without access to your local adapter code.
 
-The results repository is [hotchpotch/s1mb-result](https://huggingface.co/datasets/hotchpotch/s1mb-result). It is public;
+The shared English and Japanese results repository is [hotchpotch/s1mb-result](https://huggingface.co/datasets/hotchpotch/s1mb-result). It is public;
 a Hugging Face account is required to submit PRs. Do not upload results to the
-[benchmark input dataset](https://huggingface.co/datasets/hotchpotch/s1mb-dataset)
+[benchmark input dataset](https://huggingface.co/datasets/hotchpotch/S1MB-english-v1)
 configured in `evaluator/dataset-source.json`.
+
+Both `english-v1` and `japanese-v1` measurements belong in this repository.
+A model folder may contain benchmarks from either language or both; completeness
+and ranking are evaluated independently within each selected language. Japanese
+input data remains private, so validation against recorded Japanese Dataset
+revisions requires authorized access. Preserve existing Dataset repo IDs and
+exact SHAs. Japanese submissions must be evaluated against
+`hotchpotch/S1MB-japanese-v1`; historical measurements from other benchmark releases
+remain in private archives and require fresh S1MB evaluations. Do not
+upload private evaluation rows, targets or raw inputs with the measurements.
+
+Results and evaluation datasets retain their applicable licenses and source terms.
+The source project's MIT license applies to code; it does not license submitted
+measurements, source data or model checkpoints. Include the applicable usage
+terms when submitting results.
 
 If you cannot run a model yourself, you can [request an evaluation](model_requests.md).
 Community evaluations depend on volunteer capacity and are not guaranteed.
@@ -33,7 +48,8 @@ All Python/Hub CLI commands below run from `evaluator/` unless stated otherwise.
   disclosed. See the [test-set policy](evaluation.md#test-set-policy).
 - Submit actual model measurements. The dummy adapter produces demo results and
   cannot represent a measured leaderboard entry.
-- Aim for complete `english-v1` coverage across Choice, Noul, and Score. Partial
+- Aim for complete coverage of the submitted language scope (`english-v1` or
+  `japanese-v1`) across Choice, Noul, and Score. Partial
   submissions may add benchmark results, but must disclose missing or failed
   benchmarks and do not qualify for aggregates requiring complete coverage.
 - Use dataset-default instructions and the model's supported adapter. Preserve
@@ -63,6 +79,10 @@ All Python/Hub CLI commands below run from `evaluator/` unless stated otherwise.
 - Disclose known evaluation/training overlap and non-default inference behavior.
   S1MB is a mosaic of specialized tasks; its scores do not establish unseen-task
   generalization or training-data non-overlap.
+- If training used the [Saihai Dataset](https://huggingface.co/datasets/hotchpotch/saihai-v1-dataset),
+  declare the source families actually used as `same_source_family` in
+  `training_exposure`, even after duplicate and evaluation-overlap filtering.
+  Follow [the Japanese training disclosure guide](training_exposure.md#training-for-japanese-decisions).
 
 The format and score checks establish consistency, not the identity of the model
 that generated predictions. Maintainers review the submitted evidence and may
@@ -532,6 +552,19 @@ only within four-decimal rounding tolerance. Use fresh run IDs for subsequent ru
 Use `--case-batch-size 8` for up to eight concurrent independent requests; the
 default is one and the maximum is 32. Smoke-test the chosen concurrency first.
 
+## Language scopes and training disclosure
+
+See [language scopes](language_scopes.md) for English/Japanese datasets, language
+switching, `s1mb run --all`, measurement provenance and shared result publication.
+See [training exposure](training_exposure.md) for model metadata and known-domain
+badges. Japanese and English contributions and PR descriptions are welcome.
+
+For native KnowLine HF measurements, use `--adapter knowline --source` with a
+pinned checkpoint source and revision (see `evaluation.md`). Disclose BF16 HF
+versus FP8 SGLang, the full-input token budget and temperature. A newer checkpoint
+version should use its own model folder; replace an older displayed version only
+after validating the new results and preserving the previous files/history.
+
 Saihai submissions should identify the merged BF16 checkpoint and its native
 Transformers decision backend. Record the exact checkpoint/code revision and
-native input limit and strict overflow policy; do not reuse JDMB results as S1MB measurements.
+native input limit and strict overflow policy; reevaluate historical measurements from other benchmark releases with S1MB.

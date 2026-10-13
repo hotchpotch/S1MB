@@ -1,0 +1,10 @@
+{
+  "id": "jcola-noul",
+  "task": "noul",
+  "dataset": "datasets/jcola-noul",
+  "split": "test",
+  "case_count": 299,
+  "decision_count": 299,
+  "primary_metric": "binary_brier",
+  "evaluation_family": "ordinary"
+}

@@ -123,3 +123,26 @@ test('conversion refuses files edited while reading', async () => {
     await assert.rejects(loader.refresh(), /changed during refresh/);
   } finally { await rm(f.root, { recursive: true, force: true }); }
 });
+
+test('authored exposure registry is scoped to exact row IDs and explicit metadata wins', async () => {
+  const f = await fixture();
+  const exposure = { benchmark_id: 'choice', relationship: 'same_source_family', dataset: 'example/train', revision: 'a'.repeat(40), config: 'train', split: 'train', evidence_url: 'https://example.org/evidence', note: 'Synthetic source family.' };
+  const metadataPath = path.join(f.results, 'example__model/metadata.json');
+  try {
+    const loader = new FilesystemResults(f.root, [f.results], undefined, path.join(f.root, 'model-training-exposure.json'));
+    const original = (await loader.refresh()).results[0];
+    await writeFile(path.join(f.root, 'model-training-exposure.json'), JSON.stringify({ model_ids: ['example__model'], training_exposure: [exposure] }));
+    const disclosed = (await loader.refresh()).results[0];
+    assert.deepEqual(disclosed.model.training_exposure, [exposure]);
+    assert.deepEqual(disclosed.metrics, original.metrics);
+    assert.deepEqual(disclosed.counts, original.counts);
+    const explicit = { ...exposure, relationship: 'evaluation_examples' };
+    await writeFile(metadataPath, JSON.stringify({ model_id: 'example__model', display_name: 'Synthetic', short_name: 'Synthetic', training_exposure: [explicit] }));
+    assert.deepEqual((await loader.refresh()).results[0].model.training_exposure, [explicit]);
+    await writeFile(metadataPath, JSON.stringify({ model_id: 'example__model', display_name: 'Synthetic', short_name: 'Synthetic' }));
+    await writeFile(path.join(f.root, 'model-training-exposure.json'), JSON.stringify({ model_ids: ['other__model'], training_exposure: [exposure] }));
+    assert.equal((await loader.refresh()).results[0].model.training_exposure, undefined);
+    await writeFile(path.join(f.root, 'model-training-exposure.json'), JSON.stringify({ model_ids: ['example__model'], training_exposure: [{ ...exposure, benchmark_id: 'unknown' }] }));
+    await assert.rejects(loader.refresh(), /Unknown training exposure benchmark/);
+  } finally { await rm(f.root, { recursive: true, force: true }); }
+});

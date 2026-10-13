@@ -1,4 +1,4 @@
-"""Saihai must match JDMB's native mapping without exposing benchmark identifiers."""
+"""Saihai must match its released native mapping without exposing benchmark identifiers."""
 
 import json
 from types import SimpleNamespace

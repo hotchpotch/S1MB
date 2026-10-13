@@ -317,5 +317,79 @@
   ],
   "datasets/wiqa": [
     "https://huggingface.co/datasets/allenai/wiqa"
+  ],
+  "datasets/jculture-mcq-noul": [
+    "https://huggingface.co/datasets/llm-jp/llm-jp-instructions-jculture-mcq/tree/c23f8a1a427786812d66cb5b6946cc8ff417f260"
+  ],
+  "datasets/commonsensemoralja-noul": [
+    "https://github.com/Language-Media-Lab/commonsense-moral-ja/tree/1d232e86b0448a2686939a5e7bc1a3731637fe37"
+  ],
+  "datasets/generalization-japanese-diverse-noul": [],
+  "datasets/jsts-score": [
+    "https://github.com/yahoojapan/JGLUE"
+  ],
+  "datasets/generalization-japanese-math-formal-hard-noul": [],
+  "datasets/mmmlu-choice": [
+    "https://huggingface.co/datasets/openai/MMMLU/tree/325a01dc3e173cac1578df94120499aaca2e2504"
+  ],
+  "datasets/jsick-sts-score": [
+    "https://github.com/verypluming/JSICK/tree/b3034994192fae2f41b5937bcf69544e4282fc39"
+  ],
+  "datasets/generalization-japanese-knowledge-hard-noul": [],
+  "datasets/generalization-ja-uncertainty-noul": [],
+  "datasets/janli-choice": [
+    "https://github.com/verypluming/JaNLI/tree/2bbb63622570f7b20abc118146141b501efe5183"
+  ],
+  "datasets/jmteb-retrieval": [
+    "https://huggingface.co/datasets/hakari-bench/NanoJMTEB-v2",
+    "https://huggingface.co/datasets/hotchpotch/JaCWIR/tree/0cd42bf06d0cde0a4c46c82d1a1d76341dc4ddd9",
+    "https://huggingface.co/datasets/mteb/JaGovFaqsRetrieval/tree/0726b2af53c907628067871e2e7c84e0d8e099c2",
+    "https://huggingface.co/datasets/mteb/jaqket/tree/37edb92ba3d5debfe219f3d83e91d1979b8e6d08",
+    "https://huggingface.co/datasets/miracl/miracl/tree/5be20db9509754dadad47689368639fcec739c00",
+    "https://huggingface.co/datasets/castorini/mr-tydi/tree/1d43c80218d06d0ef80f5b172ccabd848b948bc1",
+    "https://huggingface.co/datasets/mteb/NLPJournalTitleAbsRetrieval.V2/tree/7ea085c4107e8554f92409193358790fe40516f8"
+  ],
+  "datasets/generalization-japanese-math-formal-hard-score": [],
+  "datasets/generalization-ja-uncertainty-score": [],
+  "datasets/generalization-ja-uncertainty-choice": [],
+  "datasets/generalization-japanese-math-formal-hard-choice": [],
+  "datasets/mmlu-prox-ja-choice": [
+    "https://huggingface.co/datasets/li-lab/MMLU-ProX/tree/8e6106a6c6ce1c5027e66cc338143cf997b2aa09"
+  ],
+  "datasets/generalization-japanese-knowledge-hard-score": [],
+  "datasets/jnli-choice": [
+    "https://github.com/yahoojapan/JGLUE/tree/6791a5003e6deaa6fb2458bcb3aa1f58dc52ef33"
+  ],
+  "datasets/generalization-japanese-knowledge-hard-choice": [],
+  "datasets/generalization-japanese-diverse-choice": [],
+  "datasets/jcommonsenseqa-choice": [
+    "https://github.com/yahoojapan/JGLUE/tree/6791a5003e6deaa6fb2458bcb3aa1f58dc52ef33"
+  ],
+  "datasets/jamc-qa-choice": [
+    "https://huggingface.co/datasets/sbintuitions/JamC-QA/tree/ec2f8a34b1cfb9dcd8c50583eb688ef2ee3fb671"
+  ],
+  "datasets/kuci-choice": [
+    "https://github.com/ku-nlp/KUCI/tree/79afa1d63d1f262e6709e9be714d9ad5dae8d6f6"
+  ],
+  "datasets/mintaka-ja-boolean-noul": [
+    "https://github.com/amazon-science/mintaka/tree/b6146ffb41562803c45df3c028b4cdad8c09dd4d"
+  ],
+  "datasets/jcola-noul": [
+    "https://github.com/osekilab/JCoLA/tree/736d9eef3af04bb17e4cf59adf01325973234ff9"
+  ],
+  "datasets/jamp-choice": [
+    "https://github.com/tomo-vv/temporalNLI_dataset/tree/f578b5daac7bff3855d238c032a60fd047cddd9c"
+  ],
+  "datasets/jsem-choice": [
+    "https://github.com/DaisukeBekki/JSeM/tree/c2cd39168e267007b4690dbf625329bac57a8185"
+  ],
+  "datasets/gpqa-ja-main-choice": [
+    "https://github.com/llm-jp/jgpqa/tree/110e6d62605a3bd3f2ed49c77992e600216eb4d2"
+  ],
+  "datasets/jmmlu-japan-choice": [
+    "https://github.com/nlp-waseda/JMMLU/tree/762cbf192c9e4588b574d718f95afd64c96fcbf4"
+  ],
+  "datasets/sobaco-culture-choice": [
+    "https://huggingface.co/datasets/Taise228/SOBACO/tree/77d8bb422d598d09f6b689cd09443c7027cdf11d"
   ]
 }

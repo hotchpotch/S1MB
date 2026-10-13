@@ -2,11 +2,13 @@
 
 ### Comparing System One Decision Models across 100+ benchmarks
 
-**[S1MB Leaderboard](https://huggingface.co/spaces/hotchpotch/S1MB-leaderboard)** ·
+**[S1MB Leaderboard](https://huggingface.co/spaces/hotchpotch/S1MB-leaderboard)**
+([en-v1](https://hotchpotch-s1mb-leaderboard.hf.space/?category=english-v1) ·
+[ja-v1](https://hotchpotch-s1mb-leaderboard.hf.space/?category=japanese-v1)) ·
 [Explainer article](https://huggingface.co/blog/hotchpotch/system-one-mosaic-benchmark/) ·
 [Quick start](docs/quickstart.md) ·
 [Results dataset](https://huggingface.co/datasets/hotchpotch/s1mb-result) ·
-[Evaluation dataset](https://huggingface.co/datasets/hotchpotch/s1mb-dataset) ·
+[English evaluation dataset](https://huggingface.co/datasets/hotchpotch/S1MB-english-v1) ·
 [Documentation](docs/README.md) ·
 [Submit results](docs/contributing_results.md)
 
@@ -17,10 +19,22 @@ numeric score using supplied criteria (**Score**). The leaderboard lets you
 compare overall results and inspect which tasks each model handles well or
 struggles with.
 
+S1MB supports model evaluation in **English (`english-v1`) and Japanese
+(`japanese-v1`)**. Evaluate either scope separately with `s1mb run --category`
+or both with `s1mb run --all`.
+
 The **mosaic** combines tasks from existing public NLP datasets with synthetic
-tasks in a shared evaluation workflow. The English suite contains **137 benchmarks
+tasks in a shared evaluation workflow. English v1 contains **137 benchmarks
 across 106 dataset subsets**, including six synthetic benchmarks that probe how
 models respond to varied instructions, contexts, and decision criteria.
+Japanese v1 contains **27 Japanese benchmarks / 8,067 judgments**.
+The leaderboard selects the evaluation scope through its language controls or
+`?category=english-v1` / `?category=japanese-v1` query parameters. Both languages
+use the public [results Dataset](https://huggingface.co/datasets/hotchpotch/s1mb-result)
+and the same leaderboard. The
+[Japanese evaluation Dataset](https://huggingface.co/datasets/hotchpotch/S1MB-japanese-v1)
+remains private and requires authorized access to run evaluations or validate
+predictions against its targets. See [language scopes](docs/language_scopes.md).
 
 S1MB offers a starting point for model comparison and improvement within these
 tasks. Its scores do not establish unseen-task generalization or training-data
@@ -129,3 +143,21 @@ checkpoints, credentials, generated results, and reports out of source commits.
 Project code is released under the [MIT License](LICENSE). Datasets, model
 weights, upstream inference packages, and bundled third-party material retain
 their own licenses and access terms. See [third-party notices](THIRD_PARTY_NOTICES.md).
+
+## Language scopes and training disclosure
+
+See [language scopes](docs/language_scopes.md) for English/Japanese datasets, language
+switching, `s1mb run --all`, migration provenance and shared result publication.
+See [training exposure](docs/training_exposure.md) for model metadata and known-domain
+badges. Japanese and English contributions and PR descriptions are welcome.
+
+For training models to improve Japanese typed decisions, use the
+[Saihai training Dataset](https://huggingface.co/datasets/hotchpotch/saihai-v1-dataset)
+with authorized access and follow its source-specific licenses. It includes
+training examples from ten source families represented in `S1MB-japanese-v1`.
+The maintainer reports removing duplicate examples and evaluation overlaps during
+preparation; this does not make those source domains unseen. When submitting a
+model trained on these examples to S1MB, declare the applicable **Known domains**
+in `metadata.json` using `training_exposure` and `same_source_family`. Record the
+exact training revision and effective configurations, including any filtering.
+See [training disclosure requirements](docs/training_exposure.md#training-for-japanese-decisions).

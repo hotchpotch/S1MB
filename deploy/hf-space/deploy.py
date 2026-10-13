@@ -45,7 +45,7 @@ def published_models(api: HfApi, repo: str, revision: str = "main") -> list[str]
         metadata_file = files.get(filename)
         if metadata_file is None:
             raise ValueError(f"Missing model metadata: {filename}")
-        if metadata_file.size is None or not 0 < metadata_file.size <= 65536:
+        if metadata_file.size is None or not 0 < metadata_file.size <= 1024 * 1024:
             raise ValueError(f"Invalid metadata size: {filename}")
         path = Path(hf_hub_download(repo, filename, repo_type="dataset", revision=info.sha,
                                     token=api.token))

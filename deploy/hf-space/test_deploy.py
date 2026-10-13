@@ -161,7 +161,7 @@ def test_bad_metadata_stops_generation(tmp_path, monkeypatch, failure):
     if failure == "missing":
         siblings.pop(0)
     elif failure == "oversized":
-        siblings[0].size = 65537
+        siblings[0].size = 1024 * 1024 + 1
     elif failure in {"invalid_json", "identity", "invalid_link"}:
         import json
         path = tmp_path / "0.json"
@@ -249,3 +249,11 @@ def test_model_references_use_bundled_measurement_revision(tmp_path, monkeypatch
     file.write_text(json.dumps({"version": 1, "source": {"repo": "other/results", "revision": SHA}}))
     with pytest.raises(ValueError):
         deployment.display_source_revision(Mock(token=False), "example/results", "c" * 40)
+
+
+def test_bounded_training_metadata_can_cover_both_languages(tmp_path, monkeypatch):
+    exposure = {"benchmark_id": "synthetic", "relationship": "same_source_family", "dataset": "example/train", "revision": "a" * 40, "config": "synthetic", "split": "train", "evidence_url": "https://example.org/provenance", "note": "x" * 800}
+    api, download = metadata_snapshot(tmp_path, [{"hf_url": "https://huggingface.co/example/model", "training_exposure": [exposure] * 164}])
+    assert 65536 < api.dataset_info.return_value.siblings[0].size < 1024 * 1024
+    monkeypatch.setattr(deployment, "hf_hub_download", download)
+    assert deployment.published_models(api, "example/results") == ["example/model"]

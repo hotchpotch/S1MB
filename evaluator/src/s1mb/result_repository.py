@@ -15,10 +15,20 @@ from filelock import FileLock
 from huggingface_hub import HfApi, hf_hub_download, snapshot_download
 from pydantic import Field, model_validator
 
-from .data import Record, Result, load_benchmark, read_json, safe_id, validate_result, write_json
+from .data import (
+    Record,
+    Result,
+    TrainingExposure,
+    load_benchmark,
+    read_json,
+    safe_id,
+    validate_result,
+    write_json,
+)
 
 
 class ModelMetadata(Record):
+    training_exposure: list[TrainingExposure] | None = Field(default=None, min_length=1, max_length=256)
     model_id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*__[A-Za-z0-9][A-Za-z0-9._-]*$")
     display_name: str = Field(min_length=1)
     short_name: str = Field(min_length=1)
@@ -156,6 +166,14 @@ def validate_published(root: Path, result: Result, *, download: bool = False) ->
 
 def export_results(root: Path, paths: list[Path], metadata_path: Path, output: Path) -> Path:
     metadata = ModelMetadata.model_validate(read_json(metadata_path))
+    registry = root.parent / "model-training-exposure.json"
+    if metadata.training_exposure is None and registry.is_file():
+        disclosure = read_json(registry)
+        if metadata.model_id in disclosure["model_ids"]:
+            metadata = ModelMetadata.model_validate({
+                **metadata.model_dump(), "training_exposure": disclosure["training_exposure"]
+            })
+    validate_training_exposure(root, metadata)
     files = result_files(paths)
     if not files:
         raise ValueError("No result files found")
@@ -184,12 +202,19 @@ def export_results(root: Path, paths: list[Path], metadata_path: Path, output: P
     return destination
 
 
+def validate_training_exposure(root: Path, metadata: ModelMetadata) -> None:
+    for exposure in metadata.training_exposure or []:
+        if not (root / "benchmarks" / f"{exposure.benchmark_id}.json").is_file():
+            raise ValueError(f"Unknown training exposure benchmark: {exposure.benchmark_id}")
+
+
 def validate_repository(root: Path, repository: Path, *, download: bool = False) -> int:
     count = 0
     for folder in sorted(repository.iterdir()):
         if not folder.is_dir() or folder.name.startswith("."):
             continue
         metadata = ModelMetadata.model_validate(read_json(folder / "metadata.json"))
+        validate_training_exposure(root, metadata)
         if metadata.model_id != folder.name:
             raise ValueError("Model directory/metadata ID mismatch")
         files = list(folder.iterdir())

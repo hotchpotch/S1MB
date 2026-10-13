@@ -1,0 +1,10 @@
+{
+  "id": "jculture-mcq-noul",
+  "task": "noul",
+  "dataset": "datasets/jculture-mcq-noul",
+  "split": "test",
+  "case_count": 283,
+  "decision_count": 283,
+  "primary_metric": "binary_brier",
+  "evaluation_family": "ordinary"
+}
