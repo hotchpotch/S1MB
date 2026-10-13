@@ -17,6 +17,7 @@ source hashes, rendering, attention backend, precision and input limits.
 | System Ichi | Local typed model with bounded question batching |
 | Laya | Full native token layout, FP32 arithmetic, bounded cross-case batches; no CPU fallback |
 | Meta Encoder (`meta-encoder`) | Independent text-choice embeddings with joint cosine softmax |
+| MetaEncoder-think (`meta-encoder-think`) | Frozen target-free reasoning context followed by Meta Encoder candidate scoring |
 | Von | Native option-marker backend and calibration |
 | JevForge | Candidate-path inference followed by a joint softmax |
 | Kev | Native typed loader with explicit input budgets |
@@ -88,6 +89,89 @@ CUDA_VISIBLE_DEVICES=1 uv run s1mb run \
   --context-limit 8192 --category smoke-v1 --limit 2 \
   --run-id meta-encoder-smoke-001
 ```
+
+## MetaEncoder-think
+
+`meta-encoder-think` is a two-stage, target-free extension of the Meta Encoder
+adapter. It uses `meta-models/Muse-Glimmer-30B` at revision
+`a4e59da52a7bc87ae7251dd5545c0dd437c44b68` to generate reasoning from the
+unchanged official query, then scores the query plus frozen reasoning context
+with `facebook/meta-encoder` at revision
+`3d0df704aa5bf66d9c49da1393181f33e893e5f7`. Targets, annotations and
+provenance are not supplied to either stage.
+
+The reasoner uses BF16 SDPA, greedy decoding (`do_sample=false`), seed 4242,
+at most 1,024 new tokens and a 32,768-token combined limit. The prompt asks for
+reasoning followed by a separate `FINAL_ANSWER` line. Preprocessing keeps the
+prefix before the earliest final-answer marker or answer-like conclusion when
+that prefix is usable. If no usable boundary is found, it retains the entire
+nonempty generation. Such fallbacks can therefore contain answer-like
+conclusions and must be counted and disclosed; do not claim that every final
+answer was removed.
+
+Generate contexts before loading the encoder. The context file contains raw
+model generations: keep it local and never include it in a source or results PR.
+
+```sh
+CUDA_VISIBLE_DEVICES=1 uv run python scripts/generate_meta_encoder_think_contexts.py \
+  --data-dir data --category english-v1 \
+  --output ../tmp/metaencoder-think-contexts.json --device cuda:0
+
+CUDA_VISIBLE_DEVICES=1 uv run s1mb run \
+  --adapter meta-encoder-think --model facebook/meta-encoder \
+  --revision 3d0df704aa5bf66d9c49da1393181f33e893e5f7 \
+  --reasoning-contexts ../tmp/metaencoder-think-contexts.json \
+  --temperature 0.03 --device cuda:0 --attention sdpa \
+  --context-limit 32768 --category english-v1 \
+  --run-id metaencoder-think-source-001
+```
+
+### Candidate verification with shared reasoning
+
+Use `--think-scoring candidate_verify` to score each proposed answer against two
+fixed verifier texts: "The proposed answer is correct under the stated task and
+criteria." and "The proposed answer is incorrect under the stated task and
+criteria." Each request contains the same frozen reasoning context, the authored
+task, input and criteria, and one proposed option ID and description. The option
+score is the FP32 correct-minus-incorrect cosine gap. The largest gap receives
+probability one and all other options receive zero. Ties select the first option
+in the original declared order. This is fixed zero-temperature selection;
+`--temperature` can be omitted or set to zero, and positive values are rejected.
+
+```sh
+CUDA_VISIBLE_DEVICES=1 uv run s1mb run \
+  --adapter meta-encoder-think --think-scoring candidate_verify \
+  --model facebook/meta-encoder \
+  --revision 3d0df704aa5bf66d9c49da1393181f33e893e5f7 \
+  --reasoning-contexts ../tmp/metaencoder-think-contexts.json \
+  --device cuda:0 --attention sdpa \
+  --context-limit 32768 --category english-v1 \
+  --run-id metaencoder-think-verify-001
+```
+
+Verification uses length-sorted request batches of up to eight below 4,096 tokens,
+two below 8,192 tokens, and one for longer inputs. Memory or the known SDPA kernel
+failure reduces batch size. Inputs exceeding the configured context limit are
+rejected. The default `--think-scoring cosine` retains the original option-ID
+scoring, with an explicit positive temperature selected separately from test
+data. Keep inference settings fixed before test evaluation. The adapter does
+not provide a test-set temperature-selection workflow.
+
+Both checkpoints are placed entirely on the requested GPU, with no CPU offload;
+results record the effective device map. These commands use physical GPU 1 on
+the maintainers' shared workspace. On other machines, explicitly select an
+available GPU and use its logical CUDA index.
+
+Generation writes format version 1. The loader accepts versions 1 and 2 with
+the same validated record fields. Loading is limited to 512 MiB, 100,000
+records, 1,024 characters per case/question ID, and 131,072 characters per raw
+generation or retained prefix. These limits accommodate full-run artifacts;
+oversized or malformed files are rejected before model loading. The loader
+validates UTF-8 JSON, checkpoint identity, record fields and nonempty contexts.
+Results store the SHA256 of the exact consumed bytes and the format version,
+not the artifact path or raw reasoning. Generation writes a complete temporary
+file in the destination directory, flushes it, and atomically publishes it
+without replacing an existing artifact.
 
 ## Additional English model runtimes
 

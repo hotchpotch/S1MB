@@ -156,6 +156,7 @@ def main() -> None:
             "openjev-shim",
             "verdict-encoder",
             "meta-encoder",
+            "meta-encoder-think",
         ],
         required=True,
     )
@@ -167,7 +168,17 @@ def main() -> None:
     run.add_argument(
         "--temperature",
         type=float,
-        help="Explicit Meta Encoder cosine-softmax or llm2jev calibration temperature",
+        help="Meta Encoder cosine-softmax or llm2jev temperature; candidate_verify is fixed at 0",
+    )
+    run.add_argument(
+        "--reasoning-contexts",
+        type=Path,
+        help="Frozen target-free reasoning contexts for MetaEncoder-think",
+    )
+    run.add_argument(
+        "--think-scoring",
+        choices=["cosine", "candidate_verify"],
+        help="MetaEncoder-think scoring: option-ID cosine or per-candidate verification",
     )
     run.add_argument(
         "--server-host", default="127.0.0.1", help="Winnow/Xor/Blink server IPv4: localhost or Tailscale"
@@ -388,6 +399,7 @@ def validate_run_arguments(args, parser):
             "needle",
             "gliformer-jeff",
             "meta-encoder",
+            "meta-encoder-think",
             "clef",
             "julia",
             "dinah",
@@ -442,20 +454,38 @@ def validate_run_arguments(args, parser):
         "clm",
         "tev",
         "meta-encoder",
+        "meta-encoder-think",
     }:
         parser.error("--attention applies only to measured upstream adapters")
     if args.base_revision is not None and args.adapter not in {"sieve", "lev", "pngwn", "ajev"}:
         parser.error("--base-revision applies only to Sieve, Lev, Pngwn or AJev")
     if args.adapter in {"sieve", "lev", "pngwn", "ajev"} and not args.base_revision:
         parser.error("--base-revision is required for Sieve, Lev, Pngwn or AJev")
-    if args.temperature is not None and args.adapter not in {"meta-encoder", "llm2jev"}:
+    if args.temperature is not None and args.adapter not in {
+        "meta-encoder",
+        "meta-encoder-think",
+        "llm2jev",
+    }:
         parser.error("--temperature applies only to Meta Encoder or llm2jev")
-    if args.temperature is not None and (
+    fixed_verification = (
+        args.adapter == "meta-encoder-think" and args.think_scoring == "candidate_verify"
+    )
+    if fixed_verification:
+        if args.temperature not in (None, 0.0):
+            parser.error("candidate_verify temperature is fixed at zero; omit --temperature")
+        args.temperature = 0.0
+    elif args.temperature is not None and (
         not math.isfinite(args.temperature) or args.temperature <= 0
     ):
         parser.error("--temperature must be finite and positive for Meta Encoder or llm2jev")
-    if args.adapter == "meta-encoder" and args.temperature is None:
+    if args.adapter in {"meta-encoder", "meta-encoder-think"} and args.temperature is None:
         parser.error("--temperature is required for Meta Encoder")
+    if args.adapter == "meta-encoder-think" and args.reasoning_contexts is None:
+        parser.error("--reasoning-contexts is required for MetaEncoder-think")
+    if args.reasoning_contexts is not None and args.adapter != "meta-encoder-think":
+        parser.error("--reasoning-contexts applies only to MetaEncoder-think")
+    if args.think_scoring is not None and args.adapter != "meta-encoder-think":
+        parser.error("--think-scoring applies only to MetaEncoder-think")
     if args.adapter == "llm2jev" and args.temperature is None:
         parser.error("--temperature is required for llm2jev")
 
@@ -909,6 +939,19 @@ def execute(args, parser):
             temperature=args.temperature,
             context_limit=args.context_limit,
             attention=args.attention or "sdpa",
+        )
+    elif args.adapter == "meta-encoder-think":
+        from .adapters.meta_encoder_think import MetaEncoderThinkAdapter
+
+        adapter = MetaEncoderThinkAdapter(
+            args.model,
+            args.revision,
+            args.device,
+            temperature=args.temperature,
+            context_limit=args.context_limit,
+            attention=args.attention or "sdpa",
+            reasoning_contexts=args.reasoning_contexts,
+            scoring=args.think_scoring or "cosine",
         )
     elif args.adapter == "unee":
         from .adapters.unee import UneeAdapter

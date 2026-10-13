@@ -116,6 +116,16 @@ Meta Encoder uses the `meta-encoder` extra and requires an explicit positive
 cosine-softmax `--temperature`. Its text-choice input limit, candidate caching,
 overflow rejection, and input rendering are documented in
 [the adapter notes](../evaluator/OPEN_MODELS.md#meta-encoder).
+MetaEncoder-think uses the same extra and a local frozen reasoning-context file;
+generate and protect that intermediate as described in
+[its adapter notes](../evaluator/OPEN_MODELS.md#metaencoder-think).
+Its `--think-scoring candidate_verify` mode applies the same frozen rationale to
+each proposed answer and selects the largest correct-minus-incorrect embedding
+gap as a one-hot prediction. Its temperature is fixed at zero, and ties select
+the first declared option. The default mode scores the original query against
+option IDs. Fix settings before test evaluation. Results record the scoring
+mode, temperature, effective GPU placement and frozen context artifact SHA256
+and format version. Context loading is bounded and validated before model loading.
 
 Before evaluation, identify and record:
 
