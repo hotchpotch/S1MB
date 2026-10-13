@@ -2,6 +2,7 @@
 import { readdir, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
+import { trainingExposuresSchema } from './training-exposure';
 import { metadataSchema, readResultJson } from './result-files';
 import { METRICS, type Benchmark, type Category, type ResultSummary, type Snapshot } from './types';
 
@@ -12,14 +13,16 @@ export const categorySchema = z.object({ id, name: z.string(), description: z.st
 export const resultSchema = z.object({
   format_version: z.literal(1), run_id: id, benchmark: benchmarkSchema,
   model: z.object({ id: z.string(), adapter: z.string(), settings: z.object({ questions_per_call: z.union([count.positive(), z.literal('all-case-questions')]).nullish() }),
-    total_params: count.nullish(), active_params: count.nullish(), parameter_count_method: z.enum(['non_lookup_parameters_v1', 'embedding_excluded_parameters_v1']).nullish() }).refine(m => m.active_params == null || (m.parameter_count_method != null && (m.total_params == null || m.active_params <= m.total_params)), 'Invalid parameter counts'),
+    training_exposure: trainingExposuresSchema, total_params: count.nullish(), active_params: count.nullish(), parameter_count_method: z.enum(['non_lookup_parameters_v1', 'embedding_excluded_parameters_v1']).nullish() }).refine(m => m.active_params == null || (m.parameter_count_method != null && (m.total_params == null || m.active_params <= m.total_params)), 'Invalid parameter counts'),
   provenance: z.enum(['measured', 'demo']), status: z.enum(['complete', 'partial']),
   counts: z.object({ cases: count, expected: count, succeeded: count, failed: count }),
   metrics: z.record(z.string(), z.number().finite().nullable()),
 });
 type Metadata = z.infer<typeof metadataSchema>;
-type Entry = { file: string; stamp: string; kind: 'benchmark' | 'category' | 'metadata' | 'result'; published: boolean };
-type Parsed = Benchmark | Category | Metadata | ResultSummary;
+const registrySchema = z.object({ model_ids: z.array(z.string().max(256).regex(/^[A-Za-z0-9][A-Za-z0-9._-]*__[A-Za-z0-9][A-Za-z0-9._-]*$/)).max(256), training_exposure: trainingExposuresSchema }).strict();
+type Registry = z.infer<typeof registrySchema>;
+type Entry = { file: string; stamp: string; kind: 'benchmark' | 'category' | 'metadata' | 'registry' | 'result'; published: boolean };
+type Parsed = Benchmark | Category | Metadata | Registry | ResultSummary;
 const epsilon = 1e-12;
 
 export function summarize(value: unknown): ResultSummary {
@@ -71,7 +74,7 @@ async function boundedMap<T, R>(values: T[], fn: (value: T) => Promise<R>, width
 }
 
 /** Only filesystem metadata is read on unchanged checks; symlinked roots are supported. */
-async function scan(dataDir: string, resultDirs: string[]): Promise<Entry[]> {
+async function scan(dataDir: string, resultDirs: string[], registryPath?: string): Promise<Entry[]> {
   const entries: Entry[] = [];
   async function add(file: string, kind: Entry['kind'], published = false) {
     const s = await stat(file, { bigint: true });
@@ -85,6 +88,8 @@ async function scan(dataDir: string, resultDirs: string[]): Promise<Entry[]> {
       if (name.endsWith('.json')) await add(path.join(base, name), kind);
     });
   }
+  try { if (registryPath) await add(registryPath, 'registry'); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
   async function walk(directory: string, depth = 0) {
     if (depth > 4) throw new Error('Result directory nesting exceeds limit');
     const children = await readdir(directory, { withFileTypes: true });
@@ -108,16 +113,16 @@ function signature(entries: Entry[]): string { return JSON.stringify(entries); }
 
 /** Offline conversion: read a complete candidate and reject concurrent source edits. */
 export class FilesystemResults {
-  constructor(private dataDir: string, private resultDirs: string[], private read = readResultJson) {}
+  constructor(private dataDir: string, private resultDirs: string[], private read = readResultJson, private registryPath?: string) {}
   async refresh(): Promise<Snapshot> {
-    const entries = await scan(this.dataDir, this.resultDirs);
+    const entries = await scan(this.dataDir, this.resultDirs, this.registryPath);
     const fingerprint = signature(entries);
     const next = new Map<string, { stamp: string; value: Parsed }>();
     await boundedMap(entries, async e => {
       try {
         const raw = await this.read(e.file);
         const value = e.kind === 'benchmark' ? benchmarkSchema.parse(raw) : e.kind === 'category' ? categorySchema.parse(raw)
-          : e.kind === 'metadata' ? metadataSchema.parse(raw) : summarize(raw);
+          : e.kind === 'metadata' ? metadataSchema.parse(raw) : e.kind === 'registry' ? registrySchema.parse(raw) : summarize(raw);
         next.set(e.file, { stamp: e.stamp, value });
       } catch { throw new Error(`Invalid ${e.kind} file: ${path.basename(e.file)}`); }
     }, 4);
@@ -127,9 +132,13 @@ export class FilesystemResults {
     if (!definitions.length || !categories.length || known.size !== definitions.length || new Set(categories.map(c => c.id)).size !== categories.length) throw new Error('Missing or duplicate definitions');
     for (const b of definitions) if (b.primary_metric !== METRICS[b.task].name) throw new Error('Unknown primary metric');
     for (const c of categories) if (new Set(c.benchmarks).size !== c.benchmarks.length || c.benchmarks.some(id => !known.has(id))) throw new Error('Invalid category membership');
+    const registryEntry = entries.find(e => e.kind === 'registry');
+    const registry = registryEntry ? next.get(registryEntry.file)!.value as Registry : null;
     const metadata = new Map<string, Metadata>();
     for (const e of entries.filter(e => e.kind === 'metadata')) {
       const m = next.get(e.file)!.value as Metadata;
+      if (m.training_exposure == null && registry?.model_ids.includes(m.model_id)) m.training_exposure = registry.training_exposure;
+      for (const exposure of m.training_exposure ?? []) if (!known.has(exposure.benchmark_id)) throw new Error('Unknown training exposure benchmark');
       if (m.model_id !== path.basename(path.dirname(e.file))) throw new Error('Model directory/metadata ID mismatch');
       metadata.set(path.dirname(e.file), m);
     }
@@ -146,9 +155,11 @@ export class FilesystemResults {
       if (e.published && (!m || path.basename(e.file) !== `${original.benchmark.id}.json.xz`)) throw new Error('Invalid published result filename');
       const metadataCounts = m && (m.total_params != null || m.active_params != null);
       const model = m ? { ...original.model, display_name: m.display_name, short_name: m.short_name, url: m.url, hf_url: m.hf_url,
+        training_exposure: m.training_exposure ?? original.model.training_exposure,
         total_params: metadataCounts ? m.total_params : original.model.total_params,
         active_params: metadataCounts ? m.active_params : original.model.active_params,
         parameter_count_method: metadataCounts ? m.parameter_count_method : original.model.parameter_count_method } : original.model;
+      for (const exposure of model.training_exposure ?? []) if (!known.has(exposure.benchmark_id)) throw new Error("Unknown training exposure benchmark");
       const r = { ...original, run_id: m?.model_id ?? original.run_id, model };
       const identity = JSON.stringify(m ?? model);
       if (identities.has(r.run_id) && identities.get(r.run_id) !== identity) throw new Error('Conflicting model identity');
@@ -158,7 +169,7 @@ export class FilesystemResults {
       results.set(key, r);
     }
     // Never publish a mixture if files changed while the candidate was being loaded.
-    if (signature(await scan(this.dataDir, this.resultDirs)) !== fingerprint) throw new Error('Results changed during refresh; keeping previous snapshot');
+    if (signature(await scan(this.dataDir, this.resultDirs, this.registryPath)) !== fingerprint) throw new Error('Results changed during refresh; keeping previous snapshot');
     return { categories, benchmarks: definitions, results: [...results.values()], issues: [], sources: this.resultDirs.map(d => ({ name: path.basename(d), files: entries.filter(e => e.kind === 'result' && e.file.startsWith(path.resolve(d) + path.sep)).length })) };
   }
 }

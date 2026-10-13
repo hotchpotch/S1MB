@@ -13,7 +13,7 @@ schema, active benchmark definitions, and dataset-default instructions.
 All commands in this guide run from `evaluator/`, except where a different working
 directory is stated. Replace example paths and run IDs with your own values.
 
-The configured [evaluation dataset](https://huggingface.co/datasets/hotchpotch/s1mb-dataset)
+The configured [evaluation dataset](https://huggingface.co/datasets/hotchpotch/S1MB-english-v1)
 contains the benchmark inputs and targets; published measurements belong in the
 separate [results dataset](https://huggingface.co/datasets/hotchpotch/s1mb-result).
 Consult the dataset card for access, provenance and license terms. For a new
@@ -311,6 +311,13 @@ with matching benchmark/category definitions. An alternate `--data-dir` root
 must contain the `benchmarks/` and `categories/` definitions before acquisition;
 place that global option before the subcommand. Keep the original data available
 until its raw results have been validated and exported.
+
+When benchmark definitions are retired, archive their local run directories under
+ignored `evaluator/audits/` with their original contents and run IDs intact. Keep
+a receipt of the original paths and file hashes. Validate those runs using their
+original evaluation release and matching definitions in an isolated data root;
+the current release's integration checks inspect `data/results/`. Do not rewrite
+old measurements to match new benchmark definitions.
 
 Published model folders may mix dataset revisions. Synchronization materializes
 recorded releases for validation and baseline calculation; it does not rewrite
@@ -712,10 +719,31 @@ graphs and prefix caching alone does not remove that variation. Require repeated
 request stability, native parity including wide candidates, and validated smoke
 checks before a full run. Preserve the released weights, precision and calibration.
 
+## Language scopes and training disclosure
+
+See [language scopes](language_scopes.md) for English/Japanese datasets, language
+switching, `s1mb run --all`, measurement provenance and shared result publication.
+See [training exposure](training_exposure.md) for model metadata and known-domain
+badges. Japanese and English contributions and PR descriptions are welcome.
+
+### Native KnowLine HF evaluation
+
+`--adapter knowline --source <pinned-model-source>` selects the checkpoint's
+native `knowline_server.py` HF reference in-process, using explicit CUDA, BF16,
+SDPA and temperature 1. Pin both the model revision and source revision. Without
+`--source`, the existing local HTTP/SGLang adapter remains available.
+`--context-limit` applies to the native HF path. It checks the complete rendered
+input before scoring and rejects overflow; it never truncates the state or
+options. Preflight all selected inputs with the same native renderer/tokenizer,
+then smoke-test Choice, Noul and Score before a full run. Numeric Score levels,
+authored Noul meanings, structured states and anonymous Choice slots are retained.
+BF16 HF and FP8 SGLang runs are distinct inference configurations; describe the
+actual runtime in submitted result metadata rather than treating them as identical.
+
 ### Saihai BF16
 
 The `saihai` adapter uses the released Transformers backend and the same input
-conversion as Saihai's JDMB evaluator. Follow the Python 3.12+, pinned-checkpoint
+conversion as Saihai's native evaluation reference. Follow the Python 3.12+, pinned-checkpoint
 setup and GPU smoke invocation in [adapter notes](../evaluator/OPEN_MODELS.md#saihai-8b-bf16).
 Keep native candidate ordering and strict overflow rejection; validate saved
 smoke results before a full `english-v1` run.

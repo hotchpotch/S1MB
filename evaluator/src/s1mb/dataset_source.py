@@ -35,7 +35,10 @@ def dataset_session(root: Path, *, offline: bool = False, category: str = "engli
     identity = hashlib.sha256(str(root).encode()).hexdigest()[:16]
     with FileLock(str(scratch / f"dataset-{identity}.lock")):
         if not offline:
-            if category == "english-v1":
+            if category == "all":
+                ensure_dataset(root)
+                ensure_dataset(root, category="japanese-v1")
+            elif category == "english-v1":
                 ensure_dataset(root)
             else:
                 ensure_dataset(root, category=category)
@@ -132,7 +135,9 @@ def ensure_dataset(
     # All-data manifest retains quarantined subsets, never added to categories.
     rows = entries["evaluation"]
     counts = {}
-    others = [r for r in source_receipts(root) if r.get("repo_id") != source["repo_id"]]
+    # Ownership follows the receipt slot, including a renamed repository.
+    other_paths = [root / "datasets/hub-source.json", *sorted((root / "datasets/hub-sources").glob("*.json"))]
+    others = [read(p) for p in other_paths if p.is_file() and p != installed_path]
     for entry in rows:
         name, split = entry["dataset"], entry["split"]
         if Path(name).name != name or Path(split).name != split:

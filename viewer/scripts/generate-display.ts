@@ -1,6 +1,7 @@
 /** Offline conversion, never invoked by a web request. */
 import { parseArgs } from 'node:util';
 import path from 'node:path';
+import { realpath } from 'node:fs/promises';
 import { FilesystemResults } from '../src/lib/result-loader';
 import { atomicJson, encodeDisplay, readDisplay, reductionWarnings } from '../src/lib/display-data';
 const { values } = parseArgs({ options: {
@@ -10,7 +11,9 @@ const { values } = parseArgs({ options: {
 } });
 if (!values['results-dir']?.length) throw new Error('Provide --results-dir (repeatable)');
 if (Boolean(values['source-repo']) !== Boolean(values['source-revision'])) throw new Error('Provide both source repo and revision');
-const snapshot = await new FilesystemResults(path.resolve(values['data-dir']), values['results-dir'].map(d => path.resolve(d))).refresh();
+const dataRoot = await realpath(path.resolve(values['data-dir']));
+const registryPath = path.join(path.dirname(dataRoot), 'model-training-exposure.json');
+const snapshot = await new FilesystemResults(dataRoot, values['results-dir'].map(d => path.resolve(d)), undefined, registryPath).refresh();
 const source = values['source-repo'] ? { repo: values['source-repo'], revision: values['source-revision']! } : null;
 const artifact = encodeDisplay(snapshot, source);
 const previous = values.previous ? await readDisplay(values.previous) : null;

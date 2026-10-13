@@ -30,6 +30,28 @@ class Record(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
 
+class TrainingExposure(Record):
+    """Submitter-declared training provenance, never an inference instruction."""
+
+    benchmark_id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+    relationship: Literal["same_source_family", "related_domain", "evaluation_examples"]
+    dataset: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$", max_length=256)
+    revision: str = Field(pattern=r"^[0-9a-f]{40}$")
+    config: str = Field(min_length=1, max_length=128)
+    split: str = Field(min_length=1, max_length=64)
+    evidence_url: str = Field(min_length=1, max_length=2048)
+    note: str = Field(min_length=1, max_length=1000)
+
+    @model_validator(mode="after")
+    def check_evidence(self) -> Self:
+        from urllib.parse import urlsplit
+
+        parsed = urlsplit(self.evidence_url)
+        if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
+            raise ValueError("Training evidence must be an HTTP(S) URL without credentials")
+        return self
+
+
 class Option(Record):
     id: str
     description: str
@@ -113,6 +135,7 @@ class Benchmark(Record):
     case_count: int = Field(gt=0)
     decision_count: int = Field(gt=0)
     primary_metric: str
+    evaluation_family: Literal["ordinary"] = "ordinary"
 
     @model_validator(mode="after")
     def check_metric(self) -> Self:
@@ -152,6 +175,7 @@ class Prediction(Record):
 
 
 class ModelInfo(Record):
+    training_exposure: list[TrainingExposure] | None = Field(default=None, min_length=1, max_length=256)
     id: str
     adapter: str
     revision: str

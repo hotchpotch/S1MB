@@ -110,3 +110,24 @@ change. Bind HTTP only to the machine's Tailscale IPv4 address or localhost.
 The HF Space image's dedicated bootstrap may bind to `0.0.0.0:7860` inside the
 managed Space container. This exception does not apply to local services or the
 normal viewer start wrapper. Follow `docs/huggingface_space_deploy.md` for deployment.
+
+## Japanese scope and training disclosures
+
+Follow `docs/language_scopes.md` and `docs/training_exposure.md`. Japanese v1 is
+27 Japanese benchmark sets / 8,067 judgments. Its input Dataset remains private.
+English and Japanese measurements share the public `hotchpotch/s1mb-result`
+Dataset and leaderboard. Publish prepared summaries for both scopes without
+redistributing private evaluation rows or targets.
+Publish Japanese measurements evaluated against `hotchpotch/S1MB-japanese-v1`.
+Do not import measurements from other private benchmark releases; preserve their
+original provenance in private archives and reevaluate these models with S1MB. Both languages use
+S1MB Task Avg with equal task weights within the selected evaluation scope.
+Training-exposure metadata is authored provenance, never an inference instruction
+or scoring adjustment. Absence means unknown. Keep explicit evaluation-example
+use distinct from source-family exposure. Japanese and English contributions are
+welcome; do not require contributors to translate PRs into English.
+
+Authored training disclosures live in `evaluator/model-training-exposure.json`,
+outside evaluation data and measured result roots. Offline preparation fingerprints
+this optional registry with its other inputs and rejects concurrent edits. Metadata
+submitted explicitly for a model takes precedence over the authored registry.

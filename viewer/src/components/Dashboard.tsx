@@ -6,7 +6,7 @@ import { GitHubIcon } from "./GitHubIcon";
 import { BenchmarkSources } from "./BenchmarkSources";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeftRight, ArrowUpRight, BarChart3, Blocks, Check, CircleCheck, ListChecks, Trophy, ChevronLeft, ChevronRight, Search, SlidersHorizontal, ChevronDown, X } from "lucide-react";
+import { ArrowLeftRight, ArrowUpRight, BarChart3, Blocks, Check, CircleCheck, ListChecks, BookOpen, Trophy, ChevronLeft, ChevronRight, Search, SlidersHorizontal, ChevronDown, X } from "lucide-react";
 import { ModelWebsiteLink } from "./ModelWebsiteLink";
 import { hfModelLabel } from '../lib/hf-model-label';
 import { ParameterFilter } from './ParameterFilter';
@@ -61,6 +61,8 @@ import {
   type Run,
 } from "../lib/comparison";
 import { cn } from "../lib/utils";
+import { TrainingBadge, TrainingDetails } from "./TrainingExposure";
+import { EvaluationScopeSwitch } from "./EvaluationScopeSwitch";
 import { ModelName } from "./ModelName";
 import { GeneralizationTable } from "./GeneralizationTable";
 import { bordaScores, BORDA_DESCRIPTION, TASK_AVG_DESCRIPTION } from "../lib/borda";
@@ -119,6 +121,8 @@ function ModelLabel({
   detailed = false,
   distinguish = false,
   showRepository = false,
+  benchmarkId,
+  benchmarkIds,
 }: {
   model: ModelInfo;
   runId: string;
@@ -126,20 +130,25 @@ function ModelLabel({
   detailed?: boolean;
   distinguish?: boolean;
   showRepository?: boolean;
+  benchmarkId?: string;
+  benchmarkIds?: string[];
 }) {
   const repository = showRepository ? hfModelLabel(model.hf_url) : null;
   return (
     <div className={cn('min-w-0 w-full text-left whitespace-normal [overflow-wrap:anywhere]', repository ? 'space-y-0' : 'space-y-1')}>
+      <div className="flex items-start gap-1.5">
       {onClick ? (
         <button
           onClick={onClick}
-          className={cn('font-semibold text-sm text-foreground underline-offset-4 hover:underline text-left break-words', repository && 'block leading-snug')}
+          className={cn('font-semibold text-sm leading-5 text-foreground underline-offset-4 hover:underline text-left break-words', repository && 'block')}
         >
           {detailed ? modelName(model) : model.short_name ?? modelName(model)}
         </button>
       ) : (
-        <p className="font-semibold text-sm break-words">{modelName(model)}</p>
+        <p className="font-semibold text-sm leading-5 break-words">{modelName(model)}</p>
       )}
+      <span className="flex h-5 shrink-0 items-center"><TrainingBadge model={model} benchmarkId={benchmarkId} benchmarkIds={benchmarkIds} onClick={onClick} /></span>
+      </div>
       {repository && (onClick ? (
         <button onClick={onClick} className="block text-left text-[10px]! font-normal leading-tight text-muted-foreground underline-offset-2 hover:underline break-words">
           {repository}
@@ -261,12 +270,14 @@ export function ComparisonTables({
   snapshot,
   categoryId,
   selectedIds,
+  onModelSelect,
   onBenchmarkSelect,
 }: {
   snapshot: Snapshot;
   categoryId: string;
   selectedIds: string[];
   onBenchmarkSelect?: (id: string, task: Task) => void;
+  onModelSelect?: (id: string) => void;
 }) {
   const [filter, setFilter] = useState('');
   const [sort, setSort] = useState('gap');
@@ -333,7 +344,7 @@ export function ComparisonTables({
                         key={run.id}
                         className="sticky top-0 z-20 bg-card py-4 px-3 align-top whitespace-normal [overflow-wrap:anywhere]"
                       >
-                        <ModelName model={run.model} />
+                        <ModelName model={run.model} benchmarkIds={category.benchmarks} onClick={onModelSelect ? () => onModelSelect(run.id) : undefined} />
                       </TableHead>
                     ))}
                   </TableRow>
@@ -355,6 +366,7 @@ export function ComparisonTables({
                             cell.best && "bg-accent/60",
                           )}
                         >
+                          {cell.result && <TrainingBadge model={cell.result.model} benchmarkId={benchmark.id} />}
                           <ScoreValue result={cell.result} best={cell.best} adjusted={adjusted} compact />
                           {showDelta && comparison.runs.length > 1 && <p className="mt-1 text-xs font-mono text-muted-foreground">
                             {cell.runId === reference.id ? 'Reference' : (() => {
@@ -391,6 +403,7 @@ function Empty({
 
 export function Dashboard({
   snapshot,
+  initialCategory,
   initialTask,
   initialRun,
   initialView,
@@ -414,7 +427,7 @@ export function Dashboard({
   initialBenchmark?: string;
 }) {
   const leaderboardTable = useRef<HTMLTableElement>(null);
-  const categoryId = "english-v1";
+  const [categoryId, setCategory] = useState(initialCategory === "japanese-v1" ? "japanese-v1" : "english-v1");
   const [task, setTask] = useState<Task>(
     TASKS.includes(initialTask as Task) ? (initialTask as Task) : "choice",
   );
@@ -568,6 +581,10 @@ export function Dashboard({
         .toLowerCase()
         .includes(query.toLowerCase()),
     );
+  const chooseScope = (id: string) => {
+    setCategory(id); setLeaderboardSort('borda'); setLeaderboardAscending(false);
+    setBenchmark(''); setRun(''); setSelected([]); setGeneralizationOnly(false); setGeneralizationView(false);
+  };
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-12">
       <main className="pb-6 space-y-6">
@@ -589,17 +606,16 @@ export function Dashboard({
                   <p className="text-[11px] sm:text-xs leading-relaxed text-muted-foreground">{description}</p>
                 </div>)}
               </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] sm:text-xs text-muted-foreground">
-                <Badge variant="outline" className="rounded-md border-primary/20 bg-primary/5 font-mono text-[10px] text-primary sm:text-[11px]">{category.id}</Badge>
-                <a href="https://huggingface.co/blog/hotchpotch/system-one-mosaic-benchmark/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 transition-colors hover:text-primary">
-                  <span className="underline underline-offset-2">Explainer article</span>
-                  <ArrowUpRight aria-hidden="true" className="size-3" />
-                </a>
-                <a href="https://github.com/hotchpotch/S1MB" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 transition-colors hover:text-primary">
-                  <GitHubIcon />
-                  <span className="underline underline-offset-2">hotchpotch/S1MB</span>
-                  <ArrowUpRight aria-hidden="true" className="size-3" />
-                </a>
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-border/60 pt-4">
+                <EvaluationScopeSwitch categories={snapshot.categories} selected={category.id} onSelect={chooseScope} />
+                <div aria-label="Benchmark resources" className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <a href="https://huggingface.co/blog/hotchpotch/system-one-mosaic-benchmark/" target="_blank" rel="noreferrer" aria-label="Guide: explainer article" className="inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-foreground">
+                    <BookOpen aria-hidden="true" className="size-3.5" />Guide<ArrowUpRight aria-hidden="true" className="size-3" />
+                  </a>
+                  <a href="https://github.com/hotchpotch/S1MB" target="_blank" rel="noreferrer" aria-label="GitHub: hotchpotch/S1MB" className="inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-foreground">
+                    <GitHubIcon />GitHub<ArrowUpRight aria-hidden="true" className="size-3" />
+                  </a>
+                </div>
               </div>
             </div>
           </div>
@@ -722,7 +738,7 @@ export function Dashboard({
                   <TableHead className="text-right" aria-sort={sortDirection('borda')}><ColumnHelp label="Borda Score" onClick={() => sortLeaderboard('borda')} description={`${BORDA_DESCRIPTION}\n\nThis ranking covers ${rankingCategory.benchmarks.length} benchmarks.`}><span className="block">Borda</span><span className="inline-flex items-center whitespace-nowrap">Score{sortIcon('borda')}</span></ColumnHelp></TableHead>
                   <TableHead className="text-right" aria-sort={sortDirection('overall')}><ColumnHelp onClick={() => sortLeaderboard('overall')} label="Task Avg" description={TASK_AVG_DESCRIPTION}><span className="block">Task</span><span className="inline-flex items-center whitespace-nowrap">Avg{sortIcon('overall')}</span></ColumnHelp></TableHead>
                   {!generalizationOnly && DISPLAY_TASKS.map(t => <TableHead key={t} data-task={t} className="task-accent text-right" aria-sort={sortDirection(t)}><ColumnHelp onClick={() => sortLeaderboard(t)} description={`Average performance on all ${title(t)} benchmarks (0–100; higher is better).\n\nEach benchmark is adjusted against its baseline, clipped to 0–100, then given equal weight.\n\n0 = at or below the baseline; 100 = the reference ceiling. This is not accuracy.\n\nIncludes General ${title(t)}. Requires complete results for this task.`}><span className="inline-flex items-center whitespace-nowrap">{title(t)}{sortIcon(t)}</span></ColumnHelp></TableHead>)}
-                  {DISPLAY_TASKS.map(t => <TableHead key={`general-${t}`} data-task={t} className="task-accent text-right" aria-sort={sortDirection(`general-${t}`)}><ColumnHelp onClick={() => sortLeaderboard(`general-${t}`)} description={`General ${title(t)} limits the score to synthetic datasets designed to evaluate generalization, rather than all ${title(t)} benchmarks.\n\nIncludes the Diverse and Contextual ${title(t)} benchmarks. Their baseline-adjusted scores receive equal weight (0–100; higher is better). Both must be complete.\n\n${generalizationOnly ? 'Only the General benchmarks contribute to Task Avg and Borda Score in this view.' : `These benchmarks already count in ${title(t)}, Task Avg and Borda Score. This column adds no extra weight.`}\n\nThe evaluation purpose does not establish generalization to unseen tasks or rule out training-data overlap.`}><span className="block text-[9px] sm:text-[10px] text-muted-foreground">General</span><span className="inline-flex items-center whitespace-nowrap">{title(t)}{sortIcon(`general-${t}`)}</span></ColumnHelp></TableHead>)}
+                  {DISPLAY_TASKS.map(t => <TableHead key={`general-${t}`} data-task={t} className="task-accent text-right" aria-sort={sortDirection(`general-${t}`)}><ColumnHelp onClick={() => sortLeaderboard(`general-${t}`)} description={`General ${title(t)} limits the score to synthetic datasets designed to evaluate generalization, rather than all ${title(t)} benchmarks.\n\nIncludes the active synthetic ${title(t)} benchmarks in the selected language. Their baseline-adjusted scores receive equal weight (0–100; higher is better). All must be complete.\n\n${generalizationOnly ? 'Only the General benchmarks contribute to Task Avg and Borda Score in this view.' : `These benchmarks already count in ${title(t)}, Task Avg and Borda Score. This column adds no extra weight.`}\n\nThe evaluation purpose does not establish generalization to unseen tasks or rule out training-data overlap.`}><span className="block text-[9px] sm:text-[10px] text-muted-foreground">General</span><span className="inline-flex items-center whitespace-nowrap">{title(t)}{sortIcon(`general-${t}`)}</span></ColumnHelp></TableHead>)}
                   <TableHead className="hidden sm:table-cell text-right w-14"><ColumnHelp label="Coverage" description={'Number of completed benchmarks in the selected ranking scope.\n\nModels with complete measured coverage of the selected scope or its General subset appear here. Full-scope aggregates remain unavailable until that scope is complete.'}>Cov</ColumnHelp></TableHead>
                   <TableHead data-export-columns="TP,AP" className="w-14 sm:w-20 text-right"><ParameterCountsHeader /></TableHead>
                 </TableRow></TableHeader>
@@ -734,7 +750,7 @@ export function Dashboard({
                   }}>
                   <TableCell><CheckRun id={row.runId} checked={selectedIds.includes(row.runId)} onToggle={toggle} /></TableCell>
                   <TableCell className="font-mono text-muted-foreground">{leaderboardRanks.get(row.runId) ?? '—'}</TableCell>
-                  <TableCell data-export-url={row.model.url} data-export-huggingface={row.model.hf_url} className="whitespace-normal"><ModelLabel showRepository model={row.model} runId={row.runId} distinguish={repeatedName(runs, row.model)} onClick={() => setRun(row.runId)} />{row.score === null && <span className="mt-1 block text-xs text-muted-foreground">Aggregate unavailable · {row.results.filter(r => rankingCategory.benchmarks.includes(r.benchmark.id) && r.status === 'complete').length}/{rankingCategory.benchmarks.length} complete</span>}{row.demo && <Badge variant="secondary">Demo</Badge>}</TableCell>
+                  <TableCell data-export-url={row.model.url} data-export-huggingface={row.model.hf_url} className="whitespace-normal"><ModelLabel showRepository benchmarkIds={category.benchmarks} model={row.model} runId={row.runId} distinguish={repeatedName(runs, row.model)} onClick={() => setRun(row.runId)} />{row.score === null && <span className="mt-1 block text-xs text-muted-foreground">Aggregate unavailable · {row.results.filter(r => rankingCategory.benchmarks.includes(r.benchmark.id) && r.status === 'complete').length}/{rankingCategory.benchmarks.length} complete</span>}{row.demo && <Badge variant="secondary">Demo</Badge>}</TableCell>
                   <TableCell className="text-right font-mono font-semibold text-primary">{adjustedScore(borda.get(row.runId))}</TableCell>
                   <TableCell className="text-right">
                     <span className="font-mono">{adjustedScore(row.score)}</span>
@@ -753,7 +769,7 @@ export function Dashboard({
             <details className="text-xs text-muted-foreground py-2">
               <summary>Scoring & scope</summary>
               <div className="mt-3 space-y-2 leading-relaxed">
-                <p>{generalizationOnly ? 'Only the Diverse and Contextual benchmarks contribute to this ranking. Borda, Task Avg and eligibility are recalculated within this subset.' : 'All benchmarks contribute to this ranking. General columns show the Diverse and Contextual subset already included in the task scores, with no extra weight.'} This subset does not establish unseen-task generalization.</p>
+                <p>{generalizationOnly ? 'Only the active synthetic benchmarks in this language contribute to this ranking. Borda, Task Avg and eligibility are recalculated within this subset.' : 'All benchmarks contribute to this ranking. General columns show the active synthetic subset already included in the task scores, with no extra weight.'} This subset does not establish unseen-task generalization.</p>
                 <p className="whitespace-pre-line">{BORDA_DESCRIPTION}</p>
                 <p>Task Avg and task columns are baseline-adjusted scores, not accuracy. 0 means at or below the constant baseline; 100 means the reference ceiling.</p>
                 <p>Choice: (target mass − baseline) / (1 − baseline). Noul: 2 × balanced accuracy − 1. Score: 1 − MAE / constant baseline MAE.</p>
@@ -855,6 +871,7 @@ export function Dashboard({
                             <TableCell className="w-72 min-w-56 max-w-80 py-2 pr-5">
                               <ModelLabel
                                 model={r.model}
+                                benchmarkId={r.benchmark.id}
                                 distinguish={repeatedName(runs, r.model)}
                                 runId={cell.runId}
                                 onClick={() => setRun(cell.runId)}
@@ -928,7 +945,7 @@ export function Dashboard({
               {visibleRuns.length > 0 ? <Table aria-label="Choose models" containerClassName="max-h-72">
                 <TableHeader><TableRow><TableHead className="w-10"><span className="sr-only">Select</span></TableHead><TableHead>Model</TableHead><TableHead className="text-right">Complete benchmarks</TableHead></TableRow></TableHeader>
                 <TableBody>{visibleRuns.map(run => <TableRow key={run.id} className="cursor-pointer" data-state={selectedIds.includes(run.id) ? 'selected' : undefined} onClick={event => {
-                  if (event.target instanceof Element && event.target.closest('[role="checkbox"]')) return;
+                  if (event.target instanceof Element && event.target.closest('[role="checkbox"], button, a')) return;
                   toggle(run.id);
                 }}>
                   <TableCell><Checkbox aria-label={`Select ${run.model.short_name ?? modelName(run.model)}`} checked={selectedIds.includes(run.id)} onCheckedChange={() => toggle(run.id)} /></TableCell>
@@ -949,9 +966,10 @@ export function Dashboard({
                 </div>
               )}
             </details>
-            <ComparisonOrder snapshot={snapshot} category={category} selectedIds={selectedIds} onChange={setSelected} />
+            <ComparisonOrder snapshot={snapshot} category={category} selectedIds={selectedIds} onChange={setSelected} onModelSelect={setRun} />
             <ComparisonTables
               snapshot={snapshot}
+              onModelSelect={setRun}
               categoryId={category.id}
               selectedIds={selectedIds}
               onBenchmarkSelect={(id, selectedTask) => { chooseTask(selectedTask); setBenchmark(id); setBenchmarkMetric('baseline_adjusted_score'); setQuery(''); setRun(''); setView('benchmarks'); window.scrollTo({ top: 0 }); }}
@@ -1041,6 +1059,7 @@ function RunDetails({
         {run.model.url && run.model.url !== run.model.hf_url && <ModelWebsiteLink url={run.model.url} />}
         {run.model.hf_url && <ModelWebsiteLink url={run.model.hf_url} />}
       </div>}
+      <TrainingDetails model={run.model} benchmarks={benchmarks} />
       <section aria-label="Benchmark results" className="space-y-3 border-t pt-5">
       <div className="flex items-baseline justify-between gap-3"><h3 className="font-semibold">Benchmark results</h3><span className="text-xs text-muted-foreground">{visible.length} / {benchmarks.length} benchmarks</span></div>
       <div className="flex flex-wrap gap-2">
@@ -1060,7 +1079,10 @@ function RunDetails({
           {visible.map((b) => (
             <TableRow key={b.id}>
               <TableCell className="whitespace-normal min-w-48">
-                <p className="capitalize font-medium text-xs leading-5">{benchmarkName(b)}</p>
+                <div className="flex items-start gap-1.5">
+                  <p className="min-w-0 capitalize font-medium text-xs leading-5">{benchmarkName(b)}</p>
+                  <span className="flex h-5 shrink-0 items-center"><TrainingBadge model={run.model} benchmarkId={b.id} /></span>
+                </div>
                 <p className="mt-1 font-mono text-[10px] leading-4 text-muted-foreground break-all">
                   {b.id}
                 </p>

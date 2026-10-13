@@ -54,7 +54,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {};
 export const EnglishScope: Story = {
   parameters: {
-    docs: { description: { story: "Hero tasks ordered Noul, Choice, Score with short descriptions, an English category badge, an explainer article link, and an underlined GitHub repository link. All measurements are synthetic." } },
+    docs: { description: { story: "Hero tasks ordered Noul, Choice, Score with short descriptions, an evaluation-set selector and compact Guide / GitHub links in the hero metadata row. All measurements are synthetic." } },
   },
 };
 export const Empty: Story = { args: { snapshot: { ...fixture, results: [] } } };
@@ -478,3 +478,26 @@ export const ParameterFiltersMobile: Story = {
   ...ParameterFilters,
   decorators: [(Story) => <div style={{ width: 390, maxWidth: '100%' }}><Story /></div>],
 };
+
+const japaneseBenchmarks = benchmarks.map(b => ({ ...b, id: `japanese-${b.id}`, dataset: `datasets/japanese-${b.id}` }));
+const disclosure = (benchmark_id: string) => ({ benchmark_id, relationship: 'same_source_family' as const, dataset: 'example/synthetic-training', revision: 'a'.repeat(40), config: 'synthetic-choice', split: 'train', evidence_url: 'https://example.com/synthetic-evidence', note: 'Synthetic provenance for Storybook only.' });
+const bilingualFixture: Snapshot = {
+  ...fixture,
+  categories: [...fixture.categories, { ...fixture.categories[0], id: 'japanese-v1', name: 'Japanese v1 · Synthetic', benchmarks: japaneseBenchmarks.map(b => b.id) }],
+  benchmarks: [...benchmarks, ...japaneseBenchmarks],
+  scoring: Object.fromEntries([...benchmarks, ...japaneseBenchmarks].map(b => [b.id, { eligible: true, reason: null }])),
+  results: [...fixture.results, ...fixture.results.map((r, i) => ({ ...r, benchmark: japaneseBenchmarks[i] }))].map(r => ({ ...r, model: { ...r.model, training_exposure: [disclosure(benchmarks[0].id), disclosure(japaneseBenchmarks[0].id)] } })),
+};
+export const JapaneseScope: Story = { args: { snapshot: bilingualFixture, initialCategory: 'japanese-v1' } };
+export const TrainingExposure: Story = { args: { snapshot: bilingualFixture, initialRun: 'synthetic-demo' }, parameters: { docs: { description: { story: 'Synthetic training disclosures. Model lists show only compact training icons; the model sidebar starts with a highlighted graduation-cap disclosure panel and collapsed Known domains. Expand it and a domain for task, reason and pinned evidence. Benchmark-table disclosure icons stay beside the first line of the benchmark name at desktop and mobile widths.' } } } };
+export const BilingualComparison: Story = { args: { snapshot: bilingualFixture, initialCategory: 'japanese-v1', initialView: 'compare', initialCompare: ['synthetic-demo'] }, parameters: { docs: { description: { story: 'Synthetic comparison with compact icon-only training disclosures. Hover or focus the icon for provenance; model names open sidebar details.' } } } };
+export const JapaneseScopeMobile: Story = { ...JapaneseScope, globals: { viewport: { value: 'mobile1', isRotated: false } } };
+export const TrainingExposureMobile: Story = { ...TrainingExposure, globals: { viewport: { value: 'mobile1', isRotated: false } } };
+export const BilingualComparisonMobile: Story = { ...BilingualComparison, globals: { viewport: { value: 'mobile1', isRotated: false } } };
+
+const scopeDesignFixture: Snapshot = { ...bilingualFixture, results: bilingualFixture.results.map(r => ({ ...r, provenance: 'measured' as const })) };
+export const ScopeMetadataSegmented: Story = { args: { snapshot: scopeDesignFixture }, parameters: { docs: { description: { story: 'Both evaluation sets are always visible in a compact segmented selector in the existing category metadata row, with grouped Guide and GitHub resources. Synthetic measurements.' } } } };
+export const ScopeMetadataSegmentedMobile: Story = { ...ScopeMetadataSegmented, globals: { viewport: { value: 'mobile1', isRotated: false } } };
+
+export const LeaderboardKnownDomains: Story = { args: { snapshot: scopeDesignFixture }, parameters: { docs: { description: { story: "Synthetic leaderboard with a compact known-domain icon vertically centered on the first line of the model name, including labels above a repository subtitle. Hover or focus for the meaning, disclosed domains and reasons; click for model details. Only the selected scope contributes." } } } };
+export const LeaderboardKnownDomainsMobile: Story = { ...LeaderboardKnownDomains, globals: { viewport: { value: 'mobile1', isRotated: false } } };

@@ -3,6 +3,7 @@ import { execFile } from 'node:child_process';
 import { readFile, stat } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import { z } from 'zod';
+import { trainingExposuresSchema } from './training-exposure';
 
 const execute = promisify(execFile);
 const limit = 64 * 1024 * 1024;
@@ -11,6 +12,7 @@ const link = z.url().refine(value => ['http:', 'https:'].includes(new URL(value)
 export const metadataSchema = z.object({
   model_id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*__[A-Za-z0-9][A-Za-z0-9._-]*$/),
   display_name: z.string().min(1), short_name: z.string().min(1), url: link, hf_url: link,
+  training_exposure: trainingExposuresSchema,
   total_params: count.nullish(), active_params: count.nullish(),
   parameter_count_method: z.enum(['non_lookup_parameters_v1', 'embedding_excluded_parameters_v1']).nullish(),
 }).strict().refine(m => m.active_params == null ||

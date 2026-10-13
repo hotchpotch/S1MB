@@ -1,0 +1,10 @@
+{
+  "id": "jsts-score",
+  "task": "score",
+  "dataset": "datasets/jsts-score",
+  "split": "test",
+  "case_count": 300,
+  "decision_count": 300,
+  "primary_metric": "normalized_expected_score_mae",
+  "evaluation_family": "ordinary"
+}

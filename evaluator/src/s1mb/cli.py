@@ -233,7 +233,9 @@ def main() -> None:
         "--source", help="Upstream source checkout for System Ichi or open-model adapters"
     )
     run.add_argument("--base-revision", help="Explicit dependency checkpoint revision")
-    run.add_argument("--category", default="english-v1")
+    scope = run.add_mutually_exclusive_group()
+    scope.add_argument("--category", default="english-v1")
+    scope.add_argument("--all", action="store_true", help="Evaluate English v1 and Japanese v1 in one run")
     run.add_argument("--benchmark", action="append", help="Select specific category benchmarks")
     run.add_argument(
         "--generalization-only",
@@ -251,6 +253,8 @@ def main() -> None:
     )
     args = parser.parse_args()
     if args.command == "run":
+        if args.all:
+            args.category = "all"
         validate_run_arguments(args, parser)
         from .dataset_source import dataset_session
 
@@ -356,6 +360,7 @@ def validate_run_arguments(args, parser):
         args.context_limit < 1
         or args.adapter
         not in {
+            "knowline",
             "von",
             "jevforge",
             "kev",
@@ -531,7 +536,14 @@ def execute(args, parser):
             models[result.run_id] = model_identity
         print(f"Validated {len(files)} files; {len(identities)} unique results")
         return
-    category = load_category(args.data_dir, args.category)
+    if args.category == "all":
+        from .data import Category
+
+        categories = [load_category(args.data_dir, name) for name in ("english-v1", "japanese-v1")]
+        category = Category(id="all", name="Both languages", description="English and Japanese v1",
+                            benchmarks=list(dict.fromkeys(b for c in categories for b in c.benchmarks)))
+    else:
+        category = load_category(args.data_dir, args.category)
     benchmarks = [load_benchmark(args.data_dir, b) for b in category.benchmarks]
     if args.command in {"list", "check-data"}:
         for b in benchmarks:
@@ -545,7 +557,7 @@ def execute(args, parser):
         benchmarks = [b for b in benchmarks if b.id in args.benchmark]
     if args.generalization_only:
         benchmarks = [
-            b for b in benchmarks if b.dataset.startswith("datasets/s1mb-generalization-")
+            b for b in benchmarks if b.dataset.startswith(("datasets/s1mb-generalization-", "datasets/generalization-"))
         ]
     if args.task:
         benchmarks = [b for b in benchmarks if b.task == args.task]
@@ -908,13 +920,23 @@ def execute(args, parser):
 
         adapter = OpenRouterAdapter(args.model)
     elif args.adapter == "knowline":
-        from .adapters.knowline import KnowLineAdapter
+        if args.source:
+            from .adapters.knowline_native import KnowLineNativeAdapter
 
-        adapter = KnowLineAdapter(
-            args.model,
-            args.revision,
-            case_batch_size=args.case_batch_size if args.case_batch_size is not None else 16,
-        )
+            adapter = KnowLineNativeAdapter(
+                args.model, args.revision, args.source, args.device,
+                context_limit=args.context_limit,
+            )
+        else:
+            if args.context_limit is not None:
+                parser.error("--context-limit requires --source for native KnowLine HF")
+            from .adapters.knowline import KnowLineAdapter
+
+            adapter = KnowLineAdapter(
+                args.model,
+                args.revision,
+                case_batch_size=args.case_batch_size if args.case_batch_size is not None else 16,
+            )
     elif args.adapter == "llamacpp":
         from .adapters.llamacpp import LlamaCppAdapter
 

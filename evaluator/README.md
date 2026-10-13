@@ -15,8 +15,9 @@ uv run s1mb run --adapter dummy --category smoke-v1 --limit 2 --run-id smoke
 
 The dummy adapter checks plumbing with synthetic predictions. `smoke-v1` selects
 one benchmark per task; `english-v1` selects the English evaluation set and
-`japanese-v1` selects 58 Japanese benchmarks (5,651 judgments). Omit
-`--limit` for full evaluation. Missing cases or failed decisions make a result
+`japanese-v1` selects 27 ordinary Japanese benchmarks (8,067 judgments). Omit
+`--limit` for full evaluation, or use `--all` to evaluate both languages with one
+adapter and separate per-subset provenance. Missing cases or failed decisions make a result
 partial. Each run
 requires a fresh `--run-id`; saved runs are not overwritten.
 
@@ -31,7 +32,7 @@ outside raw result directories.
 ## Dataset acquisition
 
 `s1mb run` checks the latest `main` revision of
-[hotchpotch/s1mb-dataset](https://huggingface.co/datasets/hotchpotch/s1mb-dataset)
+[hotchpotch/S1MB-english-v1](https://huggingface.co/datasets/hotchpotch/S1MB-english-v1)
 once before loading the model. `dataset-source.json` selects the repository and
 requested revision; use a full commit SHA to reproduce a specific release.
 
@@ -48,8 +49,10 @@ check stops evaluation. `--offline-dataset` explicitly uses installed data witho
 a network request. `list`, `check-data`, and `validate` always operate locally.
 An optional explicit refresh is available as `uv run python scripts/fetch_dataset.py`.
 
-Japanese data is a separate private repository,
-[hotchpotch/s1mb-dataset-japanese-v1](https://huggingface.co/datasets/hotchpotch/s1mb-dataset-japanese-v1).
+English and Japanese measured results share the public
+[hotchpotch/s1mb-result](https://huggingface.co/datasets/hotchpotch/s1mb-result)
+Dataset. Japanese evaluation inputs are in a separate private repository,
+[hotchpotch/S1MB-japanese-v1](https://huggingface.co/datasets/hotchpotch/S1MB-japanese-v1).
 Authenticate with an account granted access before fetching it:
 
 ```sh

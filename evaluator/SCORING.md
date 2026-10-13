@@ -158,3 +158,13 @@ The general-purpose columns show the equal-weight mean of the diverse and
 contextual benchmarks for each task. These benchmarks also contribute to the
 full task scores; the three general-purpose columns add no separate overall
 weight. Both subsets must be complete for a general-purpose task score.
+
+## Japanese v1
+
+Japanese v1 uses the same primary metrics, baseline adjustments, completeness
+requirements and equal task weighting as English v1. Compute Task Avg and Borda
+within the selected evaluation scope. Preserve each result's recorded dataset
+revision when validating predictions and computing reference baselines. Do not
+combine English and Japanese benchmark scores into one ranking or imply training
+independence. See [language scopes](../docs/language_scopes.md) and
+[training exposure](../docs/training_exposure.md).

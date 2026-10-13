@@ -25,7 +25,7 @@ def test_selects_only_original_measurements_and_requires_metadata():
 
 def test_parent_guard_and_single_artifact_upload(tmp_path):
     api = Mock()
-    (tmp_path / "viewer-summary.json").write_text("{}")
+    (tmp_path / "viewer-summary.json").write_text('{"payload":{"benchmarks":[],"results":[]}}')
     publication.publish(api, "a" * 40, tmp_path / "viewer-summary.json")
     args = api.create_commit.call_args.kwargs
     assert args["parent_commit"] == "a" * 40
@@ -39,3 +39,17 @@ def test_inventory_rejects_missing_results_even_on_first_publication():
     publication.check_inventory(["example__model/test.json.xz"], candidate)
     with pytest.raises(ValueError, match="inventory"):
         publication.check_inventory(["example__model/test.json.xz", "missing/test.json.xz"], candidate)
+
+
+def test_japanese_measurements_publish_to_the_shared_results_dataset(tmp_path):
+    import json
+
+    api = Mock()
+    output = tmp_path / "viewer-summary.json"
+    output.write_text(json.dumps({"payload": {"benchmarks": [{"id": "jnli-choice"}], "results": [{"benchmark": 0}]}}))
+    publication.publish(api, "a" * 40, output)
+    args = api.create_commit.call_args.kwargs
+    assert args["repo_id"] == "hotchpotch/s1mb-result"
+    assert args["parent_commit"] == "a" * 40
+    assert [op.path_in_repo for op in args["operations"]] == ["viewer-summary.json"]
+    api.dataset_info.assert_not_called()

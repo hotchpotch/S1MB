@@ -1,0 +1,989 @@
+{
+  "model_ids": [
+    "hotchpotch__bekko-system-one-v0-17m",
+    "hotchpotch__bekko-system-one-v0-400m",
+    "hotchpotch__bekko-system-one-v0-68m"
+  ],
+  "training_exposure": [
+    {
+      "benchmark_id": "aegis2-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "aegis2",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "laya--ag-news-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "laya__ag_news",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "aqua-rat-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "aqua_rat",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "arc-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "arc",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "arct-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "arct",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "argument-quality-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "argument_quality",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "argument-quality-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "argument_quality",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "babi-nli-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "babi_nli",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "banking77-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "banking77",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "boardgameqa-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "boardgameqa",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "canttalk-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "canttalk",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "civil-comments-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "civil_comments",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "clinc-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "clinc",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "contract-nli-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "contract_nli",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "corr2cause-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "corr2cause",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "creak-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "creak",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "dbpedia-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "dbpedia",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "defeasible-nli-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "defeasible_nli",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "laya--enron-spam-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "laya__enron_spam",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "esci-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "esci",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "ethics-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "ethics",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "ethics-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "ethics",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "ethos-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "ethos",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "few-nerd-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "few_nerd",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "fol-nli-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "fol_nli",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "go-emotions-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "go_emotions",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "gretel-pii-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "gretel_pii",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "gsm8k-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "gsm8k",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "hans-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "hans",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "hh-rlhf-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "hh_rlhf",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "hwu64-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "hwu64",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "lexcomp-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "lexcomp",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "logical-entailment-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "logical_entailment",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "massive-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "massive",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "mtop-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "mtop",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "nlsat-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "nlsat",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--amount-extraction-control-v1-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__amount-extraction-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--amount-extraction-control-v1-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__amount-extraction-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--browser-control-v1-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__browser-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--citation-control-v1-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__citation-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--context-retention-control-v1-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__context-retention-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--customer-control-v1-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__customer-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--customer-control-v1-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__customer-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--customer-control-v1-score-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__customer-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--drone-control-v1-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__drone-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--drone-control-v1-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__drone-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--drone-control-v1-score-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__drone-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--email-selection-control-v1-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__email-selection-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--email-selection-control-v1-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__email-selection-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--entity-alignment-control-v1-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__entity-alignment-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--entity-alignment-control-v1-score-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__entity-alignment-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--ir-control-v1-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__ir-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--ir-control-v1-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__ir-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--ir-control-v1-score-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__ir-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--mailroom-control-v1-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__mailroom-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--mailroom-control-v1-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__mailroom-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--painting-geometry-v1-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__painting-geometry-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--painting-geometry-v1-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__painting-geometry-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--painting-geometry-v1-score-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__painting-geometry-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--phone-extraction-control-v1-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__phone-extraction-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--phone-extraction-control-v1-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__phone-extraction-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--reasoning-control-v1-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__reasoning-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--reasoning-control-v1-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__reasoning-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--reasoning-control-v1-score-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__reasoning-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--silent-failure-control-v1-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__silent-failure-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--snake-v1-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__snake-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--snake-v1-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__snake-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--sponsor-segment-control-v1-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__sponsor-segment-control-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--tic-tac-toe-v1-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__tic_tac_toe-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--vizdoom-basic-v1-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__vizdoom-basic-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--vizdoom-basic-v1-score-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__vizdoom-basic-v1",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--workflow-controls-v1--agent-trace-observability-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__workflow-controls-v1__agent_trace_observability",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--workflow-controls-v1--customer-service-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__workflow-controls-v1__customer_service",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--workflow-controls-v1--invoice-processing-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__workflow-controls-v1__invoice_processing",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "open-jev--workflow-controls-v1--security-incidents-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "open_jev__workflow-controls-v1__security_incidents",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "openbookqa-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "openbookqa",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "patent-similarity-score-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "patent_similarity",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "paws-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "paws",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "plane-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "plane",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "poem-sentiment-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "poem_sentiment",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "qasper-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "qasper",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "quartz-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "quartz",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "ruletaker-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "ruletaker",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "scicite-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "scicite",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "scitail-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "scitail",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "scone-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "scone",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "sdoh-nli-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "sdoh_nli",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "sgd-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "sgd",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "snli-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "snli",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "spartqa-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "spartqa",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "stepgame-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "stepgame",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "temporal-nli-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "temporal_nli",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "tracie-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "tracie",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "laya--typed-decisions-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "laya__typed_decisions",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "laya--typed-decisions-noul-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "laya__typed_decisions",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "laya--typed-decisions-score-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "laya__typed_decisions",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "ud-ewt-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "ud_ewt",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    },
+    {
+      "benchmark_id": "wiqa-choice-test-v1",
+      "relationship": "same_source_family",
+      "dataset": "hotchpotch/bekko-system-one-dataset-v0",
+      "revision": "9c673a09c31e145684ab9915871afa72ba40a383",
+      "config": "wiqa",
+      "split": "train",
+      "evidence_url": "https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0/blob/9c673a09c31e145684ab9915871afa72ba40a383/training-manifest.json",
+      "note": "The Bekko v0 training manifest includes this source family. Manifest membership does not prove every row was sampled or that evaluation examples were used; no independent record-level overlap audit is claimed."
+    }
+  ]
+}

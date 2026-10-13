@@ -20,6 +20,7 @@ export function checkedSnapshot(value: unknown): Snapshot {
   if (s.issues.length || new Set(s.categories.map(c => c.id)).size !== s.categories.length || s.categories.some(c => new Set(c.benchmarks).size !== c.benchmarks.length)) throw new Error('Invalid display categories or issues');
   const keys = new Set<string>();
   for (const r of s.results) {
+    if (r.model.training_exposure?.some(e => !ids.has(e.benchmark_id))) throw new Error("Unknown training exposure benchmark");
     const current = s.benchmarks.find(b => b.id === r.benchmark.id);
     if (!current || ['task', 'dataset', 'split', 'primary_metric'].some(k => current[k as keyof typeof current] !== r.benchmark[k as keyof typeof r.benchmark])) throw new Error('Incompatible display benchmark');
     const checked = summarize({ ...r, format_version: 1 });

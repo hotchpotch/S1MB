@@ -721,6 +721,26 @@ connection on chats whose roles the chat template rejects (for example `customer
 `s1mb-generalization-diverse-score-score-test-v1`.
 
 
+For a pinned in-process HF reference, pass `--source` containing the same
+checkpoint revision's `knowline_server.py`. This selects BF16, SDPA, temperature 1,
+complete-input overflow checks, anonymous Choice slots and explicit numeric Score
+criteria. It does not start an HTTP service. The published SGLang FP8 setting and
+this native BF16 setting are different and must be disclosed separately.
+
+```sh
+# From evaluator/, after fetching the complete pinned checkpoint snapshot.
+CUDA_VISIBLE_DEVICES=1 uv run --no-sync s1mb run --adapter knowline \
+  --model PelaAI/KnowLine-4B-Gen4 --revision MODEL_SHA \
+  --source PINNED_MODEL_SOURCE --device cuda:0 --category japanese-v1 \
+  --benchmark jnli-choice --benchmark jcola-noul --benchmark jsts-score \
+  --limit 2 --run-id knowline-gen4-japanese-smoke-001
+```
+
+Validate the smoke results, preflight every full rendered input with that source's
+renderer/tokenizer, and remove the benchmark/limit flags for a complete Japanese
+run with a fresh ID. No CPU fallback or input truncation is permitted.
+
+
 ## JevK5-Lite
 
 `jevk5-lite` is separate from the autoregressive `jevk5` adapter. Pass a
@@ -1339,7 +1359,7 @@ constructor kwargs and are not passed to `/v1/systemone`.
 ## Saihai 8B (BF16)
 
 The `saihai` adapter uses the released `saihai.model.TorchDecisionModel` backend
-and exactly the input conversion in the checkpoint's `saihai/jdmb_eval.py`.
+and exactly the input conversion in the checkpoint's native evaluation reference.
 It preserves structured state, authored instructions and definitions, anonymous
 Choice/Score labels, authored numeric Score order, and false/true Noul order.
 Inference reads candidate LM-head logits without generating text, using BF16,
@@ -1364,5 +1384,5 @@ CUDA_VISIBLE_DEVICES=1 uv run --python 3.12 --extra open-models s1mb run \
 
 Validate saved smoke results before running `--category english-v1` with a fresh
 run ID and no `--limit`. Metadata records measured parameter counts, checkpoint
-and code provenance, and native inference settings. The JDMB score in the model
-card is a separate benchmark measurement and is not an S1MB result.
+and code provenance, and native inference settings. Scores from other benchmarks in the model card are separate measurements;
+reevaluate the model with S1MB before submitting S1MB results.

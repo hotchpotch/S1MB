@@ -14,8 +14,8 @@ import { ModelName } from './ModelName';
 
 const columns = ['Task Avg', 'Noul', 'Choice', 'Score', 'General Noul', 'General Choice', 'General Score'];
 
-export function ComparisonOrder({ snapshot, category, selectedIds, onChange }: {
-  snapshot: Snapshot; category: Category; selectedIds: string[]; onChange: (ids: string[]) => void;
+export function ComparisonOrder({ snapshot, category, selectedIds, onChange, onModelSelect }: {
+  snapshot: Snapshot; category: Category; selectedIds: string[]; onChange: (ids: string[]) => void; onModelSelect?: (id: string) => void;
 }) {
   const [sort, setSort] = useState<{ column: number; ascending: boolean; ids: string[] } | null>(null);
   const runs = categoryRuns(snapshot, category);

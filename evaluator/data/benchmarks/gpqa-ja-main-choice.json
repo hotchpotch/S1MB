@@ -1,0 +1,10 @@
+{
+  "id": "gpqa-ja-main-choice",
+  "task": "choice",
+  "dataset": "datasets/gpqa-ja-main-choice",
+  "split": "test",
+  "case_count": 300,
+  "decision_count": 300,
+  "primary_metric": "target_mass_at_prediction",
+  "evaluation_family": "ordinary"
+}

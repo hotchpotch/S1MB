@@ -1,7 +1,8 @@
+import type { TrainingExposure } from './training-exposure';
 export type Task = 'choice' | 'noul' | 'score';
 export type Benchmark = { id: string; task: Task; dataset: string; split: string; case_count: number; decision_count: number; primary_metric: string };
 export type Category = { id: string; name: string; description: string; benchmarks: string[] };
-export type ModelInfo = { display_name?: string; short_name?: string; url?: string | null; hf_url?: string | null; id: string; adapter: string; settings: Record<string, unknown>; total_params?: number | null; active_params?: number | null; parameter_count_method?: "non_lookup_parameters_v1" | "embedding_excluded_parameters_v1" | null };
+export type ModelInfo = { training_exposure?: TrainingExposure[] | null; display_name?: string; short_name?: string; url?: string | null; hf_url?: string | null; id: string; adapter: string; settings: Record<string, unknown>; total_params?: number | null; active_params?: number | null; parameter_count_method?: "non_lookup_parameters_v1" | "embedding_excluded_parameters_v1" | null };
 export function instructionLabel(model: ModelInfo): string {
   const label = 'Dataset instructions';
   return typeof model.settings.questions_per_call === 'number' ? `${label} · ${model.settings.questions_per_call} question(s)/call` : label;
@@ -70,7 +71,7 @@ export function diagnosticMean(snapshot: Snapshot, category: Category, task: Tas
   return values.reduce<number>((sum, v) => sum + v!, 0) / values.length;
 }
 
-/** Experimental index: equal task weights after equal benchmark weights. */
+/** Task Avg: equal task weights after equal benchmark weights within each task. */
 export function overallIndex(snapshot: Snapshot, category: Category, results: ResultSummary[]): number | null {
   const values = TASKS.map(task => diagnosticMean(snapshot, category, task, results, 'baseline_adjusted_score'));
   return values.every(v => v !== null) ? values.reduce<number>((sum, v) => sum + v!, 0) / values.length : null;
@@ -78,7 +79,7 @@ export function overallIndex(snapshot: Snapshot, category: Category, results: Re
 
 /** General-purpose tasks are a subset of the full category, not extra ranking weight. */
 export function generalizationCategory(snapshot: Snapshot, category: Category): Category {
-  const ids = new Set(snapshot.benchmarks.filter(b => b.dataset.startsWith('datasets/s1mb-generalization-')).map(b => b.id));
+  const ids = new Set(snapshot.benchmarks.filter(b => b.dataset.startsWith('datasets/s1mb-generalization-') || b.dataset.startsWith('datasets/generalization-')).map(b => b.id));
   return { ...category, benchmarks: category.benchmarks.filter(id => ids.has(id)) };
 }
 

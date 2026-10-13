@@ -1,0 +1,10 @@
+{
+  "id": "mintaka-ja-boolean-noul",
+  "task": "noul",
+  "dataset": "datasets/mintaka-ja-boolean-noul",
+  "split": "test",
+  "case_count": 300,
+  "decision_count": 300,
+  "primary_metric": "binary_brier",
+  "evaluation_family": "ordinary"
+}
