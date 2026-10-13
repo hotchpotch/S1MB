@@ -4,6 +4,7 @@ import { mkdtemp, mkdir, writeFile, rm, unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { FilesystemResults, summarize } from './result-loader';
 import { readResultJson } from './result-files';
 
@@ -109,6 +110,31 @@ test('compact display roundtrip, integrity, reduction guard and atomic publicati
     assert.equal(spawnSync(process.execPath, [...args, '--approve-reduction', report.digest]).status, 2, 'Approval must match the candidate');
     await assert.rejects(atomicJson(output, 'x'.repeat(33 * 1024 * 1024)), /size limit/);
     assert.equal((await readDisplay(output)).snapshot.results.length, 1);
+  } finally { await rm(f.root, { recursive: true, force: true }); }
+});
+
+test('published model retains per-measurement configurations in one display row', async () => {
+  const { encodeDisplay, decodeDisplay } = await import('./display-data');
+  const f = await fixture();
+  try {
+    const japanese = { ...benchmark, id: 'choice-ja' };
+    await writeFile(path.join(f.root, 'benchmarks/choice-ja.json'), JSON.stringify(japanese));
+    await writeFile(path.join(f.root, 'categories/ja.json'), JSON.stringify({ id: 'ja', name: 'Japanese', description: '', benchmarks: ['choice-ja'] }));
+    const measured = { ...result(), benchmark: japanese, run_id: 'new-japanese-run',
+      model: { ...result().model, settings: { questions_per_call: 'all-case-questions' } } };
+    await writeFile(path.join(path.dirname(f.file), 'choice-ja.json.xz'), execFileSync('xz', ['--compress', '--stdout'], { input: JSON.stringify(measured) }));
+    const snapshot = await new FilesystemResults(f.root, [f.results]).refresh();
+    const artifact = encodeDisplay(snapshot, null);
+    const decoded = decodeDisplay(artifact).snapshot;
+    assert.deepEqual(decoded.results, snapshot.results);
+    assert.equal(new Set(decoded.results.map(r => r.run_id)).size, 1);
+    assert.equal(artifact.payload.models.length, 2);
+    assert.equal(decoded.results.find(r => r.benchmark.id === 'choice')!.model.settings.questions_per_call, 1);
+    assert.equal(decoded.results.find(r => r.benchmark.id === 'choice-ja')!.model.settings.questions_per_call, 'all-case-questions');
+    const invalid = structuredClone(artifact);
+    invalid.payload.models.push({ ...invalid.payload.models[0], run_id: 'unused' });
+    invalid.digest = createHash('sha256').update(JSON.stringify(invalid.payload)).digest('hex');
+    assert.throws(() => decodeDisplay(invalid), /unused model/);
   } finally { await rm(f.root, { recursive: true, force: true }); }
 });
 
