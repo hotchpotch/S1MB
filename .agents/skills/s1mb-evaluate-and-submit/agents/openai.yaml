@@ -1,0 +1,7 @@
+interface:
+  display_name: "S1MB Evaluate and Submit"
+  short_description: "Evaluate models and submit validated S1MB result PRs"
+  default_prompt: "Use $s1mb-evaluate-and-submit to evaluate my models with existing adapters where possible and submit a separate Hugging Face result PR for each distinct trained model."
+
+policy:
+  allow_implicit_invocation: false

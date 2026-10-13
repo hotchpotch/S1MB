@@ -300,10 +300,22 @@ resolve that access with the maintainer rather than publishing to a different re
 See the [Hub upload guide](https://huggingface.co/docs/huggingface_hub/guides/upload)
 for the underlying Dataset PR workflow.
 
-### Multiple models in one PR and a reproducible comparison
+### One trained model per PR and a reproducible comparison
 
-One Dataset PR may contain multiple model folders. Export each selected run with
-its own metadata into the same staging repository, then validate that repository.
+Submit different underlying trained models in separate Dataset PRs, even when
+you evaluated them together. A genuinely different trained release or fine-tune
+needs its own PR; sharing an architecture or pretrained base does not make two
+models the same. This allows each submission to be reviewed and accepted independently.
+
+Variations of the same trained model may share a PR: quantization, precision,
+runtime, API route, and packaging differences do not create separate model
+identities. Keep their original provenance and explain which configuration is
+being added or replaced. These variations still use the canonical model folder,
+not additional leaderboard rows, and must not form a best-of-configurations row.
+Follow [model identity and evaluation preference](#model-identity-and-evaluation-preference).
+
+Use a separate staging repository and PR description for each trained model.
+Export the selected results with its metadata, then validate that repository.
 Keep reference models in a separate directory so they cannot be uploaded by
 accident. To compare with the published Jev 1.13 measurements, download only its
 folder at a recorded results commit (run from `evaluator/`):
@@ -352,7 +364,7 @@ locally; exact model settings and provenance remain in the result files. Review
 the staged inventory against the reference commit. The report cannot infer
 execution history or training overlap.
 
-Upload the staging repository in **one** call to create **one** Dataset PR. Save
+Upload each model's staging repository in **one** call to create its **own** Dataset PR. Save
 the complete reviewed body as `../tmp/results-pr-body.md`. Substitute the exact
 40-character results SHA printed above; the parent guard rejects concurrent
 changes instead of silently using a different base:
@@ -365,7 +377,7 @@ commit = HfApi().upload_folder(
     repo_id="hotchpotch/s1mb-result", repo_type="dataset",
     folder_path="../tmp/results-submission", path_in_repo="",
     allow_patterns=["*/metadata.json", "*/*.json.xz"],
-    commit_message="Add evaluated models with six-column comparison",
+    commit_message="Add evaluated model with six-column comparison",
     commit_description=Path("../tmp/results-pr-body.md").read_text(),
     parent_commit="EXACT_RESULTS_COMMIT_SHA",
     create_pr=True,
