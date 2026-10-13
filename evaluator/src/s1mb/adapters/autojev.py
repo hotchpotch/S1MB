@@ -20,6 +20,12 @@ class AutoJevAdapter(FirelexJeffAdapter):
         config = json.loads((self.path / "decision_config.json").read_text())
         self.native = importlib.import_module("autojev.model")
         self.engine = self.native.DecisionModel(checkpoint=self.path, device=device).eval()
+        if config.get("text_only") is True:
+            attention_mode = "causal"
+            pooling = "last"
+        else:
+            attention_mode = self.engine.attention_mode
+            pooling = self.engine.pooling
         self.attention_model = self.engine.backbone
         self.max_candidates = min(self.native.MAX_OPTIONS, len(self.engine.codes))
         self.context_limit = context_limit or 8192
@@ -36,8 +42,8 @@ class AutoJevAdapter(FirelexJeffAdapter):
             "base_model": config["base_model"],
             "base_revision": config["revision"],
             "renderer": "native-anonymous-choice-numeric-score-v1",
-            "attention_mode": self.engine.attention_mode,
-            "pooling": self.engine.pooling,
+            "attention_mode": attention_mode,
+            "pooling": pooling,
             "typed_mapping": "all-choice-preserving-authored-order-and-structured-numeric-score",
         }
         self.enable_kernels()
