@@ -501,3 +501,18 @@ export const ScopeMetadataSegmentedMobile: Story = { ...ScopeMetadataSegmented, 
 
 export const LeaderboardKnownDomains: Story = { args: { snapshot: scopeDesignFixture }, parameters: { docs: { description: { story: "Synthetic leaderboard with a compact known-domain icon vertically centered on the first line of the model name, including labels above a repository subtitle. Hover or focus for the meaning, disclosed domains and reasons; click for model details. Only the selected scope contributes." } } } };
 export const LeaderboardKnownDomainsMobile: Story = { ...LeaderboardKnownDomains, globals: { viewport: { value: 'mobile1', isRotated: false } } };
+
+
+export const UnknownTrainingSnapshot: Story = {
+  args: { snapshot: {
+    ...bilingualFixture,
+    results: bilingualFixture.results.map(r => ({ ...r, model: {
+      ...r.model,
+      training_exposure: r.model.training_exposure?.map(e => ({
+        ...e, dataset: null, revision: null, config: null, split: null,
+        note: 'Synthetic verified declaration with undisclosed historical training snapshot.',
+      })),
+    } })),
+  }, initialRun: 'synthetic-demo' },
+  parameters: { docs: { description: { story: 'Synthetic training provenance with explicitly unknown revision, config and split. Expand Known domains in the model sidebar to inspect the unknown labels.' } } },
+};

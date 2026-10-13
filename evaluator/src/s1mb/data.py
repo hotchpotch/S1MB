@@ -35,10 +35,10 @@ class TrainingExposure(Record):
 
     benchmark_id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
     relationship: Literal["same_source_family", "related_domain", "evaluation_examples"]
-    dataset: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$", max_length=256)
-    revision: str = Field(pattern=r"^[0-9a-f]{40}$")
-    config: str = Field(min_length=1, max_length=128)
-    split: str = Field(min_length=1, max_length=64)
+    dataset: str | None = Field(default=None, pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$", max_length=256)
+    revision: str | None = Field(default=None, pattern=r"^[0-9a-f]{40}$")
+    config: str | None = Field(default=None, min_length=1, max_length=128)
+    split: str | None = Field(default=None, min_length=1, max_length=64)
     evidence_url: str = Field(min_length=1, max_length=2048)
     note: str = Field(min_length=1, max_length=1000)
 
