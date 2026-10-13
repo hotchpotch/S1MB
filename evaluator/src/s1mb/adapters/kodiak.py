@@ -1,8 +1,10 @@
 """Kodiak native calibrated ensemble with complete input and numeric Beta bins."""
 
+import copy
 import hashlib
 import importlib
 import json
+import logging
 from itertools import pairwise
 from typing import Any
 
@@ -37,6 +39,39 @@ def kodiak_question(question):
     return native
 
 
+def budget_kodiak_characters(question, question_limit, label_limit):
+    """Fit textual fields to native character limits without removing labels."""
+    result = copy.deepcopy(question)
+    changes = []
+
+    def shorten(value, limit, field):
+        if value is None or len(value) <= limit:
+            return value
+        marker = " […] "
+        if limit <= len(marker):
+            raise ValueError("Kodiak character budget cannot preserve body text")
+        retained = limit - len(marker)
+        head = (retained + 1) // 2
+        tail = retained // 2
+        changes.append((field, len(value), limit))
+        return value[:head] + marker + (value[-tail:] if tail else "")
+
+    result["text"] = shorten(result["text"], question_limit, "question")
+    for index, label in enumerate(result.get("labels", [])):
+        label["text"] = shorten(label["text"], label_limit, f"label_{index}")
+    labels = result.get("labels", [])
+    normalized = [label["text"].strip().casefold() for label in labels]
+    if len(set(normalized)) != len(normalized):
+        for index, label in enumerate(labels):
+            label["text"] = shorten(
+                f"option_{index}: {label['text']}", label_limit, f"label_{index}_distinct",
+            )
+    for field in ("min_label", "max_label"):
+        if field in result:
+            result[field] = shorten(result[field], label_limit, field)
+    return result, changes
+
+
 def beta_level_probabilities(question, mean, concentration, cdf):
     ordered = sorted(question.options, key=lambda option: option.value)
     low, high = ordered[0].value, ordered[-1].value
@@ -53,8 +88,10 @@ def beta_level_probabilities(question, mean, concentration, cdf):
 
 class KodiakAdapter(UpstreamAdapter):
     case_batch_size = 1
+    native_adaptive_budget = False
 
-    def __init__(self, model, revision, source, device):
+    def __init__(self, model, revision, source, device, native_adaptive_budget=False):
+        self.native_adaptive_budget = native_adaptive_budget
         self.setup("kodiak", model, revision, source, device)
         self.native = importlib.import_module("kodiak_s1.hub")
         self.infer = importlib.import_module("kodiak_s1.infer")
@@ -95,16 +132,43 @@ class KodiakAdapter(UpstreamAdapter):
             "renderer": "native-structured-anonymous-numeric-score-v1",
         })
 
+        if self.native_adaptive_budget:
+            self.settings.update({
+                "input_length_policy": "explicit-native-adaptive-budget-v3",
+                "candidate_budget_policy": "preserve-all-candidate-counts;native-description-truncation",
+                "native_truncation_enabled": True,
+                "character_budget_policy": "head-tail-before-native-validation",
+                "duplicate_label_policy": "anonymous-option-prefix-after-shortening",
+                "max_question_characters": self.schema.MAX_QUESTION_CHARS,
+                "max_label_characters": self.schema.MAX_LABEL_CHARS,
+            })
+
     def predict(self, case):
         predictions = []
         for question in case.questions:
             native = kodiak_question(question)
+            if self.native_adaptive_budget:
+                native, changes = budget_kodiak_characters(
+                    native, self.schema.MAX_QUESTION_CHARS, self.schema.MAX_LABEL_CHARS,
+                )
+                for field, before, after in changes:
+                    logging.getLogger(__name__).warning(
+                        "Explicit character budget: case=%s question=%s field=%s characters=%d->%d policy=head-tail-v1",
+                        case.case_id, question.id, field, before, after,
+                    )
             request = self.schema.Request.model_validate({
                 "state": case.state, "questions": [native],
             }).model_dump()
             packed = self.packing.pack_example(request, self.limits, with_targets=False)
             if packed.truncated:
-                raise KodiakInputTooLong("Native input budgets exceeded; refusing truncation")
+                if not self.native_adaptive_budget:
+                    raise KodiakInputTooLong("Native input budgets exceeded; refusing truncation")
+                before = 2 + len(self.packing._encode(self.packing.render_state(request["state"])))
+                before += 1 + len(self.packing._encode(self.packing.question_text(request["questions"][0])))
+                before += sum(1 + len(self.packing._encode(label["text"])) for label in native.get("labels", []))
+                logging.getLogger(__name__).warning(
+                    "Explicit native budget: case=%s question=%s adapter=kodiak tokens=%d->%d candidates=%d",
+                    case.case_id, question.id, before, len(packed), len(question.options))
             if len(packed) > 4096:
                 raise KodiakInputTooLong("Native packed row exceeds 4096 tokens")
             raw = self.infer.combine_raw([

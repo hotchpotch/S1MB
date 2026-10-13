@@ -71,3 +71,23 @@ def test_invalid_native_logits_rejected(values):
 def test_bad_device_and_context_rejected_without_download(device, limit):
     with pytest.raises(ValueError):
         JuliaAdapter("unused", "main", device, context_limit=limit)
+
+
+def test_explicit_native_budget_preserves_all_candidate_outputs():
+    model = adapter()
+    model.native_adaptive_budget = True
+    model.engine.tokenizer = SimpleNamespace(mask_token='[MASK]', encode=lambda *args, **kwargs: [1] * 10)
+    attempts = []
+
+    def sequence(tokenizer, row, limit, head, *, strict):
+        attempts.append(strict)
+        if strict:
+            raise ValueError('head budget exceeded')
+        return {'ids': [1, 2], 'markers': list(range(len(row['options'])))}
+
+    model.native.sequence = sequence
+    model.engine.logits = lambda rows: [[0.0] * len(rows[0]['options'])]
+    result = model.predict(cases())
+    assert attempts == [True, False] * 3
+    assert set(result[0].probabilities) == {'x', 'y'}
+    assert result[2].probabilities == {'low': 0.5, 'high': 0.5}

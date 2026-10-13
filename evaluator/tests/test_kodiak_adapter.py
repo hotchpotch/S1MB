@@ -61,3 +61,34 @@ def test_native_packer_truncation_rejected_before_gpu_forward():
     ))
     with pytest.raises(KodiakInputTooLong, match="refusing truncation"):
         adapter.predict(cases())
+
+
+def test_explicit_character_budget_preserves_candidates_and_numeric_range():
+    from s1mb.adapters.kodiak import budget_kodiak_characters
+
+    native = {'type': 'score', 'id': 'decision', 'text': 'HEAD' + 'x' * 1000 + 'TAIL',
+              'min': 10.0, 'max': 30.0, 'min_label': 'a' * 300, 'max_label': 'b' * 300}
+    result, changes = budget_kodiak_characters(native, 500, 200)
+    assert len(result['text']) == 500
+    assert result['text'].startswith('HEAD') and result['text'].endswith('TAIL')
+    assert (result['min'], result['max']) == (10.0, 30.0)
+    assert len(result['min_label']) == len(result['max_label']) == 200
+    assert len(changes) == 3
+    assert len(native['text']) > 500
+    choice = {'type': 'choice', 'text': 'q', 'labels': [{'id': 'a', 'text': 'x' * 300}, {'id': 'b', 'text': 'y' * 300}]}
+    result, _ = budget_kodiak_characters(choice, 500, 200)
+    assert [item['id'] for item in result['labels']] == ['a', 'b']
+    assert all(len(item['text']) == 200 for item in result['labels'])
+
+
+def test_character_budget_distinguishes_collapsed_label_descriptions():
+    from s1mb.adapters.kodiak import budget_kodiak_characters
+
+    native = {'type': 'choice', 'text': 'q', 'labels': [
+        {'id': 'a', 'text': 'x' * 150 + 'first' + 'y' * 150},
+        {'id': 'b', 'text': 'x' * 150 + 'second' + 'y' * 150},
+    ]}
+    result, _ = budget_kodiak_characters(native, 500, 200)
+    assert [label['id'] for label in result['labels']] == ['a', 'b']
+    assert len({label['text'].strip().casefold() for label in result['labels']}) == 2
+    assert all(len(label['text']) <= 200 for label in result['labels'])

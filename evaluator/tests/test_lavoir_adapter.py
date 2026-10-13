@@ -40,3 +40,24 @@ def test_overflow_never_reaches_collation_or_inference(monkeypatch):
     monkeypatch.setattr("s1mb.adapters.lavoir.full_sequence", overflowing)
     with pytest.raises(ValueError, match="exceeding 1024"):
         model.predict(cases())
+
+
+def test_explicit_native_budget_rejects_candidate_loss_before_gpu(monkeypatch):
+    model = LavoirAdapter.__new__(LavoirAdapter)
+    model.native_adaptive_budget = True
+    model.engine = SimpleNamespace(tokenizer=None)
+    monkeypatch.setattr(model, 'items', SimpleNamespace(
+        to_internal=lambda item: item,
+        make_item=lambda *args, **kwargs: {'ids': [1, 2], 'option_pos': [1], 'qtype': 0},
+    ), raising=False)
+    monkeypatch.setattr(model, 'common', None, raising=False)
+    model.context_limit = 1024
+
+    def sequence(tokenizer, state, internal, common, limit, head):
+        if limit == 1024:
+            raise ValueError('head overflow')
+        return {'ids': list(range(1500))}
+
+    monkeypatch.setattr('s1mb.adapters.lavoir.full_sequence', sequence)
+    with pytest.raises(ValueError, match='preserve all candidate markers'):
+        model.predict(cases())

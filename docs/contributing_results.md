@@ -41,6 +41,12 @@ All Python/Hub CLI commands below run from `evaluator/` unless stated otherwise.
   Reject input overflow; do not silently truncate or drop difficult examples.
   Bekko v0 uses its native adaptive token budgeting instead; retain the recorded
   `adaptive-v1` policy and disclose this behavior in the submission.
+- Explicit input-budget experiments must disclose their effective shortening
+  policy and limits in model settings and submission metadata. Preserve original
+  measurements and use fresh run IDs. Keep all candidates in one native request;
+  retain unsupported candidate counts as failures. Update the canonical model
+  folder and disclose any mixture of strict and adaptive benchmark results rather
+  than presenting it as a uniform strict run.
 - Record the evaluated model/checkpoint, source revision, effective settings, and
   evaluator version. Every result must contain the evaluation dataset repo ID
   and exact commit SHA. Do not manually invent or replace measurement provenance.
