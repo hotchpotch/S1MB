@@ -1,0 +1,7 @@
+interface:
+  display_name: "S1MB PR Check"
+  short_description: "Review S1MB PRs and publish approved leaderboard updates"
+  default_prompt: "Use $s1mb-pr-check to review open GitHub and Hugging Face result PRs, checking security and evaluation integrity before any authorized merge or leaderboard deployment."
+
+policy:
+  allow_implicit_invocation: false

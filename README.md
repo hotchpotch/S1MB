@@ -105,6 +105,7 @@ the selected scope. See [benchmark scope](docs/benchmark_scope.md) and the
 | Understand the tasks and evaluation boundaries | [Benchmark scope](docs/benchmark_scope.md) |
 | Evaluate a model reproducibly | [Evaluation guide](docs/evaluation.md) |
 | Add a model to the leaderboard | [Result submission](docs/contributing_results.md) |
+| Evaluate models and submit results with an agent (explicit invocation) | [$s1mb-evaluate-and-submit](.agents/skills/s1mb-evaluate-and-submit/SKILL.md) |
 | Compare local and published results | [Viewer guide](docs/viewer.md) |
 | Integrate a model interface | [Adapter development](docs/adapters.md) |
 | Find technical references and maintainer guides | [Documentation map](docs/README.md) |
