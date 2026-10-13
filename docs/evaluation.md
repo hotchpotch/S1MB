@@ -711,3 +711,11 @@ Parallel split-K accumulation can vary between identical requests; disabling CUD
 graphs and prefix caching alone does not remove that variation. Require repeated
 request stability, native parity including wide candidates, and validated smoke
 checks before a full run. Preserve the released weights, precision and calibration.
+
+### Saihai BF16
+
+The `saihai` adapter uses the released Transformers backend and the same input
+conversion as Saihai's JDMB evaluator. Follow the Python 3.12+, pinned-checkpoint
+setup and GPU smoke invocation in [adapter notes](../evaluator/OPEN_MODELS.md#saihai-8b-bf16).
+Keep native candidate ordering and strict overflow rejection; validate saved
+smoke results before a full `english-v1` run.
