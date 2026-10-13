@@ -161,3 +161,20 @@ def test_pr_template_keeps_mixed_provenance_and_author_explanation(tmp_path):
     assert "My assessment." in report
     assert "Replace this section" not in report
     assert "Replace this section" in render_template(tmp_path, "english-v1", None)
+
+
+@pytest.mark.parametrize("category", ["english-v1", "japanese-v1"])
+@pytest.mark.parametrize("explanation", [None, "My assessment."])
+def test_pr_template_always_requests_training_domain_disclosure(tmp_path, category, explanation):
+    from s1mb.submission_template import render_template
+
+    report = render_template(tmp_path, category, explanation)
+    assert "## Training source and domain disclosure" in report
+    assert "For English v1 and Japanese v1" in report
+    assert "bekko-system-one-dataset-v0" in report and "saihai-v1-dataset" in report
+    assert "other datasets covering the same tasks or source domains" in report
+    assert "`training_exposure`" in report
+    assert "Missing disclosure does not mean a domain was unseen" in report
+    assert "not an explanation or prediction of high scores" in report
+    if explanation:
+        assert explanation in report
