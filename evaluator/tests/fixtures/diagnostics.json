@@ -474,5 +474,114 @@
       "balanced_accuracy": 0.5,
       "baseline_adjusted_score": 0
     }
+  },
+  {
+    "name": "choice-abstention-soft-target",
+    "task": "choice",
+    "options": [
+      {
+        "id": "a"
+      },
+      {
+        "id": "b"
+      }
+    ],
+    "samples": [
+      {
+        "target": {
+          "a": 0.25,
+          "b": 0.75
+        },
+        "prediction": null,
+        "abstention": "refusal",
+        "repeat": 1
+      }
+    ],
+    "expected": {
+      "target_mass_at_prediction": 0,
+      "baseline_adjusted_score": 0
+    }
+  },
+  {
+    "name": "noul-abstentions-soft-targets",
+    "task": "noul",
+    "options": [
+      {
+        "id": "false"
+      },
+      {
+        "id": "true"
+      }
+    ],
+    "samples": [
+      {
+        "target": {
+          "false": 0.8,
+          "true": 0.2
+        },
+        "prediction": null,
+        "abstention": "refusal",
+        "repeat": 1
+      },
+      {
+        "target": {
+          "false": 0.2,
+          "true": 0.8
+        },
+        "prediction": null,
+        "abstention": "cannot_determine",
+        "repeat": 1
+      }
+    ],
+    "expected": {
+      "binary_brier": 1,
+      "accuracy": 0,
+      "balanced_accuracy": 0,
+      "positive_recall": 0,
+      "specificity": 0,
+      "false_negative": 1,
+      "false_positive": 1,
+      "baseline_adjusted_score": 0
+    }
+  },
+  {
+    "name": "score-abstentions-soft-nonuniform",
+    "task": "score",
+    "options": [
+      {
+        "id": "a",
+        "value": 10
+      },
+      {
+        "id": "b",
+        "value": 90
+      }
+    ],
+    "samples": [
+      {
+        "target": {
+          "a": 0.75,
+          "b": 0.25
+        },
+        "prediction": null,
+        "abstention": "refusal",
+        "repeat": 1
+      },
+      {
+        "target": {
+          "a": 0.25,
+          "b": 0.75
+        },
+        "prediction": null,
+        "abstention": "refusal",
+        "repeat": 1
+      }
+    ],
+    "expected": {
+      "normalized_expected_score_mae": 1,
+      "normalized_score_rmse": 1,
+      "baseline_adjusted_skill": -3,
+      "baseline_adjusted_score": 0
+    }
   }
 ]

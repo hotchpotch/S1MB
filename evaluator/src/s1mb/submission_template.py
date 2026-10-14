@@ -21,13 +21,13 @@ def render_template(repository: Path, category: str, explanation: str | None) ->
             "",
             f"### `{folder.name}`",
             "",
-            "| Task | Saved benchmarks | Complete | Successful decisions | Failed decisions |",
-            "| --- | ---: | ---: | ---: | ---: |",
+            "| Task | Saved benchmarks | Complete | Successful decisions | Abstentions counted as incorrect | Failed decisions |",
+            "| --- | ---: | ---: | ---: | ---: | ---: |",
         ]
         for task in ("choice", "noul", "score"):
             rows = [r for r in results if r.benchmark.task == task]
             lines.append(
-                f"| {task} | {len(rows)} | {sum(r.status == 'complete' for r in rows)} | {sum(r.counts.succeeded for r in rows)} | {sum(r.counts.failed for r in rows)} |"
+                f"| {task} | {len(rows)} | {sum(r.status == 'complete' for r in rows)} | {sum(r.counts.succeeded for r in rows)} | {sum(r.counts.abstained for r in rows)} | {sum(r.counts.failed for r in rows)} |"
             )
         # Deduplicate whole provenance objects, preserving mixed-run configurations.
         provenance = {}

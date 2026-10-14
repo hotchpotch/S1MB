@@ -139,7 +139,7 @@ def test_retry_refusal_and_stable_settings(monkeypatch):
         cases = [InferenceCase(case_id=str(i), state="hello", questions=[q]) for i in range(2)]
         predictions = adapter.predict_batch(cases)
         assert [row[0].case_id for row in predictions] == ["0", "1"]
-        assert all(row[0].error == "OpenAI Decisions refusal" for row in predictions)
+        assert all(row[0].abstention == "refusal" for row in predictions)
         assert adapter.usage["retries"] == 1
         assert adapter.usage["input_tokens"] == 40
         assert adapter.metadata().settings == before

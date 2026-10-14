@@ -7,7 +7,7 @@ import { diagnosticMean, overallIndex, METRICS, TASKS, type Snapshot, type Resul
 
 type Fixture = {
   name: string; task: ScoringCase['questions'][number]['task']; options: ScoringCase['questions'][number]['options'];
-  samples: { options?: ScoringCase['questions'][number]['options']; target: Record<string, number>; prediction: Record<string, number>; repeat: number }[];
+  samples: { options?: ScoringCase['questions'][number]['options']; target: Record<string, number>; prediction: Record<string, number> | null; abstention?: "refusal" | "cannot_determine"; repeat: number }[];
   expected: Record<string, number | null>;
 };
 const fixtures: Fixture[] = JSON.parse(readFileSync('../evaluator/tests/fixtures/diagnostics.json', 'utf8'));
@@ -16,7 +16,7 @@ for (const fixture of fixtures) test(`Shared scoring: ${fixture.name}`, () => {
   for (const sample of fixture.samples) for (let i = 0; i < sample.repeat; i++) {
     const case_id = String(cases.length);
     cases.push({ case_id, questions: [{ id: 'q', task: fixture.task, options: sample.options ?? fixture.options }], targets: { q: { probabilities: sample.target } } });
-    predictions.push({ case_id, question_id: 'q', probabilities: sample.prediction });
+    predictions.push({ case_id, question_id: 'q', probabilities: sample.prediction, abstention: sample.abstention });
   }
   const scoring = prepareScoring(cases, fixture.task);
   const metrics = scoring.calculate(predictions);
@@ -24,7 +24,7 @@ for (const fixture of fixtures) test(`Shared scoring: ${fixture.name}`, () => {
     benchmark: { id: 'synthetic', task: fixture.task, dataset: 'synthetic', split: 'test',
       case_count: cases.length, decision_count: cases.length, primary_metric: METRICS[fixture.task].name },
     model: { id: 'synthetic', adapter: 'test', settings: {} }, provenance: 'measured', status: 'complete',
-    counts: { cases: cases.length, expected: cases.length, succeeded: cases.length, failed: 0 }, metrics });
+    counts: { cases: cases.length, expected: cases.length, succeeded: predictions.filter(p => p.probabilities !== null).length, abstained: predictions.filter(p => p.abstention).length, failed: 0 }, metrics });
   assert.equal(summary.metrics.baseline_adjusted_score, metrics.baseline_adjusted_score);
 
   for (const [name, expected] of Object.entries(fixture.expected)) {

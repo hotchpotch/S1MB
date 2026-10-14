@@ -7,7 +7,7 @@ export type ScoringCase = {
   questions: { id: string; task: Task; options: { id: string; value?: number | null }[] }[];
   targets: Record<string, { probabilities: Record<string, number> }>;
 };
-type Prediction = { case_id: string; question_id: string; probabilities: Record<string, number> | null };
+type Prediction = { case_id: string; question_id: string; probabilities: Record<string, number> | null; abstention?: "refusal" | "cannot_determine" | null };
 type Entry = { options: ScoringCase['questions'][number]['options']; target: Record<string, number> };
 export type ScoringContext = { eligible: boolean; reason: string | null };
 const EPSILON = 1e-12;
@@ -68,17 +68,22 @@ export function prepareScoring(cases: ScoringCase[], task: Task) {
   function calculate(predictions: Prediction[]): Record<string, number | null> {
     const seen = new Set<string>();
     const rows: { entry: Entry; p: Record<string, number> }[] = [];
+    const abstentions: Entry[] = [];
     for (const pred of predictions) {
       const id = key(pred.case_id, pred.question_id), entry = index.get(id);
       if (!entry || seen.has(id)) throw new Error('Unknown or duplicate prediction ID');
       seen.add(id);
+      if (pred.abstention) {
+        if (pred.probabilities) throw new Error("Abstention cannot contain probabilities");
+        abstentions.push(entry); continue;
+      }
       if (!pred.probabilities) continue;
       const p = pred.probabilities;
       if (Object.keys(p).length !== entry.options.length || entry.options.some(o => !(o.id in p))) throw new Error('Prediction options differ from dataset');
       rows.push({ entry, p });
     }
     const out: Record<string, number | null> = { ...baseline };
-    const n = rows.length;
+    const n = rows.length + abstentions.length;
     let skill: number | null = null;
     if (task === 'noul') {
       let tp = 0, fp = 0, fn = 0, tn = 0;
@@ -86,10 +91,11 @@ export function prepareScoring(cases: ScoringCase[], task: Task) {
         if (p.true >= 0.5) { tp += t.true; fp += t.false; }
         else { fn += t.true; tn += t.false; }
       }
+      for (const { target: t } of abstentions) { fn += t.true; fp += t.false; }
       const recall = tp + fn > EPSILON ? tp / (tp + fn) : null;
       const specificity = tn + fp > EPSILON ? tn / (tn + fp) : null;
       const balanced = recall !== null && specificity !== null ? (recall + specificity) / 2 : null;
-      const brier = n ? mean(rows.map(({ entry, p }) => (p.true - entry.target.true) ** 2)) : null;
+      const brier = n ? mean([...rows.map(({ entry, p }) => (p.true - entry.target.true) ** 2), ...abstentions.map(() => 1)]) : null;
       Object.assign(out, { binary_brier: brier, accuracy: n ? (tp + tn) / n : null,
         positive_recall: recall, specificity, precision: tp + fp > EPSILON ? tp / (tp + fp) : null,
         balanced_accuracy: balanced, f1: 2 * tp + fp + fn > EPSILON ? 2 * tp / (2 * tp + fp + fn) : null, true_positive: tp, false_positive: fp, false_negative: fn, true_negative: tn,
@@ -99,7 +105,7 @@ export function prepareScoring(cases: ScoringCase[], task: Task) {
       const accuracy = n ? mean(rows.map(({ entry, p }) => {
         const chosen = entry.options.reduce((best, o) => p[o.id] > p[best.id] ? o : best);
         return entry.target[chosen.id];
-      })) : null;
+      }).concat(abstentions.map(() => 0))) : null;
       out.target_mass_at_prediction = accuracy;
       skill = eligible && accuracy !== null ? (accuracy - baseline.fixed_answer_accuracy_baseline) / (1 - baseline.fixed_answer_accuracy_baseline) : null;
     } else {
@@ -108,6 +114,7 @@ export function prepareScoring(cases: ScoringCase[], task: Task) {
         return entry.options.reduce((sum, o) => sum + o.value! * (p[o.id] - entry.target[o.id]), 0)
           / (Math.max(...values) - Math.min(...values));
       });
+      errors.push(...abstentions.map(() => 1));
       const mae = n ? mean(errors.map(Math.abs)) : null;
       out.normalized_expected_score_mae = mae;
       out.normalized_score_rmse = n ? Math.sqrt(mean(errors.map(e => e * e))) : null;

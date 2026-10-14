@@ -58,7 +58,7 @@ def decode_answer(case: InferenceCase, question: Question, answer: dict) -> Pred
         raise ValueError("Returned question name differs")
     if answer.get("type") == "refusal":
         return Prediction(
-            case_id=case.case_id, question_id=question.id, error="OpenAI Decisions refusal"
+            case_id=case.case_id, question_id=question.id, abstention="refusal"
         )
     expected = "predicate" if question.task == "noul" else question.task
     if answer.get("type") != expected:

@@ -10,6 +10,9 @@ def calculate(
     index = {(c.case_id, q.id): (q, c.targets[q.id]) for c in cases for q in c.questions}
     values = []
     for pred in predictions:
+        if pred.abstention is not None:
+            values.append(0.0 if task == "choice" else 1.0)
+            continue
         if pred.probabilities is None:
             continue
         q, target = index[pred.case_id, pred.question_id]

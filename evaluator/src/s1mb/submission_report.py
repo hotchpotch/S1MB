@@ -19,6 +19,8 @@ TASKS: tuple[Task, ...] = ("noul", "choice", "score")
 class Measurement:
     complete: bool
     metrics: dict[str, float | None]
+    abstained: int = 0
+    failed: int = 0
 
     @classmethod
     def from_result(cls, result: Result) -> "Measurement":
@@ -27,6 +29,8 @@ class Measurement:
             and result.provenance == "measured"
             and result.counts.failed == 0,
             result.metrics,
+            result.counts.abstained,
+            result.counts.failed,
         )
 
 
@@ -36,7 +40,6 @@ class ModelSummary:
     reference: bool
     measurements: dict[str, Measurement] = field(default_factory=dict)
     parameter_counts: set[tuple[int | None, int | None]] = field(default_factory=set)
-    failures: int = 0
 
 
 def eligible(task: Task, metrics: dict[str, float | None]) -> bool:
@@ -88,7 +91,6 @@ def load_models(root: Path, repository: Path, *, reference: bool, download: bool
             result = Result.model_validate(read_json(path))
             model.measurements[result.benchmark.id] = Measurement.from_result(result)
             model.parameter_counts.add((result.model.total_params, result.model.active_params))
-            model.failures += result.counts.failed
         models.append(model)
     return models
 
@@ -128,6 +130,7 @@ def render_report(benchmarks: list[Benchmark], models: list[ModelSummary]) -> st
         "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     incomplete = []
+    abstention_rows = []
     for model in models:
         scores = []
         for general in (False, True):
@@ -146,9 +149,22 @@ def render_report(benchmarks: list[Benchmark], models: list[ModelSummary]) -> st
         complete = sum(
             b.id in model.measurements and model.measurements[b.id].complete for b in benchmarks
         )
-        if complete != len(benchmarks) or model.failures:
+        scoped_failures = sum(
+            model.measurements[b.id].failed for b in benchmarks if b.id in model.measurements
+        )
+        task_abstentions = [
+            sum(
+                model.measurements[b.id].abstained
+                for b in benchmarks
+                if b.task == task and b.id in model.measurements
+            )
+            for task in TASKS
+        ]
+        if any(task_abstentions):
+            abstention_rows.append(f"| {name} | " + " | ".join(map(str, task_abstentions)) + " |")
+        if complete != len(benchmarks) or scoped_failures:
             incomplete.append(
-                f"{name}: {complete}/{len(benchmarks)} complete, {model.failures} failed decisions"
+                f"{name}: {complete}/{len(benchmarks)} complete, {scoped_failures} failed decisions"
             )
     lines += [
         "",
@@ -167,6 +183,17 @@ def render_report(benchmarks: list[Benchmark], models: list[ModelSummary]) -> st
             f"All {len(models)} rows: **{len(benchmarks)}/{len(benchmarks)} complete, "
             "zero failed decisions**."
         )
+    if abstention_rows:
+        lines += [
+            "",
+            "### Unanswerable judgments counted as incorrect",
+            "",
+            "| Model | Noul | Choice | Score |",
+            "| --- | ---: | ---: | ---: |",
+            *abstention_rows,
+            "",
+            "Abstentions remain in scoring denominators and receive zero correct credit or maximum normalized error. Operational failures remain incomplete.",
+        ]
     lines.append("Validated against each result's recorded dataset revision.")
     return "\n".join(lines) + "\n"
 
