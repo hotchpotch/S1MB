@@ -223,7 +223,7 @@ function ScoreValue({
       {(!compact || !result || result.status === "partial") && <p className="text-[11px] text-muted-foreground">
         {!result
           ? "Missing"
-          : `${result.counts.succeeded.toLocaleString()}/${result.counts.expected.toLocaleString()} decisions`}
+          : `${(result.counts.succeeded + (result.counts.abstained ?? 0)).toLocaleString()}/${result.counts.expected.toLocaleString()} decisions`}
       </p>}
       {result?.status === "partial" && (
         <Badge variant="secondary">

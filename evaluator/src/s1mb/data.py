@@ -35,7 +35,11 @@ class TrainingExposure(Record):
 
     benchmark_id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
     relationship: Literal["same_source_family", "related_domain", "evaluation_examples"]
-    dataset: str | None = Field(default=None, pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$", max_length=256)
+    dataset: str | None = Field(
+        default=None,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$",
+        max_length=256,
+    )
     revision: str | None = Field(default=None, pattern=r"^[0-9a-f]{40}$")
     config: str | None = Field(default=None, min_length=1, max_length=128)
     split: str | None = Field(default=None, min_length=1, max_length=64)
@@ -47,7 +51,12 @@ class TrainingExposure(Record):
         from urllib.parse import urlsplit
 
         parsed = urlsplit(self.evidence_url)
-        if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.hostname
+            or parsed.username
+            or parsed.password
+        ):
             raise ValueError("Training evidence must be an HTTP(S) URL without credentials")
         return self
 
@@ -166,23 +175,31 @@ class Prediction(Record):
     question_id: str
     probabilities: dict[str, float] | None = None
     error: str | None = None
+    abstention: Literal["refusal", "cannot_determine"] | None = None
 
     @model_validator(mode="after")
     def check_outcome(self) -> Self:
-        if (self.probabilities is None) == (self.error is None):
-            raise ValueError("A prediction needs exactly one of probabilities or error")
+        if (
+            sum(value is not None for value in (self.probabilities, self.error, self.abstention))
+            != 1
+        ):
+            raise ValueError("A prediction needs exactly one of probabilities, error or abstention")
         return self
 
 
 class ModelInfo(Record):
-    training_exposure: list[TrainingExposure] | None = Field(default=None, min_length=1, max_length=256)
+    training_exposure: list[TrainingExposure] | None = Field(
+        default=None, min_length=1, max_length=256
+    )
     id: str
     adapter: str
     revision: str
     settings: dict[str, Any] = Field(default_factory=dict)
     total_params: int | None = Field(default=None, ge=0, strict=True)
     active_params: int | None = Field(default=None, ge=0, strict=True)
-    parameter_count_method: Literal["non_lookup_parameters_v1", "embedding_excluded_parameters_v1"] | None = None
+    parameter_count_method: (
+        Literal["non_lookup_parameters_v1", "embedding_excluded_parameters_v1"] | None
+    ) = None
 
     @model_validator(mode="after")
     def check_parameters(self) -> Self:
@@ -200,6 +217,7 @@ class Counts(Record):
     expected: int = Field(ge=0)
     succeeded: int = Field(ge=0)
     failed: int = Field(ge=0)
+    abstained: int = Field(default=0, ge=0)
 
 
 class Result(Record):
@@ -338,8 +356,14 @@ def validate_result(root: Path, result: Result, *, published: bool = False) -> N
         cases=len({p.case_id for p in result.predictions}),
         expected=len(index),
         succeeded=succeeded,
-        failed=len(result.predictions) - succeeded,
+        failed=sum(p.error is not None for p in result.predictions),
+        abstained=sum(p.abstention is not None for p in result.predictions),
     )
+    if (
+        expected_counts.abstained
+        and result.environment.get("abstention_scoring") != "incorrect-max-error-v1"
+    ):
+        raise ValueError("Abstentions require the explicit scoring policy")
     if result.counts != expected_counts:
         raise ValueError("Result counts do not match predictions")
     complete = len(seen) == len(index) and expected_counts.failed == 0

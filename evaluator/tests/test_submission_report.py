@@ -178,3 +178,20 @@ def test_pr_template_always_requests_training_domain_disclosure(tmp_path, catego
     assert "not an explanation or prediction of high scores" in report
     if explanation:
         assert explanation in report
+
+
+def test_abstention_disclosure_is_scoped_by_task():
+    model = ModelSummary(
+        ModelMetadata(model_id="test__model", display_name="Model", short_name="M"), False
+    )
+    model.measurements = {
+        "choice": Measurement(True, measurement().metrics, abstained=2),
+        "noul": Measurement(True, measurement().metrics, abstained=3),
+        "outside": Measurement(False, measurement().metrics, abstained=99, failed=99),
+    }
+    report = render_report([benchmark("choice"), benchmark("noul", "noul")], [model])
+    assert "| Model | 3 | 2 | 0 |" in report
+    assert "2/2 complete" in report
+    assert "99 failed" not in report
+    assert "penalties reduce the reported score" in report
+    assert "no additional flat deduction" in report

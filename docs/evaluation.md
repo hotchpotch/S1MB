@@ -48,6 +48,46 @@ usage, or implementation bugs. Do not use the resulting test labels or scores to
 tune performance or select the highest-scoring run. For reruns following technical
 fixes, disclose the changes and reasons and preserve the original measurements.
 
+## API refusals and unanswerable judgments
+
+When an API explicitly rejects answering an individual question (for example,
+an OpenAI Decisions `refusal` answer), record it as `abstention: "refusal"`.
+An explicit inability-to-determine outcome may use `"cannot_determine"`.
+Keep that judgment in the scoring denominator and count it as incorrect:
+
+| Task | Penalty for an abstention |
+| --- | --- |
+| Choice | Zero target mass / correct credit. |
+| Noul | Zero correct credit and Brier error 1; include it in balanced-accuracy class denominators. |
+| Score | Normalized absolute and squared error 1. |
+
+Refusals therefore reduce the reported score rather than making a benchmark
+unscorable. A small number may cause only a small reduction, but the actual
+impact depends on their frequency, task and benchmark weights. There is no
+additional flat deduction: these penalties are included in the normal scoring
+and baseline-adjustment formulas. They apply even when the refusal reflects
+an API safety policy; they do not establish that an answered prediction would
+have been incorrect. See the exact [scoring rules](../evaluator/SCORING.md#unanswerable-judgments-and-refusals),
+including soft targets.
+
+This rule applies to explicit refusal outcomes, not every rejected HTTP request.
+Authentication/authorization errors, rate limits, timeouts, malformed responses,
+input overflow and missing work remain operational failures and keep a benchmark
+incomplete. Only map a documented API refusal outcome to an abstention; do not
+infer one from an arbitrary error message or status code.
+
+Record `counts.abstained` separately from `counts.succeeded` and `counts.failed`,
+and set `environment.abstention_scoring` to `"incorrect-max-error-v1"`.
+A fully attempted benchmark with abstentions and no operational failures is
+complete. Preserve other valid answers when one question in a case is refused.
+Do not invent probabilities, omit refused questions or retry them until an
+answer is obtained. Disclose any fixed retries or rescoring, preserving the
+original measurements.
+
+In the results Dataset PR, state how many judgments were counted as incorrect
+for Choice, Noul and Score in each language scope, and note the resulting score
+penalty. Follow the [submission disclosure rules](contributing_results.md#refusals-and-unanswerable-judgments).
+
 ## 1. Prepare the evaluator and model
 
 Use Python 3.11 and uv. From the project root:
@@ -753,3 +793,37 @@ conversion as Saihai's native evaluation reference. Follow the Python 3.12+, pin
 setup and GPU smoke invocation in [adapter notes](../evaluator/OPEN_MODELS.md#saihai-8b-bf16).
 Keep native candidate ordering and strict overflow rejection; validate saved
 smoke results before a full `english-v1` run.
+
+## OpenAI Decisions API
+
+Use the `openai-decisions` adapter for the native Decisions endpoint, rather than
+chat completions. Set `OPENAI_API_KEY` in the repository root's ignored `.env`
+file, then run from `evaluator/`:
+
+```bash
+uv run --env-file ../.env s1mb run --adapter openai-decisions \
+  --model gpt-6-luna --category smoke-v1 --limit 2 --run-id decisions-smoke
+uv run s1mb validate data/results/decisions-smoke
+uv run --env-file ../.env s1mb run --adapter openai-decisions \
+  --model gpt-6-luna --all --case-batch-size 4 --run-id decisions-full
+uv run s1mb validate data/results/decisions-full
+```
+
+The suggested display name is **GPT-6 Luna (Decisions API)**. The model ID remains
+`gpt-6-luna`; the endpoint, requested and returned model IDs, API usage, and
+rendering policy are recorded in provenance. API-only parameter counts remain
+unknown. Freeze evaluation settings before the full run.
+
+Choice uses native candidate probabilities. Noul uses a native predicate with
+both authored outcome descriptions. Score uses per-level probabilities mapped
+back to the original numeric scale, with numeric values in the level labels and
+preserving declared criterion order; the
+API's ordinal expected score is not used. Transport names are anonymous and
+targets and benchmark identifiers are excluded from requests. Each request
+contains one question and the complete input, without local truncation.
+Refusals, invalid responses, and rejected inputs remain failed measurements.
+Concurrency is bounded by `--case-batch-size` (1–32; default 4). Transient HTTP
+and transport failures receive at most three attempts.
+
+See the [official Decisions guide](https://developers.openai.com/api/docs/guides/decisions)
+for API availability and supported models.

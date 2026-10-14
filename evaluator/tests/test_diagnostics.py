@@ -40,7 +40,12 @@ def expand(fixture):
                 )
             )
             predictions.append(
-                Prediction(case_id=case_id, question_id="q", probabilities=sample["prediction"])
+                Prediction(
+                    case_id=case_id,
+                    question_id="q",
+                    probabilities=sample["prediction"],
+                    abstention=sample.get("abstention"),
+                )
             )
     return cases, predictions
 

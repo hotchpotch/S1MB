@@ -15,7 +15,7 @@ export const resultSchema = z.object({
   model: z.object({ id: z.string(), adapter: z.string(), settings: z.object({ questions_per_call: z.union([count.positive(), z.literal('all-case-questions')]).nullish() }),
     training_exposure: trainingExposuresSchema, total_params: count.nullish(), active_params: count.nullish(), parameter_count_method: z.enum(['non_lookup_parameters_v1', 'embedding_excluded_parameters_v1']).nullish() }).refine(m => m.active_params == null || (m.parameter_count_method != null && (m.total_params == null || m.active_params <= m.total_params)), 'Invalid parameter counts'),
   provenance: z.enum(['measured', 'demo']), status: z.enum(['complete', 'partial']),
-  counts: z.object({ cases: count, expected: count, succeeded: count, failed: count }),
+  counts: z.object({ cases: count, expected: count, succeeded: count, failed: count, abstained: count.default(0) }),
   metrics: z.record(z.string(), z.number().finite().nullable()),
 });
 type Metadata = z.infer<typeof metadataSchema>;
@@ -46,9 +46,9 @@ export function summarizeValidated(r: z.infer<typeof resultSchema>): ResultSumma
   };
   const primary = bounded(b.primary_metric);
   const adjusted = bounded('baseline_adjusted_score');
-  if (c.expected !== b.decision_count || c.cases > b.case_count || c.succeeded + c.failed > c.expected ||
-      (c.succeeded === 0) !== (primary === null)) throw new Error('Inconsistent result counts');
-  const complete = c.failed === 0 && c.succeeded === c.expected && c.cases === b.case_count;
+  if (c.expected !== b.decision_count || c.cases > b.case_count || c.succeeded + c.failed + c.abstained > c.expected ||
+      (c.succeeded + c.abstained === 0) !== (primary === null)) throw new Error('Inconsistent result counts');
+  const complete = c.failed === 0 && c.succeeded + c.abstained === c.expected && c.cases === b.case_count;
   if ((r.status === 'complete') !== complete) throw new Error('Incorrect completion status');
   if (r.model.adapter === 'dummy' && r.provenance !== 'demo') throw new Error('Dummy results must be demo');
   let eligible: boolean, reason: string, skill: number | null;

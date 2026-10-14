@@ -75,11 +75,12 @@ def evaluate(
             if len(current) != len(questions) or {p.question_id for p in current} != set(questions):
                 raise ValueError("Adapter returned missing or duplicate questions")
             for pred in current:
-                if pred.case_id != case.case_id or pred.probabilities is None:
-                    raise ValueError("Adapter returned an invalid case ID or missing probabilities")
-                check_probabilities(
-                    pred.probabilities, [o.id for o in questions[pred.question_id].options]
-                )
+                if pred.case_id != case.case_id:
+                    raise ValueError("Adapter returned an invalid case ID")
+                if pred.probabilities is not None:
+                    check_probabilities(
+                        pred.probabilities, [o.id for o in questions[pred.question_id].options]
+                    )
             predictions.extend(current)
         except Exception as exc:  # noqa: BLE001 - preserve a failed case without losing the run
             # Exception messages from third-party clients may contain sensitive request data.
@@ -114,6 +115,8 @@ def evaluate(
         environment["dataset_source"] = {
             key: dataset_source[key] for key in ("repo_id", "revision")
         }
+    if any(p.abstention is not None for p in predictions):
+        environment["abstention_scoring"] = "incorrect-max-error-v1"
     if usage_before:
         environment["api_usage"] = {
             key: value - usage_before[key] for key, value in getattr(adapter, "usage", {}).items()
@@ -129,8 +132,9 @@ def evaluate(
         counts=Counts(
             cases=len(selected),
             expected=benchmark.decision_count,
-            succeeded=len(predictions) - failed,
+            succeeded=sum(p.probabilities is not None for p in predictions),
             failed=failed,
+            abstained=sum(p.abstention is not None for p in predictions),
         ),
         metrics=calculate(cases, predictions, benchmark.task),
         elapsed_seconds=time.perf_counter() - start,

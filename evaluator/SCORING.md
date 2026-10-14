@@ -168,3 +168,35 @@ revision when validating predictions and computing reference baselines. Do not
 combine English and Japanese benchmark scores into one ranking or imply training
 independence. See [language scopes](../docs/language_scopes.md) and
 [training exposure](../docs/training_exposure.md).
+
+## Unanswerable judgments and refusals
+
+An explicit model refusal or inability to determine an answer is an abstention,
+recorded as `abstention: "refusal"` or `"cannot_determine"`, without probabilities
+or an execution error. Count it in `counts.abstained`, separately from successful
+probability outputs and operational failures. Its scoring policy is
+`environment.abstention_scoring: "incorrect-max-error-v1"`.
+
+Every abstention remains in the scoring denominator:
+
+- Choice: zero target mass / correct credit.
+- Noul: zero correct credit and Brier error 1. For soft target probability `t`,
+  add `t` to FN and `1-t` to FP, preserving both class denominators for balanced
+  accuracy. Do not fabricate a target-dependent probability prediction.
+- Score: normalized absolute and squared error 1, including soft targets.
+
+These are explicit maximum-error penalties for absent judgments, rather than
+probability-based Brier/MAE observations. Existing answered predictions retain
+their original formulas; dataset-wide baselines and eligibility remain fixed.
+These penalties reduce reported scores; their magnitude depends on refusal
+frequency and the normal benchmark/task weights, rather than a separate flat
+deduction. API safety refusals receive the same penalty, without claiming that
+the model would have answered incorrectly if the API had allowed it.
+A fully attempted benchmark may be complete with abstentions. Missing judgments,
+HTTP/transport failures and malformed outputs remain operational failures and
+keep results incomplete; never relabel them as model abstentions.
+
+Handle each question independently so one refusal does not discard other valid
+answers in the same case. Submission reports and Dataset PR bodies must disclose
+abstentions counted as incorrect by task and evaluation scope. Preserve original
+measurements and disclose rescoring and retry provenance when updating results.

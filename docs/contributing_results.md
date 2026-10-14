@@ -593,3 +593,18 @@ after validating the new results and preserving the previous files/history.
 Saihai submissions should identify the merged BF16 checkpoint and its native
 Transformers decision backend. Record the exact checkpoint/code revision and
 native input limit and strict overflow policy; reevaluate historical measurements from other benchmark releases with S1MB.
+
+## Refusals and unanswerable judgments
+
+Explicit model refusals and inability-to-determine outcomes are valid recorded
+abstentions, counted as incorrect under the [scoring policy](../evaluator/SCORING.md#unanswerable-judgments-and-refusals).
+Include `counts.abstained` and the explicit `incorrect-max-error-v1` policy in
+results. Keep operational errors distinct and incomplete. Do not invent uniform
+probabilities, drop refusals, or retry until an answer is obtained.
+
+In the Dataset PR, report the number counted as incorrect for Choice, Noul and
+Score in each language scope, even when complete coverage is achieved. The
+comparison report and PR template generate these counts from validated results.
+Explain that these refusals incur score penalties, whose magnitude depends on
+frequency and the normal benchmark/task weights. Explain any retries or
+rescoring and preserve original local measurements.

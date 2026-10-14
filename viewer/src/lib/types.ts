@@ -11,7 +11,7 @@ export type ResultSummary = {
   resultUrl?: string; evaluator_original_run_id?: string; dataset_source?: { repo_id: string; revision: string }; scoring?: { eligible: boolean; reason: string | null };
   run_id: string; benchmark: Benchmark; model: ModelInfo;
   provenance: 'measured' | 'demo'; status: 'complete' | 'partial';
-  counts: { cases: number; expected: number; succeeded: number; failed: number };
+  counts: { cases: number; expected: number; succeeded: number; failed: number; abstained?: number };
   metrics: Record<string, number | null>;
 };
 export type Snapshot = { display?: { generatedAt: string; source: { repo: string; revision: string } | null; digest: string }; scoring?: Record<string, { eligible: boolean; reason: string | null }>; categories: Category[]; benchmarks: Benchmark[]; results: ResultSummary[]; issues: string[]; sources: { name: string; files: number }[] };

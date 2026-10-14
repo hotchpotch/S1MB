@@ -23,7 +23,8 @@ def diagnostics(
         for p in predictions
         if p.probabilities is not None
     ]
-    n = len(rows)
+    abstentions = [index[p.case_id, p.question_id] for p in predictions if p.abstention is not None]
+    n = len(rows) + len(abstentions)
     out: dict[str, float | None] = {}
     skill = None
     if task == "noul":
@@ -32,13 +33,20 @@ def diagnostics(
         fp = sum(t["false"] for (_, t), p in rows if p["true"] >= 0.5)
         fn = sum(t["true"] for (_, t), p in rows if p["true"] < 0.5)
         tn = sum(t["false"] for (_, t), p in rows if p["true"] < 0.5)
+        # Abstention receives no correct mass for either target class.
+        fn += sum(t["true"] for _, t in abstentions)
+        fp += sum(t["false"] for _, t in abstentions)
         recall = tp / (tp + fn) if tp + fn > EPSILON else None
         specificity = tn / (tn + fp) if tn + fp > EPSILON else None
         balanced = (
             (recall + specificity) / 2 if (recall is not None and specificity is not None) else None
         )
         baseline = sum((t["true"] - prevalence) ** 2 for _, t in entries) / len(entries)
-        brier = sum((p["true"] - t["true"]) ** 2 for (_, t), p in rows) / n if n else None
+        brier = (
+            (sum((p["true"] - t["true"]) ** 2 for (_, t), p in rows) + len(abstentions)) / n
+            if n
+            else None
+        )
         skill = 2 * balanced - 1 if balanced is not None else None
         out = {
             "accuracy": (tp + tn) / n if n else None,
@@ -102,6 +110,7 @@ def diagnostics(
                 sum(v * (p[k] - t[k]) for k, v in scale.items())
                 / (max(scale.values()) - min(scale.values()))
             )
+        errors.extend([1.0] * len(abstentions))
         mae = sum(abs(e) for e in errors) / n if n else None
         skill = 1 - mae / baseline if baseline > EPSILON and mae is not None else None
         out = {
