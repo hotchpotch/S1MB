@@ -137,6 +137,7 @@ def main() -> None:
             "deem",
             "hopper",
             "saihai",
+            "saihai-310m",
             "reflex",
             "verdict-small",
             "opendecision",
@@ -286,8 +287,8 @@ def parse_adapter_kwargs(args, parser):
 def validate_run_arguments(args, parser):
     """Reject invalid runtime options before acquiring the installed dataset lock."""
     parse_adapter_kwargs(args, parser)
-    if args.native_adaptive_budget and args.adapter not in {"julia", "lavoir", "jevk5-lite", "kodiak"}:
-        parser.error("--native-adaptive-budget is supported by Julia, Lavoir, JevK5-Lite and Kodiak")
+    if args.native_adaptive_budget and args.adapter not in {"julia", "lavoir", "jevk5-lite", "kodiak", "saihai-310m"}:
+        parser.error("--native-adaptive-budget is supported by Julia, Lavoir, JevK5-Lite, Kodiak and Saihai 310M")
     if not 0 <= args.state_token_reduction <= 1 or (
         args.state_token_reduction and args.adapter not in {"dinah", "decision2", "jade"}
     ):
@@ -981,6 +982,7 @@ def execute(args, parser):
         adapter = UneeAdapter(args.model)
     elif args.adapter in {
         "saihai",
+        "saihai-310m",
         "lumma",
         "tinyjev",
         "nimble",
@@ -1074,6 +1076,7 @@ def execute(args, parser):
             "deem": "DeemAdapter",
             "hopper": "HopperAdapter",
             "saihai": "SaihaiAdapter",
+            "saihai-310m": "Saihai310mAdapter",
             "reflex": "ReflexAdapter",
             "verdict-small": "VerdictSmallAdapter",
             "opendecision": "OpenDecisionAdapter",
@@ -1129,6 +1132,8 @@ def execute(args, parser):
             options["case_batch_size"] = args.case_batch_size
         if args.adapter in {"lev", "pngwn"}:
             options["base_revision"] = args.base_revision
+        if args.adapter == "saihai-310m":
+            options["native_adaptive_budget"] = args.native_adaptive_budget
         if args.adapter == "winnow":
             options.update(server_host=args.server_host, server_port=args.server_port)
         adapter = getattr(module, classes[args.adapter])(

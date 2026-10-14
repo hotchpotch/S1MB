@@ -192,7 +192,9 @@ after shortening. Keep these logs outside result roots. Use a fresh run ID
 and preserve the original strict measurements.
 
 `--native-adaptive-budget` is a separate opt-in for Julia, Lavoir,
-JevK5-Lite and Kodiak. It uses their released inference and token-budgeting
+JevK5-Lite, Kodiak and Saihai 310M. Saihai 310M uses its released Bekko-style
+`adaptive-v1` query/candidate budgeting with recorded saved limits and truncation
+policy. These adapters use their released inference and token-budgeting
 algorithms with explicitly disclosed input preparation. Julia and Lavoir use
 native head budgets and may shorten question and candidate descriptions as
 well as state. JevK5-Lite uses its native body budget; when a non-Score head
