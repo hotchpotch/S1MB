@@ -73,3 +73,21 @@ test('comparison model sorting restores its heading and direction separately fro
   assert.deepEqual(parseDashboardState(serializeDashboardState(state)), state);
   assert.equal(parseDashboardState(new URLSearchParams('modelSort=borda')).modelOrderSort, null);
 });
+
+test('training disclosure focus survives sharing and clears when model details close', async () => {
+  const { selectRunDetails } = await import('./dashboard-state');
+  for (const training of ['all', 'example-choice']) {
+    const state = parseDashboardState(new URLSearchParams(`run=model-a&training=${training}`));
+    assert.equal(state.trainingFocus, training);
+    assert.deepEqual(parseDashboardState(serializeDashboardState(state)), state);
+    const closed = selectRunDetails(state, '');
+    assert.equal(closed.trainingFocus, '');
+    assert.equal(serializeDashboardState(closed).has('training'), false);
+    assert.equal(selectRunDetails(state, 'model-b').trainingFocus, '');
+    assert.equal(selectRunDetails(state, 'model-b', 'all').trainingFocus, 'all');
+    assert.equal(resetDashboardState(state).trainingFocus, '');
+  }
+  for (const params of ['training=all', 'run=x&training=../../x', 'run=x&training=']) {
+    assert.equal(parseDashboardState(new URLSearchParams(params)).trainingFocus, '');
+  }
+});

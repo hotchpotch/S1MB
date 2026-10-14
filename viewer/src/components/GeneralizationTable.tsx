@@ -11,9 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 const score = (value: number | null) => value == null ? '—' : (value * 100).toFixed(2);
 const title = (value: string) => value[0].toUpperCase() + value.slice(1);
 
-export function GeneralizationTable({ snapshot, category, selectedIds, onToggle }: {
+export function GeneralizationTable({ snapshot, category, selectedIds, onToggle, onTrainingSelect }: {
   snapshot: Snapshot; category: Category; selectedIds: string[];
-  onToggle: (id: string) => void;
+  onToggle: (id: string) => void; onTrainingSelect?: (id: string) => void;
 }) {
   const { columns, rows } = generalizationComparison(snapshot, category);
   const ranks = metricRanks(rows.map(row => ({ id: row.id, value: row.demo ? null : row.average })));
@@ -34,7 +34,7 @@ export function GeneralizationTable({ snapshot, category, selectedIds, onToggle 
         <TableBody>{rows.map(row => <TableRow key={row.id} data-state={selectedIds.includes(row.id) ? 'selected' : undefined}>
           <TableCell><Checkbox aria-label={`Compare ${modelName(row.model)}`} checked={selectedIds.includes(row.id)} onCheckedChange={() => onToggle(row.id)} /></TableCell>
           <TableCell className="font-mono text-muted-foreground">{ranks.get(row.id) ?? '—'}</TableCell>
-          <TableCell className="whitespace-normal [overflow-wrap:anywhere]"><ModelName model={row.model} />{row.demo && <span className="block text-muted-foreground">Demo</span>}</TableCell>
+          <TableCell className="whitespace-normal [overflow-wrap:anywhere]"><ModelName model={row.model} benchmarkIds={category.benchmarks} onTrainingClick={onTrainingSelect ? () => onTrainingSelect(row.id) : undefined} />{row.demo && <span className="block text-muted-foreground">Demo</span>}</TableCell>
           <TableCell className="text-right font-mono font-semibold tabular-nums">{score(row.average)}</TableCell>
           {columns.map(({ benchmark }, i) => <TableCell key={benchmark.id} className="text-right font-mono tabular-nums">
             {score(row.values[i])}

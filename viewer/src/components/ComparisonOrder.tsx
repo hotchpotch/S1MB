@@ -14,9 +14,9 @@ import { ModelName } from './ModelName';
 
 const columns = ['Task Avg', 'Noul', 'Choice', 'Score', 'General Noul', 'General Choice', 'General Score'];
 
-export function ComparisonOrder({ snapshot, category, selectedIds, sort, ascending, onSort, onChange, onModelSelect }: {
+export function ComparisonOrder({ snapshot, category, selectedIds, sort, ascending, onSort, onChange, onModelSelect, onTrainingSelect }: {
   sort: ModelOrderSort | null; ascending: boolean; onSort: (ids: string[], sort: ModelOrderSort, ascending: boolean) => void;
-  snapshot: Snapshot; category: Category; selectedIds: string[]; onChange: (ids: string[]) => void; onModelSelect?: (id: string) => void;
+  snapshot: Snapshot; category: Category; selectedIds: string[]; onChange: (ids: string[]) => void; onModelSelect?: (id: string) => void; onTrainingSelect?: (id: string) => void;
 }) {
   const runs = categoryRuns(snapshot, category);
   const general = generalizationCategory(snapshot, category);
@@ -58,7 +58,7 @@ export function ComparisonOrder({ snapshot, category, selectedIds, sort, ascendi
               onChange(moveComparison(rows.map(row => row.id), run.id, direction));
             }}>{direction === -1 ? <ArrowUp className="size-4" /> : <ArrowDown className="size-4" />}</Button>)}
           </div></TableCell>
-          <TableCell className="whitespace-normal min-w-48 max-w-80"><ModelName model={run.model} /></TableCell>
+          <TableCell className="whitespace-normal min-w-48 max-w-80"><ModelName model={run.model} benchmarkIds={category.benchmarks} onClick={onModelSelect ? () => onModelSelect(run.id) : undefined} onTrainingClick={onTrainingSelect ? () => onTrainingSelect(run.id) : undefined} /></TableCell>
           {run.values.map((value, column) => <TableCell key={column} className={`text-right font-mono tabular-nums ${column === 0 ? 'font-semibold text-primary' : ''}`}>{value == null ? '—' : (value * 100).toFixed(2)}</TableCell>)}
         </TableRow>)}</TableBody>
       </Table>
