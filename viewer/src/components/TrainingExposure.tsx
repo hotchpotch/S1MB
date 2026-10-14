@@ -6,6 +6,8 @@ import { exposuresFor, exposureLabel, exposureRelationship } from '../lib/traini
 import { benchmarkName } from '../lib/comparison';
 import { ColumnHelp } from './ColumnHelp';
 
+const knownDomainContext = 'Known domain means disclosed training on the same source family or a related domain. It does not establish that S1MB evaluation examples were used or that record-level overlap was independently audited. Exact training revisions and splits may be undisclosed; inspect each entry’s evidence and limitations.';
+
 const disclosureContext = 'This mark makes documented training exposure transparent; it does not explain or predict a model’s score. Other models may have trained on these domains even when their public information does not confirm it. Scores and rankings are unchanged.';
 
 /** Reported training exposure does not modify scores or prove independence. */
@@ -19,7 +21,7 @@ export function TrainingBadge({ model, benchmarkId, benchmarkIds, onClick }: { m
   const Icon = label === 'Known domain' ? GraduationCap : TriangleAlert;
   return <span className="inline-flex align-middle text-primary" data-training-exposure={benchmarkId ?? 'model'}>
     <ColumnHelp label={`${label}: ${coverage} · ${benchmarkId ?? model.display_name ?? model.id}`} onClick={onClick}
-      description={<div className="max-h-[50vh] space-y-2 overflow-y-auto"><p className="font-semibold">{label} · {coverage}</p><p>{label === 'Known domain' ? 'Reported training used these source families or related domains. This does not establish that evaluation examples were used.' : 'Documented evidence reports that evaluation examples were used for training.'}</p><p className="mt-2">{disclosureContext}</p>{entries.slice(0, 5).map((e, i) => <p key={i}>{e.benchmark_id} · {exposureRelationship[e.relationship]}<br />{e.note}</p>)}{entries.length > 5 && <p className="mt-2">{entries.length - 5} more disclosures in model details.</p>}</div>}>
+      description={<div className="max-h-[50vh] space-y-2 overflow-y-auto"><p className="font-semibold">{label} · {coverage}</p><p>{label === 'Known domain' ? knownDomainContext : 'Documented evidence reports that evaluation examples were used for training.'}</p><p className="mt-2">{disclosureContext}</p>{entries.slice(0, 5).map((e, i) => <p key={i}>{e.benchmark_id} · {exposureRelationship[e.relationship]}<br />{e.note}</p>)}{entries.length > 5 && <p className="mt-2">{entries.length - 5} more disclosures in model details.</p>}</div>}>
       <Icon aria-hidden="true" className="size-3.5 shrink-0" />
     </ColumnHelp>
   </span>;
@@ -34,11 +36,11 @@ export function TrainingDetails({ model, benchmarks }: { model: ModelInfo; bench
         <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"><GraduationCap aria-hidden="true" className="size-6" /></span>
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2 font-semibold"><span>Known domains <span className="sr-only">({domainIds.length}/{new Set(benchmarks.map(b => b.id)).size})</span></span><span aria-hidden="true" className="rounded-full bg-primary/15 px-2 py-0.5 text-xs text-primary">{domainIds.length}/{new Set(benchmarks.map(b => b.id)).size}</span></span>
-          <span className="mt-1 block text-xs text-muted-foreground">Explore training domains and evidence</span>
+          <span className="mt-1 block text-xs text-muted-foreground">Disclosed source-family or related-domain training; S1MB evaluation-example use is not established by this label.</span>
         </span>
         <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-primary group-open:rotate-180" />
       </summary>
-      <p className="text-xs text-muted-foreground">Same source family or related domain does not establish that evaluation examples were used. {disclosureContext}</p>
+      <p className="text-xs text-muted-foreground">{knownDomainContext} Actual evaluation-example use is labeled separately as ‘Evaluation examples used’. {disclosureContext}</p>
       <ul className="space-y-2">
         {domainIds.map(id => {
           const benchmark = benchmarks.find(b => b.id === id)!;

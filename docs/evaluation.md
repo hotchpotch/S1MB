@@ -724,7 +724,11 @@ checks before a full run. Preserve the released weights, precision and calibrati
 See [language scopes](language_scopes.md) for English/Japanese datasets, language
 switching, `s1mb run --all`, measurement provenance and shared result publication.
 See [training exposure](training_exposure.md) for model metadata and known-domain
-badges. Japanese and English contributions and PR descriptions are welcome.
+badges. **Known domain** denotes disclosed source-family or related-domain training;
+it does not establish use of S1MB evaluation examples or an independent record-level
+overlap audit. Exact training revisions and splits may be undisclosed; consult the
+linked evidence and limitations. Actual evaluation-example use is labeled separately.
+Japanese and English contributions and PR descriptions are welcome.
 
 ### Native KnowLine HF evaluation
 

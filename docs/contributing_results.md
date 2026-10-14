@@ -578,7 +578,11 @@ default is one and the maximum is 32. Smoke-test the chosen concurrency first.
 See [language scopes](language_scopes.md) for English/Japanese datasets, language
 switching, `s1mb run --all`, measurement provenance and shared result publication.
 See [training exposure](training_exposure.md) for model metadata and known-domain
-badges. Japanese and English contributions and PR descriptions are welcome.
+badges. **Known domain** denotes disclosed source-family or related-domain training;
+it does not establish use of S1MB evaluation examples or an independent record-level
+overlap audit. Exact training revisions and splits may be undisclosed; consult the
+linked evidence and limitations. Actual evaluation-example use is labeled separately.
+Japanese and English contributions and PR descriptions are welcome.
 
 For native KnowLine HF measurements, use `--adapter knowline --source` with a
 pinned checkpoint source and revision (see `evaluation.md`). Disclose BF16 HF
