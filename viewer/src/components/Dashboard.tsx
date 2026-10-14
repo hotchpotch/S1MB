@@ -5,12 +5,13 @@ import { ColumnHelp } from "./ColumnHelp";
 import { GitHubIcon } from "./GitHubIcon";
 import { BenchmarkSources } from "./BenchmarkSources";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { BENCHMARK_METRICS, defaultDashboardState, parseDashboardState, resetDashboardState, serializeDashboardState, syncDashboardUrl, type DashboardState, type LeaderboardSort, type View } from "../lib/dashboard-state";
 import { ArrowLeftRight, ArrowUpRight, BarChart3, Blocks, Check, CircleCheck, ListChecks, BookOpen, Trophy, ChevronLeft, ChevronRight, Search, SlidersHorizontal, ChevronDown, X } from "lucide-react";
 import { ModelWebsiteLink } from "./ModelWebsiteLink";
 import { hfModelLabel } from '../lib/hf-model-label';
 import { ParameterFilter } from './ParameterFilter';
-import { ALL_PARAMETERS, matchesParameterRange, rangeActive, type ParameterRange } from '../lib/parameter-filters';
+import { ALL_PARAMETERS, matchesParameterRange, rangeActive } from '../lib/parameter-filters';
 import { ParameterCounts, ParameterCountsHeader } from "./ParameterCounts";
 import { Dialog } from "radix-ui";
 import { Button } from "./ui/button";
@@ -69,24 +70,8 @@ import { bordaScores, BORDA_DESCRIPTION, TASK_AVG_DESCRIPTION } from "../lib/bor
 import { TableExports } from "./TableExports";
 import { ComparisonOrder } from "./ComparisonOrder";
 
-type LeaderboardSort = 'borda' | 'overall' | Task | `general-${Task}`;
-type View = "leaderboard" | "benchmarks" | "compare";
 const adjustedScore = (value: number | null | undefined) => value == null ? '—' : (value * 100).toFixed(2);
 const percent = (value: number | null | undefined) => value == null ? '—' : `${(value * 100).toFixed(2)}%`;
-const BENCHMARK_METRICS = {
-  choice: [{ name: 'target_mass_at_prediction', label: 'Target mass' }],
-  noul: [
-    { name: 'f1', label: 'F1' },
-    { name: 'precision', label: 'Precision' },
-    { name: 'positive_recall', label: 'Recall' },
-    { name: 'balanced_accuracy', label: 'Balanced acc.' },
-    { name: 'binary_brier', label: 'Brier' },
-  ],
-  score: [
-    { name: 'normalized_expected_score_mae', label: 'MAE' },
-    { name: 'normalized_score_rmse', label: 'RMSE' },
-  ],
-};
 const title = (s: string) => s[0].toUpperCase() + s.slice(1);
 const repeatedName = (runs: Run[], model: ModelInfo) => runs.filter(r => modelName(r.model) === modelName(model)).length > 1;
 const direction = (task: Task) =>
@@ -270,20 +255,26 @@ export function ComparisonTables({
   snapshot,
   categoryId,
   selectedIds,
+  state,
+  onChange,
   onModelSelect,
   onBenchmarkSelect,
 }: {
   snapshot: Snapshot;
   categoryId: string;
   selectedIds: string[];
+  state: Pick<DashboardState, 'comparisonQuery' | 'comparisonSort' | 'comparisonDelta' | 'comparisonReference' | 'comparisonAdjusted'>;
+  onChange: (patch: Partial<DashboardState>) => void;
   onBenchmarkSelect?: (id: string, task: Task) => void;
   onModelSelect?: (id: string) => void;
 }) {
-  const [filter, setFilter] = useState('');
-  const [sort, setSort] = useState('gap');
-  const [showDelta, setShowDelta] = useState(false);
-  const [referenceId, setReference] = useState('');
-  const [adjusted, setAdjusted] = useState(true);
+  const { comparisonQuery: filter, comparisonSort: sort, comparisonDelta: showDelta,
+    comparisonReference: referenceId, comparisonAdjusted: adjusted } = state;
+  const setFilter = (value: string) => onChange({ comparisonQuery: value });
+  const setSort = (value: string) => onChange({ comparisonSort: value === 'name' ? 'name' : 'gap' });
+  const setShowDelta = (value: boolean) => onChange({ comparisonDelta: value });
+  const setReference = (value: string) => onChange({ comparisonReference: value });
+  const setAdjusted = (value: boolean) => onChange({ comparisonAdjusted: value });
   const category = snapshot.categories.find((c) => c.id === categoryId);
   if (!category) return null;
   const comparison = compareRuns(snapshot, category, selectedIds, adjusted);
@@ -301,11 +292,11 @@ export function ComparisonTables({
     <div className="space-y-5" aria-label="Selected run comparison">
       <div className="space-y-3">
         {comparison.runs.length > 1 && <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 text-sm"><Checkbox checked={showDelta} onCheckedChange={v => setShowDelta(v === true)} />Show difference from reference</label>
+          <label className="flex items-center gap-2 text-sm"><Checkbox aria-label="Show difference from reference" checked={showDelta} onCheckedChange={v => setShowDelta(v === true)} />Show difference from reference</label>
           {showDelta && <Select value={reference.id} onValueChange={setReference}><SelectTrigger aria-label="Reference model" className="w-full sm:w-80"><SelectValue /></SelectTrigger><SelectContent>{comparison.runs.map(run => <SelectItem key={run.id} value={run.id}>{modelName(run.model)}</SelectItem>)}</SelectContent></Select>}
           {showDelta && <span className="text-xs text-muted-foreground">+ means better · {adjusted ? 'percentage points (pp)' : 'original metric units'}</span>}
         </div>}
-      <label className="flex items-center gap-2 text-sm"><Checkbox checked={adjusted} onCheckedChange={v => setAdjusted(v === true)} />Compare baseline-adjusted scores (higher is better)</label>
+      <label className="flex items-center gap-2 text-sm"><Checkbox aria-label="Compare baseline-adjusted scores (higher is better)" checked={adjusted} onCheckedChange={v => setAdjusted(v === true)} />Compare baseline-adjusted scores (higher is better)</label>
         <div className="flex flex-wrap gap-3 items-center">
           <Input aria-label="Filter comparison benchmarks" placeholder="Find a benchmark across all tasks…" value={filter} onChange={event => setFilter(event.target.value)} className="sm:max-w-sm" />
           <Select value={sort} onValueChange={setSort}><SelectTrigger aria-label="Comparison order" className="w-48"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="gap">Largest differences</SelectItem><SelectItem value="name">Benchmark name</SelectItem></SelectContent></Select>
@@ -403,6 +394,7 @@ function Empty({
 
 export function Dashboard({
   snapshot,
+  initialState,
   initialCategory,
   initialTask,
   initialRun,
@@ -415,6 +407,7 @@ export function Dashboard({
   initialBenchmark,
 }: {
   snapshot: Snapshot;
+  initialState?: DashboardState;
   initialCategory?: string;
   initialTask?: string;
   initialRun?: string;
@@ -427,64 +420,72 @@ export function Dashboard({
   initialBenchmark?: string;
 }) {
   const leaderboardTable = useRef<HTMLTableElement>(null);
-  const [categoryId, setCategory] = useState(initialCategory === "japanese-v1" ? "japanese-v1" : "english-v1");
-  const [task, setTask] = useState<Task>(
-    TASKS.includes(initialTask as Task) ? (initialTask as Task) : "choice",
-  );
-  const [generalizationView, setGeneralizationView] = useState(initialTask === 'generalization');
-  const [runId, setRun] = useState(initialRun ?? "");
-  const [view, setView] = useState<View>(
-    ["leaderboard", "benchmarks", "compare"].includes(initialView ?? "")
-      ? (initialView as View)
-      : "leaderboard",
-  );
-  const [selectedIds, setSelected] = useState<string[]>([
-    ...new Set(initialCompare),
-  ]);
-  const [generalizationOnly, setGeneralizationOnly] = useState(initialGeneralizationOnly);
-  const [checkedOnly, setCheckedOnly] = useState(initialCheckedOnly);
-  const [modelSearch, setModelSearch] = useState(initialModelSearch);
-  const [filtersOpen, setFiltersOpen] = useState(initialFiltersOpen);
-  const [totalRange, setTotalRange] = useState<ParameterRange>([...ALL_PARAMETERS]);
-  const [activeRange, setActiveRange] = useState<ParameterRange>([...ALL_PARAMETERS]);
+  const [state, setState] = useState<DashboardState>(() => initialState ?? {
+    ...defaultDashboardState(),
+    categoryId: initialCategory === 'japanese-v1' ? 'japanese-v1' : 'english-v1',
+    task: TASKS.includes(initialTask as Task) ? initialTask as Task : 'choice',
+    generalizationView: initialTask === 'generalization',
+    runId: initialRun ?? '',
+    view: ['leaderboard', 'benchmarks', 'compare'].includes(initialView ?? '') ? initialView as View : 'leaderboard',
+    selectedIds: [...new Set(initialCompare)],
+    generalizationOnly: initialGeneralizationOnly,
+    checkedOnly: initialCheckedOnly,
+    modelSearch: initialModelSearch,
+    filtersOpen: initialFiltersOpen,
+    benchmarkId: initialBenchmark ?? '',
+  });
+  const { categoryId, task, generalizationView, runId, view, selectedIds, generalizationOnly, checkedOnly, modelSearch, filtersOpen, totalRange, activeRange, includeIncomplete, modelPickerOpen, query, leaderboardSort, leaderboardAscending, benchmarkMetric, benchmarkId, detailQuery, detailTask } = state;
+  function setter<K extends keyof DashboardState>(key: K): Dispatch<SetStateAction<DashboardState[K]>> {
+    return value => setState(previous => ({ ...previous,
+      [key]: typeof value === 'function' ? (value as (current: DashboardState[K]) => DashboardState[K])(previous[key]) : value,
+    }));
+  }
+  const setCategory = setter('categoryId');
+  const setTask = setter('task');
+  const setGeneralizationView = setter('generalizationView');
+  const setRun = setter('runId');
+  const setView = setter('view');
+  const setSelected: Dispatch<SetStateAction<string[]>> = value => setState(previous => ({ ...previous,
+    selectedIds: typeof value === 'function' ? value(previous.selectedIds) : value,
+    modelOrderSort: null, modelOrderAscending: false,
+  }));
+  const setGeneralizationOnly = setter('generalizationOnly');
+  const setCheckedOnly = setter('checkedOnly');
+  const setModelSearch = setter('modelSearch');
+  const setFiltersOpen = setter('filtersOpen');
+  const setTotalRange = setter('totalRange');
+  const setActiveRange = setter('activeRange');
+  const setIncomplete = setter('includeIncomplete');
+  const setModelPickerOpen = setter('modelPickerOpen');
+  const setQuery = setter('query');
+  const setLeaderboardSort = setter('leaderboardSort');
+  const setLeaderboardAscending = setter('leaderboardAscending');
+  const setBenchmarkMetric = setter('benchmarkMetric');
+  const setBenchmark = setter('benchmarkId');
+  const setDetailQuery = setter('detailQuery');
+  const setDetailTask = setter('detailTask');
   const parameterFilterCount = Number(rangeActive(totalRange)) + Number(rangeActive(activeRange));
   const resetParameterFilters = () => { setTotalRange([...ALL_PARAMETERS]); setActiveRange([...ALL_PARAMETERS]); };
-  const [includeIncomplete, setIncomplete] = useState(false);
-  const [modelPickerOpen, setModelPickerOpen] = useState(true);
-  const [query, setQuery] = useState("");
-  const [leaderboardSort, setLeaderboardSort] = useState<LeaderboardSort>('borda');
-  const [leaderboardAscending, setLeaderboardAscending] = useState(false);
-  const [benchmarkMetric, setBenchmarkMetric] = useState('baseline_adjusted_score');
-  const [benchmarkId, setBenchmark] = useState(initialBenchmark ?? "");
+  const resetHome = () => {
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    setState(resetDashboardState(state));
+    window.scrollTo({ top: 0 });
+  };
   const category =
     snapshot.categories.find((c) => c.id === categoryId) ??
     snapshot.categories[0];
   useEffect(() => {
+    const restore = () => setState(parseDashboardState(new URLSearchParams(window.location.search)));
+    window.addEventListener('popstate', restore);
+    return () => window.removeEventListener('popstate', restore);
+  }, []);
+  useEffect(() => {
     if (!category) return;
-    const params = new URLSearchParams(window.location.search);
-    for (const key of [
-      "category",
-      "task",
-      "view",
-      "run",
-      "benchmark",
-      "compare",
-      "generalOnly",
-      "checkedOnly",
-      "modelSearch",
-    ])
-      params.delete(key);
-    params.set("category", category.id);
-    params.set("task", generalizationView ? "generalization" : task);
-    params.set("view", view);
-    if (generalizationOnly) params.set("generalOnly", "1");
-    if (checkedOnly) params.set("checkedOnly", "1");
-    if (modelSearch) params.set("modelSearch", modelSearch);
-    if (runId) params.set("run", runId);
-    if (benchmarkId) params.set("benchmark", benchmarkId);
-    for (const id of selectedIds) params.append("compare", id);
-    window.history.replaceState(null, "", `?${params}`);
-  }, [category, task, generalizationView, view, runId, selectedIds, benchmarkId, generalizationOnly, checkedOnly, modelSearch]);
+    const updateUrl = () => syncDashboardUrl(window, serializeDashboardState({ ...state, categoryId: category.id }, new URLSearchParams(window.location.search)));
+    updateUrl();
+    window.addEventListener('hashchange', updateUrl);
+    return () => window.removeEventListener('hashchange', updateUrl);
+  }, [category, state]);
   if (!category)
     return (
       <main className="max-w-6xl mx-auto p-8">
@@ -591,7 +592,7 @@ export function Dashboard({
         <section aria-label="About S1MB" className="mosaic-hero -mx-4 sm:-mx-8 lg:-mx-12 border-b bg-background text-foreground px-4 sm:px-8 lg:px-12 pt-20 pb-8 sm:pb-10 md:pt-8">
           <div className="grid gap-6 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:items-start md:gap-8 lg:gap-12">
             <div>
-              <a href="/" aria-label="S1MB home" className="mb-4 inline-block text-2xl font-bold tracking-tight">S1MB<span className="text-primary">.</span></a>
+              <a href={`?category=${category.id}`} onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); resetHome(); }} aria-label="S1MB home" className="mb-4 inline-block text-2xl font-bold tracking-tight">S1MB<span className="text-primary">.</span></a>
               <h1 className="text-[clamp(2.2rem,3.5vw,3.25rem)] font-semibold leading-[0.98] tracking-[-0.06em]">System One<br /><span className="text-primary">Mosaic</span> Benchmark</h1>
               <div className="flex flex-wrap items-center gap-x-5 gap-y-3 mt-6 border-t border-border/60 pt-4">
                 <EvaluationScopeSwitch categories={snapshot.categories} selected={category.id} onSelect={chooseScope} />
@@ -966,8 +967,10 @@ export function Dashboard({
                 </div>
               )}
             </details>
-            <ComparisonOrder snapshot={snapshot} category={category} selectedIds={selectedIds} onChange={setSelected} onModelSelect={setRun} />
+            <ComparisonOrder sort={state.modelOrderSort} ascending={state.modelOrderAscending} onSort={(ids, sort, ascending) => setState(previous => ({ ...previous, selectedIds: ids, modelOrderSort: sort, modelOrderAscending: ascending }))} snapshot={snapshot} category={category} selectedIds={selectedIds} onChange={setSelected} onModelSelect={setRun} />
             <ComparisonTables
+              state={state}
+              onChange={patch => setState(previous => ({ ...previous, ...patch }))}
               snapshot={snapshot}
               onModelSelect={setRun}
               categoryId={category.id}
@@ -980,6 +983,10 @@ export function Dashboard({
           <RunDetails
             key={active.id}
             run={active}
+            filter={detailQuery}
+            task={detailTask}
+            setFilter={setDetailQuery}
+            setTask={setDetailTask}
             benchmarks={benchmarks}
             onClose={() => setRun("")}
           />
@@ -1016,15 +1023,21 @@ export function Dashboard({
 function RunDetails({
   run,
   benchmarks,
+  filter,
+  task,
+  setFilter,
+  setTask,
   onClose,
 }: {
   run: Run;
+  filter: string;
+  task: DashboardState['detailTask'];
+  setFilter: (value: string) => void;
+  setTask: (value: DashboardState['detailTask']) => void;
   benchmarks: Snapshot["benchmarks"];
   onClose: () => void;
 }) {
   const returnFocus = useRef<HTMLElement | null>(null);
-  const [filter, setFilter] = useState('');
-  const [task, setTask] = useState('all');
   const visible = benchmarks.filter(b => (task === 'all' || b.task === task) && `${b.id} ${benchmarkName(b)}`.toLowerCase().includes(filter.trim().toLowerCase()));
   return (
     <Dialog.Root open onOpenChange={open => { if (!open) onClose(); }}>
@@ -1064,7 +1077,7 @@ function RunDetails({
       <div className="flex items-baseline justify-between gap-3"><h3 className="font-semibold">Benchmark results</h3><span className="text-xs text-muted-foreground">{visible.length} / {benchmarks.length} benchmarks</span></div>
       <div className="flex flex-wrap gap-2">
         <Input aria-label="Filter model benchmarks" placeholder="Find a benchmark…" value={filter} onChange={event => setFilter(event.target.value)} className="min-w-0 flex-1 basis-44" />
-        <Select value={task} onValueChange={setTask}><SelectTrigger aria-label="Model detail task" className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All tasks</SelectItem>{TASKS.map(t => <SelectItem key={t} value={t}>{title(t)}</SelectItem>)}</SelectContent></Select>
+        <Select value={task} onValueChange={value => setTask(value as DashboardState['detailTask'])}><SelectTrigger aria-label="Model detail task" className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All tasks</SelectItem>{TASKS.map(t => <SelectItem key={t} value={t}>{title(t)}</SelectItem>)}</SelectContent></Select>
       </div>
       <div className="rounded-lg border overflow-hidden"><Table aria-label="Run benchmark details" containerClassName="max-h-[50vh]" containerLabel="Benchmark results scroll area" className="[&_td]:align-top [&_td]:py-3 [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-card">
         <TableHeader>

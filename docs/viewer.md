@@ -103,3 +103,38 @@ leaderboard. Check the selected file, converter report and server logs.
 See [display data architecture](../viewer/DISPLAY_DATA.md) for integrity checks,
 publication safeguards and recovery, and [developer workflow](developer_workflow.md)
 for source contribution guidance.
+
+## Share and restore view state
+
+The viewer stores its controls in query parameters. Reloading or opening a shared
+URL restores the selected scope, tab, model details, rankings, filters and ordered
+comparison selection. Default values are omitted to keep links compact.
+
+| Parameters | State |
+| --- | --- |
+| `category` | `english-v1` or `japanese-v1` |
+| `view`, `task`, `benchmark` | Main tab, task and benchmark selection |
+| `run` | Open model details sidebar |
+| `compare` (repeated) | Selected comparison models in display order |
+| `sort`, `ascending`, `metric` | Leaderboard column/direction and benchmark ranking metric |
+| `modelSearch`, `query`, `generalOnly`, `checkedOnly` | Model/benchmark searches and leaderboard filters |
+| `totalRange`, `activeRange`, `filtersOpen` | Parameter slider positions (0–100) and filter panel visibility |
+| `comparisonQuery`, `comparisonSort`, `delta`, `reference`, `raw` | Comparison filtering, row order, differences, reference model and original metrics |
+| `modelSort`, `modelAscending` | Selected-model ordering column and direction |
+| `incomplete`, `pickerClosed` | Incomplete comparison models and model picker visibility |
+| `detailQuery`, `detailTask` | Search and task filter inside model details |
+| `benchmarkTask` | Underlying task retained while `task=generalization` is selected |
+
+Boolean flags use `1`; ranges use two comma-separated slider positions. Invalid
+control values fall back to defaults. Model and benchmark IDs must exist in the
+selected scope for their corresponding content to appear.
+
+Click **S1MB.** to reset controls and close model details while retaining the
+current language scope. Comparison section anchors are cleared on reset.
+
+In the hosted [Hugging Face Space](https://huggingface.co/spaces/hotchpotch/S1MB-leaderboard),
+the iframe also synchronizes query parameters and anchors with the outer Space
+URL using [Hugging Face's documented messaging interface](https://huggingface.co/docs/hub/spaces-handle-url-parameters).
+The Space forwards its initial URL parameters to the app, so links such as
+[Japanese v1](https://huggingface.co/spaces/hotchpotch/S1MB-leaderboard?category=japanese-v1)
+can be shared directly.

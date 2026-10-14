@@ -3,8 +3,8 @@
 ### Comparing System One Decision Models across 100+ benchmarks
 
 **[S1MB Leaderboard](https://huggingface.co/spaces/hotchpotch/S1MB-leaderboard)**
-([en-v1](https://hotchpotch-s1mb-leaderboard.hf.space/?category=english-v1) ·
-[ja-v1](https://hotchpotch-s1mb-leaderboard.hf.space/?category=japanese-v1)) ·
+([en-v1](https://huggingface.co/spaces/hotchpotch/S1MB-leaderboard?category=english-v1) ·
+[ja-v1](https://huggingface.co/spaces/hotchpotch/S1MB-leaderboard?category=japanese-v1)) ·
 [Explainer article](https://huggingface.co/blog/hotchpotch/system-one-mosaic-benchmark/) ·
 [Quick start](docs/quickstart.md) ·
 [Results dataset](https://huggingface.co/datasets/hotchpotch/s1mb-result) ·

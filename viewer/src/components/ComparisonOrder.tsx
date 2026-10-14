@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { MODEL_ORDER_SORTS, type ModelOrderSort } from '../lib/dashboard-state';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { categoryRuns, modelName } from '../lib/comparison';
 import { diagnosticMean, DISPLAY_TASKS, generalizationCategory, overallIndex, type Category, type Snapshot } from '../lib/types';
@@ -14,10 +14,10 @@ import { ModelName } from './ModelName';
 
 const columns = ['Task Avg', 'Noul', 'Choice', 'Score', 'General Noul', 'General Choice', 'General Score'];
 
-export function ComparisonOrder({ snapshot, category, selectedIds, onChange, onModelSelect }: {
+export function ComparisonOrder({ snapshot, category, selectedIds, sort, ascending, onSort, onChange, onModelSelect }: {
+  sort: ModelOrderSort | null; ascending: boolean; onSort: (ids: string[], sort: ModelOrderSort, ascending: boolean) => void;
   snapshot: Snapshot; category: Category; selectedIds: string[]; onChange: (ids: string[]) => void; onModelSelect?: (id: string) => void;
 }) {
-  const [sort, setSort] = useState<{ column: number; ascending: boolean; ids: string[] } | null>(null);
   const runs = categoryRuns(snapshot, category);
   const general = generalizationCategory(snapshot, category);
   const rows = selectedIds.flatMap(id => {
@@ -25,15 +25,13 @@ export function ComparisonOrder({ snapshot, category, selectedIds, onChange, onM
     return run ? [{ ...run, values: [overallIndex(snapshot, category, run.results),
       ...[category, general].flatMap(group => DISPLAY_TASKS.map(task => diagnosticMean(snapshot, group, task, run.results, 'baseline_adjusted_score')))] }] : [];
   });
-  const activeSort = sort && sort.ids.length === selectedIds.length && sort.ids.every((id, index) => id === selectedIds[index]) ? sort : null;
   function sortBy(column: number) {
-    const ascending = activeSort?.column === column ? !activeSort.ascending : false;
+    const nextAscending = sort === MODEL_ORDER_SORTS[column] ? !ascending : false;
     const ids = [...rows].sort((a, b) => {
       const av = a.values[column], bv = b.values[column];
-      return Number(av == null) - Number(bv == null) || (av != null && bv != null ? (av - bv) * (ascending ? 1 : -1) : 0);
+      return Number(av == null) - Number(bv == null) || (av != null && bv != null ? (av - bv) * (nextAscending ? 1 : -1) : 0);
     }).map(row => row.id);
-    setSort({ column, ascending, ids });
-    onChange(ids);
+    onSort(ids, MODEL_ORDER_SORTS[column], nextAscending);
   }
   if (!rows.length) return null;
   return <section aria-label="Model comparison order" className="space-y-2">
@@ -44,11 +42,11 @@ export function ComparisonOrder({ snapshot, category, selectedIds, onChange, onM
         <TableHeader><TableRow>
           <TableHead>Order</TableHead><TableHead>Model</TableHead>
           {columns.map((label, column) => {
-            const active = activeSort?.column === column;
-            return <TableHead key={label} className="text-right" data-task={column ? DISPLAY_TASKS[(column - 1) % 3] : undefined} aria-sort={active ? activeSort.ascending ? 'ascending' : 'descending' : 'none'}>
+            const active = sort === MODEL_ORDER_SORTS[column];
+            return <TableHead key={label} className="text-right" data-task={column ? DISPLAY_TASKS[(column - 1) % 3] : undefined} aria-sort={active ? ascending ? 'ascending' : 'descending' : 'none'}>
               <ColumnHelp onClick={() => sortBy(column)} description={column === 0 ? TASK_AVG_DESCRIPTION : `Sort models by ${label}. Baseline-adjusted scores require complete coverage; unavailable values stay last. Click again to reverse the order.`}>
                 {label.startsWith('General ') && <span className="block text-[10px] text-muted-foreground">General</span>}
-                <span className="inline-flex items-center whitespace-nowrap">{label.replace('General ', '')}<SortIcon direction={active ? activeSort.ascending ? 'ascending' : 'descending' : 'none'} /></span>
+                <span className="inline-flex items-center whitespace-nowrap">{label.replace('General ', '')}<SortIcon direction={active ? ascending ? 'ascending' : 'descending' : 'none'} /></span>
               </ColumnHelp>
             </TableHead>;
           })}
@@ -57,7 +55,7 @@ export function ComparisonOrder({ snapshot, category, selectedIds, onChange, onM
           <TableCell><div className="flex items-center gap-1">
             <span className="w-4 text-muted-foreground tabular-nums">{index + 1}</span>
             {([-1, 1] as const).map(direction => <Button key={direction} variant="ghost" size="icon" className="size-8" aria-label={`Move ${modelName(run.model)} ${direction === -1 ? 'up' : 'down'}`} disabled={direction === -1 ? index === 0 : index === rows.length - 1} onClick={() => {
-              setSort(null); onChange(moveComparison(rows.map(row => row.id), run.id, direction));
+              onChange(moveComparison(rows.map(row => row.id), run.id, direction));
             }}>{direction === -1 ? <ArrowUp className="size-4" /> : <ArrowDown className="size-4" />}</Button>)}
           </div></TableCell>
           <TableCell className="whitespace-normal min-w-48 max-w-80"><ModelName model={run.model} /></TableCell>
