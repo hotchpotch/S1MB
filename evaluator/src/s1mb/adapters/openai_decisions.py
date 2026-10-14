@@ -43,8 +43,8 @@ def request_question(question: Question) -> dict:
         result.update(
             type="score",
             levels=[
-                {"label": f"level_{i}", "description": description}
-                for i, description in enumerate(descriptions)
+                {"label": str(option.value), "description": description}
+                for option, description in zip(question.options, descriptions, strict=True)
             ],
         )
     return result
@@ -204,7 +204,7 @@ class OpenAIDecisionsAdapter:
             settings={
                 "requested_model": self.model,
                 "endpoint": "https://api.openai.com/v1/decisions",
-                "renderer": "authored-text-anonymous-options-v1",
+                "renderer": "authored-text-anonymous-options-numeric-levels-v2",
                 "questions_per_request": 1,
                 "case_batch_size": self.case_batch_size,
                 "input_length_policy": "full-input-no-local-truncation",

@@ -774,7 +774,8 @@ unknown. Freeze evaluation settings before the full run.
 
 Choice uses native candidate probabilities. Noul uses a native predicate with
 both authored outcome descriptions. Score uses per-level probabilities mapped
-back to the original numeric scale, preserving declared criterion order; the
+back to the original numeric scale, with numeric values in the level labels and
+preserving declared criterion order; the
 API's ordinal expected score is not used. Transport names are anonymous and
 targets and benchmark identifiers are excluded from requests. Each request
 contains one question and the complete input, without local truncation.

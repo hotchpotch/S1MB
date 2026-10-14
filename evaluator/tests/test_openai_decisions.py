@@ -41,6 +41,8 @@ def test_native_probabilities_and_anonymous_ids(monkeypatch, task):
             answer["probability"] = 0.7
             assert "Criterion 0" in question["instructions"]
         else:
+            if task == "score":
+                assert [level["label"] for level in question["levels"]] == ["10.0", "90.0"]
             values = ["option_0", "option_1"] if task == "choice" else [0, 1]
             answer["probabilities"] = [
                 {"value": values[1], "probability": 0.7},
