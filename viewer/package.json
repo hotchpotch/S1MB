@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/lib/*.test.ts",
     "prepare-display": "tsx scripts/generate-display.ts",
-    "fetch-display": "tsx scripts/fetch-display.ts"
+    "fetch-display": "tsx scripts/fetch-display.ts",
+    "prepare-delivery": "tsx scripts/prepare-delivery.ts"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.3",

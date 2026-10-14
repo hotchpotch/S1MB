@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto';
 import { encodeDisplay, decodeDisplay } from './display-data';
 import { expandDisplay, createDisplayLoader } from './display-client';
 import { createDisplayStore, displayResponse } from './results';
+import { prepareDelivery } from './prepare-delivery';
 import type { Snapshot } from './types';
 
 function fixture() {
@@ -38,6 +39,7 @@ test('compact delivery caches once and revalidates with ETag', async () => {
   const file = path.join(root, 'display.json');
   const artifact = fixture();
   await writeFile(file, JSON.stringify(artifact));
+  await prepareDelivery(file);
   const store = createDisplayStore(file);
   try {
     const [a, b] = await Promise.all([store(), store()]);
@@ -65,6 +67,7 @@ test('invalid local data returns a safe failure and a corrected file can retry',
     assert.match(failed.headers.get('cache-control')!, /no-store/);
     assert.ok(!(await failed.text()).includes(file));
     await writeFile(file, JSON.stringify(fixture()));
+    await prepareDelivery(file);
     assert.equal((await displayResponse(new Request('http://localhost/api/display/'), store)).status, 200);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
@@ -94,8 +97,10 @@ test('ETag covers generation and source metadata even when scores are unchanged'
   const a = fixture();
   try {
     await writeFile(file, JSON.stringify(a));
+    await prepareDelivery(file);
     const first = await createDisplayStore(file)();
     await writeFile(file, JSON.stringify({ ...a, generatedAt: '2026-10-14T00:00:00.000Z' }));
+    await prepareDelivery(file);
     const second = await createDisplayStore(file)();
     assert.notEqual(first.etag, second.etag);
   } finally { await rm(root, { recursive: true, force: true }); }
@@ -141,6 +146,7 @@ test('compact API compresses negotiated responses and keeps representation ETags
   const file = path.join(root, 'display.json');
   const artifact = fixture();
   await writeFile(file, JSON.stringify(artifact));
+  await prepareDelivery(file);
   const store = createDisplayStore(file);
   try {
     const plain = await displayResponse(new Request('http://localhost/api/display/'), store);
@@ -153,5 +159,39 @@ test('compact API compresses negotiated responses and keeps representation ETags
     assert.equal(disabled.headers.get('content-encoding'), null);
     const cached = await displayResponse(new Request('http://localhost/api/display/', { headers: { 'accept-encoding': 'gzip', 'if-none-match': zipped.headers.get('etag')! } }), store);
     assert.equal(cached.status, 304);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('build preparation rejects invalid input without replacing a working delivery', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 's1mb-build-'));
+  const file = path.join(root, 'display.json');
+  try {
+    await writeFile(file, JSON.stringify(fixture()));
+    await prepareDelivery(file);
+    await unlink(file);
+    const before = await createDisplayStore(file)();
+    await writeFile(file, '{}');
+    await assert.rejects(prepareDelivery(file));
+    const after = await createDisplayStore(file)();
+    assert.deepEqual(after, before);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('runtime bounds manifests and rejects paths or truncated prepared bytes', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 's1mb-manifest-'));
+  const file = path.join(root, 'display.json');
+  const manifest = path.join(`${file}.delivery`, 'manifest.json');
+  try {
+    await writeFile(file, JSON.stringify(fixture()));
+    await prepareDelivery(file);
+    await writeFile(manifest, JSON.stringify({ version: 1, digest: '../../private' }));
+    await assert.rejects(createDisplayStore(file)(), /manifest/);
+    await writeFile(manifest, ' '.repeat(1025));
+    await assert.rejects(createDisplayStore(file)(), /size/);
+    await prepareDelivery(file);
+    const { readFile } = await import('node:fs/promises');
+    const metadata = JSON.parse(await readFile(manifest, 'utf8'));
+    await writeFile(path.join(`${file}.delivery`, `${metadata.digest}.gz`), 'truncated');
+    await assert.rejects(createDisplayStore(file)(), /Incomplete/);
   } finally { await rm(root, { recursive: true, force: true }); }
 });

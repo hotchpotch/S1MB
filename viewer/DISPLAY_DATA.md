@@ -2,7 +2,9 @@
 
 The viewer reads one immutable `viewer-summary.json` from local disk. It never
 scans result folders, decompresses XZ, contacts the Hub, starts a refresh worker,
-or reads a persistent Bucket at runtime. Each server process loads the JSON once.
+or reads a persistent Bucket at runtime. Build-time preparation validates the JSON and generates plain and gzip responses
+with a content-addressed manifest. Each server process caches those prepared bytes
+once, without parsing the artifact, calculating hashes or compressing responses.
 Updating the file requires a restart; updating a Space requires a new image.
 
 ## Publication lifecycle
@@ -23,7 +25,8 @@ Updating the file requires a restart; updating a Space requires a new image.
    commit appeared, regenerate from the new latest revision; do not force a write.
 6. Build the Docker image with the exact Dataset SHA containing the artifact.
    Both CI image builds use the same resolved revision. The image fetches only
-   the small public JSON and validates it before inclusion. Deploy that digest.
+   the public JSON, validates it and prepares delivery bytes before inclusion.
+   The source JSON is removed from the runtime image. Deploy that digest.
 
 For commands, see [Space deployment](../docs/huggingface_space_deploy.md).
 `viewer-summary.json` is a reserved root-level generated artifact, not a model
@@ -61,23 +64,24 @@ Reports remain local and are never uploaded alongside measurements.
 
 Use `npm run prepare-display` to convert local result folders into the same format,
 or `npm run fetch-display` to download an already published artifact at a pinned
-SHA. Start with `--display-file` (default `viewer/display/viewer-summary.json`).
+SHA. Run `npm run prepare-delivery -- [DISPLAY_FILE]` explicitly before startup.
+Start with `--display-file` (default `viewer/display/viewer-summary.json`).
 See [local viewer instructions](../docs/viewer.md).
 
 The initial page is a statically rendered loading shell. It contains no result
 snapshot, so its response size is independent of the number of measurements.
 After hydration, the browser requests `/api/display/` from the same viewer. The
-server validates the local artifact once, caches its compact serialized form and
-a gzip representation, and negotiates gzip with `Accept-Encoding`. Responses
+server reads the prepared plain/gzip bytes once and negotiates gzip with
+`Accept-Encoding`. Responses
 include `Vary: Accept-Encoding`, a representation-specific content ETag and
 `Cache-Control: public, no-cache`. Browser HTTP caches revalidate across reloads and deployments; a matching ETag returns 304.
 The browser also shares the in-flight request and retains the decoded snapshot
 for the page lifetime. Failed requests are not cached and the Retry button
 requests the data again. Response decoding is bounded to 32 MiB with a 30-second
-request timeout. Validation failures return a generic 503 and are logged on the
+request timeout. Missing or malformed delivery files return a generic 503 and are logged on the
 server; raw file paths and validation details are not sent to the browser.
 
-Both server validation and browser reconstruction retain shared dictionary
+Both build-time validation and browser reconstruction retain shared dictionary
 objects instead of copying model metadata into every result. The server never
 serializes the expanded snapshot into page HTML. The API serves the bundled
 public summary, with no runtime Hub requests, filesystem refresh or raw-result
@@ -99,7 +103,8 @@ it does not imply live synchronization.
 | [fetch-display.ts](scripts/fetch-display.ts) | Bounded download at an immutable Dataset SHA |
 | [result-loader.ts](src/lib/result-loader.ts) | Offline result validation and source consistency |
 | [display-data.ts](src/lib/display-data.ts) | Compact format, checksum, reduction checks and atomic writes |
-| [results.ts](src/lib/results.ts) | Cache validated compact responses, compression and ETags |
+| [prepare-delivery.ts](src/lib/prepare-delivery.ts) | Build-time validation, compression and atomic delivery manifest |
+| [results.ts](src/lib/results.ts) | Cache prepared bytes and serve precomputed ETags |
 | [display-client.ts](src/lib/display-client.ts) | Bounded browser fetch and dictionary reconstruction |
 | [AsyncDashboard.tsx](src/components/AsyncDashboard.tsx) | Loading, retry and current-URL restoration |
 | [start.ts](scripts/start.ts) | Display path and safe host selection |

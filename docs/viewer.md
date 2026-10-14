@@ -12,9 +12,14 @@ from the Hub history or the maintainer's publication output. From `viewer/`:
 ```sh
 npm ci
 npm run fetch-display -- --revision DATASET_COMMIT_SHA
+npm run prepare-delivery
 npm run build
 npm start
 ```
+
+Delivery files are generated beside the source JSON in a `.delivery` directory.
+Startup never creates or validates them; missing preparation returns a retryable
+503 response. The source JSON is unnecessary after preparation.
 
 The default artifact path is `viewer/display/viewer-summary.json`, ignored by Git.
 Use `npm run dev` for development. The wrapper prints its Tailscale IPv4 or
@@ -27,6 +32,7 @@ Generate the same JSON format before starting the viewer:
 ```sh
 # From viewer/; install xz before conversion.
 npm run prepare-display -- --results-dir ../evaluator/data/results/MY_RUN
+npm run prepare-delivery
 npm run dev
 ```
 
@@ -36,6 +42,7 @@ Repeat `--results-dir` on the conversion command to combine existing sources:
 npm run prepare-display -- --results-dir ../evaluator/data/hub-results \
   --results-dir ../evaluator/data/results/MY_RUN \
   --output ../tmp/local-viewer.json
+npm run prepare-delivery -- ../tmp/local-viewer.json
 npm start -- --display-file ../tmp/local-viewer.json
 ```
 
@@ -54,7 +61,7 @@ measurements and upload are described in [Space deployment](huggingface_space_de
 
 ## Updating the display
 
-Regenerate or fetch a new JSON, then restart the local viewer. Browsing the page
+Regenerate or fetch a new JSON, run `npm run prepare-delivery`, then restart the local viewer. Browsing the page
 does not check the filesystem or Hub for updates. There is no background process,
 Bucket cache or polling interval. The Docker image contains a fixed artifact;
 rebuild and redeploy it to update the hosted leaderboard.

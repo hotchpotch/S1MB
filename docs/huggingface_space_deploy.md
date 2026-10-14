@@ -236,7 +236,11 @@ and uses the resolved Dataset parent SHA to reject concurrent updates.
 After publication, push `hf-space-docker` or dispatch the workflow on that branch.
 CI resolves one Dataset commit for both Docker builds. `RESULTS_REVISION` is a
 required build argument; the build downloads and validates just the public JSON
-at that SHA. Repeating a deployment after publishing new data resolves a new SHA,
+at that SHA. The same Docker build runs `npm run prepare-delivery` to validate,
+serialize, compress and calculate response ETags. It removes the source JSON;
+the runtime serves the prepared bytes without this processing at startup or on
+the first request. The validation job checks delivery from that source-free image.
+Repeating a deployment after publishing new data resolves a new SHA,
 so Docker cannot reuse an older artifact layer by accident.
 
 ## Remove legacy mounts

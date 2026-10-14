@@ -1,17 +1,34 @@
-/** Serve one validated, immutable local artifact. No remote I/O or source scans. */
-import { readDisplay } from './display-data';
-import { createHash } from 'node:crypto';
-import { gzip } from 'node:zlib';
-import { promisify } from 'node:util';
+/** Serve build-prepared bytes. No artifact validation, hashing or compression at runtime. */
+import { open } from 'node:fs/promises';
+import path from 'node:path';
 
-const compress = promisify(gzip);
+async function boundedBytes(file: string, maximum: number) {
+  const handle = await open(file, 'r');
+  try {
+    const size = (await handle.stat()).size;
+    if (size > maximum) throw new Error('Prepared delivery exceeds its size limit');
+    const bytes = Buffer.alloc(size);
+    let offset = 0;
+    while (offset < size) {
+      const { bytesRead } = await handle.read(bytes, offset, size - offset, offset);
+      if (!bytesRead) throw new Error('Incomplete prepared delivery');
+      offset += bytesRead;
+    }
+    return bytes;
+  } finally { await handle.close(); }
+}
 type Delivery = { body: string; gzip: Uint8Array<ArrayBuffer>; etag: string };
 export function createDisplayStore(file: string): () => Promise<Delivery> {
   let pending: Promise<Delivery> | undefined;
-  return () => pending ??= readDisplay(file).then(async ({ artifact }) => {
-    const body = JSON.stringify(artifact);
-    return { body, gzip: new Uint8Array(await compress(body)), etag: `"${createHash('sha256').update(body).digest('hex')}"` };
-  }).catch(error => { pending = undefined; throw error; });
+  return () => pending ??= (async () => {
+    const directory = `${file}.delivery`;
+    const manifest = JSON.parse((await boundedBytes(path.join(directory, 'manifest.json'), 1024)).toString());
+    if (manifest.version !== 1 || typeof manifest.digest !== 'string' || !/^[a-f0-9]{64}$/.test(manifest.digest)) throw new Error('Invalid prepared delivery manifest');
+    const body = await boundedBytes(path.join(directory, `${manifest.digest}.json`), 32 * 1024 * 1024);
+    const gzip = await boundedBytes(path.join(directory, `${manifest.digest}.gz`), 33 * 1024 * 1024);
+    if (body.length !== manifest.bytes || gzip.length !== manifest.gzipBytes) throw new Error('Incomplete prepared delivery');
+    return { body: body.toString(), gzip: new Uint8Array(gzip), etag: `"${manifest.digest}"` };
+  })().catch(error => { pending = undefined; throw error; });
 }
 
 const shared = globalThis as typeof globalThis & { s1mbDelivery?: () => Promise<Delivery> };
