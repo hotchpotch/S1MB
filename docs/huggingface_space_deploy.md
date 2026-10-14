@@ -33,7 +33,8 @@ The viewer itself needs no application HF token or mounted volumes.
 After cross-merging and passing checks, push `hf-space-docker`. The workflow
 validates the code, builds and publishes the image, checks anonymous image access,
 and deploys an immutable image digest. It then checks the exact running Space
-revision and an authenticated HTTP response. Monitor it from an authorized shell:
+revision, the loading shell and the compact display API. Private Spaces use
+authenticated readiness requests; public Spaces use anonymous requests. Monitor it from an authorized shell:
 
 ```sh
 gh run list --workflow deploy-space.yml --branch hf-space-docker
