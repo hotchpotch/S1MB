@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { Dashboard } from "./Dashboard";
+import { parseDashboardState } from "../lib/dashboard-state";
 import type { Snapshot, Task } from "../lib/types";
 import { METRICS } from "../lib/types";
 const benchmarks = (["choice", "noul", "score"] as Task[]).map((task) => ({
@@ -533,4 +534,20 @@ export const HeroSpaceOverlayTablet: Story = {
   ...HeroSpaceOverlay,
   decorators: [...(Array.isArray(HeroSpaceOverlay.decorators) ? HeroSpaceOverlay.decorators : []), (Story) => <div style={{ width: 960, maxWidth: '100%' }}><Story /></div>],
   parameters: { docs: { description: { story: 'Synthetic measurements at a 960px content width, covering the two-column header below the desktop breakpoint.' } } },
+};
+
+const queryFixture: Snapshot = {
+  ...radarFixture,
+  categories: [...radarFixture.categories, { ...radarFixture.categories[0], id: 'japanese-v1', name: 'Japanese v1 · Synthetic' }],
+};
+export const QueryState: Story = {
+  args: { snapshot: queryFixture },
+  render: args => <Dashboard {...args} initialState={parseDashboardState(new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search))} />,
+  parameters: { docs: { description: { story: 'Synthetic URL-state fixture. Change controls and reload the iframe URL to restore sorting, sidebar, filters, comparison configuration and selected scope. S1MB home clears controls while keeping the language.' } } },
+};
+export const QuerySidebar: Story = {
+  args: { snapshot: queryFixture, initialState: parseDashboardState(new URLSearchParams('category=japanese-v1&sort=overall&ascending=1&run=synthetic-radar-0&detailTask=noul')) },
+};
+export const QueryComparison: Story = {
+  args: { snapshot: queryFixture, initialState: parseDashboardState(new URLSearchParams('view=compare&compare=synthetic-radar-1&compare=synthetic-radar-0&comparisonSort=name&delta=1&reference=synthetic-radar-1&raw=1&pickerClosed=1')) },
 };

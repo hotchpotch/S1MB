@@ -1,5 +1,6 @@
 import { Dashboard } from "../components/Dashboard";
 import { getSnapshot } from "../lib/results";
+import { parseDashboardState } from "../lib/dashboard-state";
 export const dynamic = "force-dynamic";
 export default async function Page({
   searchParams,
@@ -7,26 +8,9 @@ export default async function Page({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  return (
-    <Dashboard
-      snapshot={await getSnapshot()}
-      initialCategory={
-        typeof params.category === "string" ? params.category : undefined
-      }
-      initialCheckedOnly={params.checkedOnly === "1"}
-      initialModelSearch={typeof params.modelSearch === "string" ? params.modelSearch : undefined}
-      initialGeneralizationOnly={params.generalOnly === "1"}
-      initialTask={typeof params.task === "string" ? params.task : undefined}
-      initialView={typeof params.view === "string" ? params.view : undefined}
-      initialBenchmark={
-        typeof params.benchmark === "string" ? params.benchmark : undefined
-      }
-      initialCompare={
-        typeof params.compare === "string"
-          ? [params.compare]
-          : (params.compare ?? [])
-      }
-      initialRun={typeof params.run === "string" ? params.run : undefined}
-    />
-  );
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    for (const item of Array.isArray(value) ? value : value === undefined ? [] : [value]) query.append(key, item);
+  }
+  return <Dashboard snapshot={await getSnapshot()} initialState={parseDashboardState(query)} />;
 }
