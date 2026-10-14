@@ -195,3 +195,32 @@ test('runtime bounds manifests and rejects paths or truncated prepared bytes', a
     await assert.rejects(createDisplayStore(file)(), /Incomplete/);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
+
+
+test('existing display artifacts without abstention counts retain their checksum', () => {
+  const artifact = fixture();
+  for (const result of artifact.payload.results) delete result.counts.abstained;
+  artifact.digest = createHash('sha256').update(JSON.stringify(artifact.payload)).digest('hex');
+  const decoded = decodeDisplay(artifact);
+  assert.equal(decoded.artifact.digest, artifact.digest);
+  assert.equal('abstained' in decoded.artifact.payload.results[0].counts, false);
+  assert.equal(decoded.snapshot.results[0].status, 'complete');
+});
+
+test('display artifacts preserve and validate explicit abstention counts', () => {
+  const artifact = fixture();
+  for (const result of artifact.payload.results) {
+    result.counts.succeeded = 1;
+    result.counts.abstained = 1;
+    result.metrics.target_mass_at_prediction = 0.5;
+    result.metrics.baseline_adjusted_score = 0;
+  }
+  artifact.digest = createHash('sha256').update(JSON.stringify(artifact.payload)).digest('hex');
+  const decoded = decodeDisplay(artifact);
+  assert.equal(decoded.snapshot.results[0].counts.abstained, 1);
+  assert.equal(decoded.snapshot.results[0].status, 'complete');
+  const invalid = structuredClone(artifact);
+  invalid.payload.results[0].counts.abstained = 2;
+  invalid.digest = createHash('sha256').update(JSON.stringify(invalid.payload)).digest('hex');
+  assert.throws(() => decodeDisplay(invalid), /counts/);
+});
