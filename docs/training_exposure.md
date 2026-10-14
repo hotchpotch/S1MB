@@ -1,10 +1,12 @@
 # Disclosing training exposure
 
 S1MB shows an icon beside leaderboard model names with declared exposure in the
-selected scope. Hover or focus it for the meaning, domains and reasons. Click a
-model name or icon to open its
-sidebar, then expand `Known domains (N)` and a domain to inspect its task, reason
-and pinned evidence. The tooltip and details show the number of distinct disclosed
+selected scope. Hover or focus it for a short label, coverage count and click hint.
+Click the icon to open the model sidebar with `Known domains` expanded and
+highlighted. A benchmark-specific icon also expands and highlights that domain
+with its task, reason and evidence. Model-name clicks open the ordinary sidebar.
+The URL stores disclosure focus as `training=all` or `training=BENCHMARK_ID`
+alongside `run=MODEL_ID`, so shared links and reloads restore the focused details. The tooltip and details show the number of distinct disclosed
 benchmarks over all benchmarks in the selected language scope, for example `1/137`.
 Multiple training sources for one benchmark count once. The mark communicates
 documented training exposure, not an explanation or prediction of high scores.

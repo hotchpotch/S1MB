@@ -23,7 +23,7 @@ export type DashboardState = {
   leaderboardSort: LeaderboardSort; leaderboardAscending: boolean; benchmarkMetric: string;
   comparisonQuery: string; comparisonSort: 'gap' | 'name'; comparisonDelta: boolean;
   comparisonReference: string; comparisonAdjusted: boolean;
-  detailQuery: string; detailTask: 'all' | Task;
+  detailQuery: string; detailTask: 'all' | Task; trainingFocus: string;
   modelOrderSort: ModelOrderSort | null; modelOrderAscending: boolean;
 };
 export function defaultDashboardState(): DashboardState {
@@ -34,7 +34,7 @@ export function defaultDashboardState(): DashboardState {
     includeIncomplete: false, modelPickerOpen: true, query: '', leaderboardSort: 'borda',
     leaderboardAscending: false, benchmarkMetric: 'baseline_adjusted_score',
     comparisonQuery: '', comparisonSort: 'gap', comparisonDelta: false, comparisonReference: '',
-    comparisonAdjusted: true, detailQuery: '', detailTask: 'all', modelOrderSort: null, modelOrderAscending: false,
+    comparisonAdjusted: true, detailQuery: '', detailTask: 'all', trainingFocus: '', modelOrderSort: null, modelOrderAscending: false,
   };
 }
 const tasks = ['choice', 'noul', 'score'] as const;
@@ -71,6 +71,8 @@ export function parseDashboardState(params: URLSearchParams): DashboardState {
   const modelSort = params.get('modelSort');
   state.modelOrderSort = MODEL_ORDER_SORTS.includes(modelSort as ModelOrderSort) ? modelSort as ModelOrderSort : null;
   state.detailTask = enumValue(params.get('detailTask'), ['all', ...tasks], 'all');
+  const training = params.get('training') ?? '';
+  state.trainingFocus = state.runId && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(training) ? training : '';
   for (const [field, key] of stringFields) state[field] = params.get(key) ?? '';
   for (const [field, key] of booleanFields) state[field] = params.get(key) === '1';
   state.modelPickerOpen = params.get('pickerClosed') !== '1';
@@ -80,7 +82,7 @@ export function parseDashboardState(params: URLSearchParams): DashboardState {
   return state;
 }
 const keys = ['category', 'task', 'benchmarkTask', 'view', 'run', 'benchmark', 'compare', 'sort', 'metric',
-  'comparisonSort', 'modelSort', 'detailTask', 'totalRange', 'activeRange', 'pickerClosed', 'raw',
+  'comparisonSort', 'modelSort', 'detailTask', 'training', 'totalRange', 'activeRange', 'pickerClosed', 'raw',
   ...stringFields.map(([, key]) => key), ...booleanFields.map(([, key]) => key)];
 export function serializeDashboardState(state: DashboardState, base = new URLSearchParams()): URLSearchParams {
   const params = new URLSearchParams(base);
@@ -93,6 +95,7 @@ export function serializeDashboardState(state: DashboardState, base = new URLSea
   else if (state.task !== 'choice') params.set('task', state.task);
   if (state.view !== 'leaderboard') params.set('view', state.view);
   if (state.runId) params.set('run', state.runId);
+  if (state.runId && state.trainingFocus) params.set('training', state.trainingFocus);
   if (state.benchmarkId) params.set('benchmark', state.benchmarkId);
   for (const id of new Set(state.selectedIds)) if (id) params.append('compare', id);
   for (const [field, key] of stringFields) if (state[field]) params.set(key, state[field]);
@@ -111,6 +114,9 @@ export function serializeDashboardState(state: DashboardState, base = new URLSea
 }
 export function resetDashboardState(state: DashboardState): DashboardState {
   return { ...defaultDashboardState(), categoryId: state.categoryId };
+}
+export function selectRunDetails(state: DashboardState, runId: string, trainingFocus = ''): DashboardState {
+  return { ...state, runId, trainingFocus: runId ? trainingFocus : '' };
 }
 type UrlBrowser = {
   parent: { postMessage(message: unknown, targetOrigin: string): void };

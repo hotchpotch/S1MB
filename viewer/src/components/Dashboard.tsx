@@ -6,7 +6,7 @@ import { GitHubIcon } from "./GitHubIcon";
 import { BenchmarkSources } from "./BenchmarkSources";
 
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { BENCHMARK_METRICS, defaultDashboardState, parseDashboardState, resetDashboardState, serializeDashboardState, syncDashboardUrl, type DashboardState, type LeaderboardSort, type View } from "../lib/dashboard-state";
+import { BENCHMARK_METRICS, defaultDashboardState, parseDashboardState, resetDashboardState, selectRunDetails, serializeDashboardState, syncDashboardUrl, type DashboardState, type LeaderboardSort, type View } from "../lib/dashboard-state";
 import { ArrowLeftRight, ArrowUpRight, BarChart3, Blocks, Check, CircleCheck, ListChecks, BookOpen, Trophy, ChevronLeft, ChevronRight, Search, SlidersHorizontal, ChevronDown, X } from "lucide-react";
 import { ModelWebsiteLink } from "./ModelWebsiteLink";
 import { hfModelLabel } from '../lib/hf-model-label';
@@ -103,6 +103,7 @@ function ModelLabel({
   model,
   runId,
   onClick,
+  onTrainingClick,
   detailed = false,
   distinguish = false,
   showRepository = false,
@@ -112,6 +113,7 @@ function ModelLabel({
   model: ModelInfo;
   runId: string;
   onClick?: () => void;
+  onTrainingClick?: () => void;
   detailed?: boolean;
   distinguish?: boolean;
   showRepository?: boolean;
@@ -132,7 +134,7 @@ function ModelLabel({
       ) : (
         <p className="font-semibold text-sm leading-5 break-words">{modelName(model)}</p>
       )}
-      <span className="flex h-5 shrink-0 items-center"><TrainingBadge model={model} benchmarkId={benchmarkId} benchmarkIds={benchmarkIds} onClick={onClick} /></span>
+      <span className="flex h-5 shrink-0 items-center"><TrainingBadge model={model} benchmarkId={benchmarkId} benchmarkIds={benchmarkIds} onClick={onTrainingClick} /></span>
       </div>
       {repository && (onClick ? (
         <button onClick={onClick} className="block text-left text-[10px]! font-normal leading-tight text-muted-foreground underline-offset-2 hover:underline break-words">
@@ -258,6 +260,7 @@ export function ComparisonTables({
   state,
   onChange,
   onModelSelect,
+  onTrainingSelect,
   onBenchmarkSelect,
 }: {
   snapshot: Snapshot;
@@ -267,6 +270,7 @@ export function ComparisonTables({
   onChange: (patch: Partial<DashboardState>) => void;
   onBenchmarkSelect?: (id: string, task: Task) => void;
   onModelSelect?: (id: string) => void;
+  onTrainingSelect?: (id: string, benchmarkId?: string) => void;
 }) {
   const { comparisonQuery: filter, comparisonSort: sort, comparisonDelta: showDelta,
     comparisonReference: referenceId, comparisonAdjusted: adjusted } = state;
@@ -335,7 +339,7 @@ export function ComparisonTables({
                         key={run.id}
                         className="sticky top-0 z-20 bg-card py-4 px-3 align-top whitespace-normal [overflow-wrap:anywhere]"
                       >
-                        <ModelName model={run.model} benchmarkIds={category.benchmarks} onClick={onModelSelect ? () => onModelSelect(run.id) : undefined} />
+                        <ModelName model={run.model} benchmarkIds={category.benchmarks} onClick={onModelSelect ? () => onModelSelect(run.id) : undefined} onTrainingClick={onTrainingSelect ? () => onTrainingSelect(run.id) : undefined} />
                       </TableHead>
                     ))}
                   </TableRow>
@@ -357,7 +361,7 @@ export function ComparisonTables({
                             cell.best && "bg-accent/60",
                           )}
                         >
-                          {cell.result && <TrainingBadge model={cell.result.model} benchmarkId={benchmark.id} />}
+                          {cell.result && <TrainingBadge model={cell.result.model} benchmarkId={benchmark.id} onClick={onTrainingSelect ? () => onTrainingSelect(cell.runId, benchmark.id) : undefined} />}
                           <ScoreValue result={cell.result} best={cell.best} adjusted={adjusted} compact />
                           {showDelta && comparison.runs.length > 1 && <p className="mt-1 text-xs font-mono text-muted-foreground">
                             {cell.runId === reference.id ? 'Reference' : (() => {
@@ -443,7 +447,8 @@ export function Dashboard({
   const setCategory = setter('categoryId');
   const setTask = setter('task');
   const setGeneralizationView = setter('generalizationView');
-  const setRun = setter('runId');
+  const setRun = (id: string) => setState(previous => selectRunDetails(previous, id));
+  const openTraining = (id: string, benchmarkId = 'all') => setState(previous => selectRunDetails(previous, id, benchmarkId));
   const setView = setter('view');
   const setSelected: Dispatch<SetStateAction<string[]>> = value => setState(previous => ({ ...previous,
     selectedIds: typeof value === 'function' ? value(previous.selectedIds) : value,
@@ -751,7 +756,7 @@ export function Dashboard({
                   }}>
                   <TableCell><CheckRun id={row.runId} checked={selectedIds.includes(row.runId)} onToggle={toggle} /></TableCell>
                   <TableCell className="font-mono text-muted-foreground">{leaderboardRanks.get(row.runId) ?? '—'}</TableCell>
-                  <TableCell data-export-url={row.model.url} data-export-huggingface={row.model.hf_url} className="whitespace-normal"><ModelLabel showRepository benchmarkIds={category.benchmarks} model={row.model} runId={row.runId} distinguish={repeatedName(runs, row.model)} onClick={() => setRun(row.runId)} />{row.score === null && <span className="mt-1 block text-xs text-muted-foreground">Aggregate unavailable · {row.results.filter(r => rankingCategory.benchmarks.includes(r.benchmark.id) && r.status === 'complete').length}/{rankingCategory.benchmarks.length} complete</span>}{row.demo && <Badge variant="secondary">Demo</Badge>}</TableCell>
+                  <TableCell data-export-url={row.model.url} data-export-huggingface={row.model.hf_url} className="whitespace-normal"><ModelLabel showRepository benchmarkIds={category.benchmarks} model={row.model} runId={row.runId} distinguish={repeatedName(runs, row.model)} onClick={() => setRun(row.runId)} onTrainingClick={() => openTraining(row.runId)} />{row.score === null && <span className="mt-1 block text-xs text-muted-foreground">Aggregate unavailable · {row.results.filter(r => rankingCategory.benchmarks.includes(r.benchmark.id) && r.status === 'complete').length}/{rankingCategory.benchmarks.length} complete</span>}{row.demo && <Badge variant="secondary">Demo</Badge>}</TableCell>
                   <TableCell className="text-right font-mono font-semibold text-primary">{adjustedScore(borda.get(row.runId))}</TableCell>
                   <TableCell className="text-right">
                     <span className="font-mono">{adjustedScore(row.score)}</span>
@@ -779,7 +784,7 @@ export function Dashboard({
             </details>
           </section>
         )}
-        {view === "benchmarks" && generalizationView && <GeneralizationTable snapshot={snapshot} category={category} selectedIds={selectedIds} onToggle={toggle} />}
+        {view === "benchmarks" && generalizationView && <GeneralizationTable snapshot={snapshot} category={category} selectedIds={selectedIds} onToggle={toggle} onTrainingSelect={openTraining} />}
         {view === "benchmarks" && !generalizationView && (
           <section aria-label="Benchmark results" className="space-y-5">
             <div className="grid sm:grid-cols-[1fr_2fr_auto] items-center gap-3">
@@ -876,6 +881,7 @@ export function Dashboard({
                                 distinguish={repeatedName(runs, r.model)}
                                 runId={cell.runId}
                                 onClick={() => setRun(cell.runId)}
+                                onTrainingClick={() => openTraining(cell.runId, r.benchmark.id)}
                               />
                             </TableCell>
                             {metricColumns.map(m => <TableCell key={m.name} className={cn('text-right font-mono', m.name === benchmarkMetric && 'bg-accent/30', m.name === benchmarkMetric && bestMetric != null && r.status === 'complete' && r.provenance === 'measured' && r.metrics[m.name] === bestMetric && 'text-primary font-bold')}>
@@ -967,12 +973,13 @@ export function Dashboard({
                 </div>
               )}
             </details>
-            <ComparisonOrder sort={state.modelOrderSort} ascending={state.modelOrderAscending} onSort={(ids, sort, ascending) => setState(previous => ({ ...previous, selectedIds: ids, modelOrderSort: sort, modelOrderAscending: ascending }))} snapshot={snapshot} category={category} selectedIds={selectedIds} onChange={setSelected} onModelSelect={setRun} />
+            <ComparisonOrder sort={state.modelOrderSort} ascending={state.modelOrderAscending} onSort={(ids, sort, ascending) => setState(previous => ({ ...previous, selectedIds: ids, modelOrderSort: sort, modelOrderAscending: ascending }))} snapshot={snapshot} category={category} selectedIds={selectedIds} onChange={setSelected} onModelSelect={setRun} onTrainingSelect={openTraining} />
             <ComparisonTables
               state={state}
               onChange={patch => setState(previous => ({ ...previous, ...patch }))}
               snapshot={snapshot}
               onModelSelect={setRun}
+              onTrainingSelect={openTraining}
               categoryId={category.id}
               selectedIds={selectedIds}
               onBenchmarkSelect={(id, selectedTask) => { chooseTask(selectedTask); setBenchmark(id); setBenchmarkMetric('baseline_adjusted_score'); setQuery(''); setRun(''); setView('benchmarks'); window.scrollTo({ top: 0 }); }}
@@ -985,6 +992,8 @@ export function Dashboard({
             run={active}
             filter={detailQuery}
             task={detailTask}
+            trainingFocus={state.trainingFocus}
+            onTrainingSelect={id => openTraining(active.id, id)}
             setFilter={setDetailQuery}
             setTask={setDetailTask}
             benchmarks={benchmarks}
@@ -1027,11 +1036,15 @@ function RunDetails({
   task,
   setFilter,
   setTask,
+  trainingFocus,
+  onTrainingSelect,
   onClose,
 }: {
   run: Run;
   filter: string;
   task: DashboardState['detailTask'];
+  trainingFocus: string;
+  onTrainingSelect: (id: string) => void;
   setFilter: (value: string) => void;
   setTask: (value: DashboardState['detailTask']) => void;
   benchmarks: Snapshot["benchmarks"];
@@ -1072,7 +1085,7 @@ function RunDetails({
         {run.model.url && run.model.url !== run.model.hf_url && <ModelWebsiteLink url={run.model.url} />}
         {run.model.hf_url && <ModelWebsiteLink url={run.model.hf_url} />}
       </div>}
-      <TrainingDetails model={run.model} benchmarks={benchmarks} />
+      <TrainingDetails model={run.model} benchmarks={benchmarks} focus={trainingFocus} />
       <section aria-label="Benchmark results" className="space-y-3 border-t pt-5">
       <div className="flex items-baseline justify-between gap-3"><h3 className="font-semibold">Benchmark results</h3><span className="text-xs text-muted-foreground">{visible.length} / {benchmarks.length} benchmarks</span></div>
       <div className="flex flex-wrap gap-2">
@@ -1094,7 +1107,7 @@ function RunDetails({
               <TableCell className="whitespace-normal min-w-48">
                 <div className="flex items-start gap-1.5">
                   <p className="min-w-0 capitalize font-medium text-xs leading-5">{benchmarkName(b)}</p>
-                  <span className="flex h-5 shrink-0 items-center"><TrainingBadge model={run.model} benchmarkId={b.id} /></span>
+                  <span className="flex h-5 shrink-0 items-center"><TrainingBadge model={run.model} benchmarkId={b.id} onClick={() => onTrainingSelect(b.id)} /></span>
                 </div>
                 <p className="mt-1 font-mono text-[10px] leading-4 text-muted-foreground break-all">
                   {b.id}

@@ -491,7 +491,7 @@ const bilingualFixture: Snapshot = {
 };
 export const JapaneseScope: Story = { args: { snapshot: bilingualFixture, initialCategory: 'japanese-v1' } };
 export const TrainingExposure: Story = { args: { snapshot: bilingualFixture, initialRun: 'synthetic-demo' }, parameters: { docs: { description: { story: 'Synthetic training disclosures. Model lists show only compact training icons; the model sidebar starts with a highlighted graduation-cap disclosure panel and collapsed Known domains. Expand it and a domain for task, reason and pinned evidence. Benchmark-table disclosure icons stay beside the first line of the benchmark name at desktop and mobile widths.' } } } };
-export const BilingualComparison: Story = { args: { snapshot: bilingualFixture, initialCategory: 'japanese-v1', initialView: 'compare', initialCompare: ['synthetic-demo'] }, parameters: { docs: { description: { story: 'Synthetic comparison with compact icon-only training disclosures. Hover or focus the icon for provenance; model names open sidebar details.' } } } };
+export const BilingualComparison: Story = { args: { snapshot: bilingualFixture, initialCategory: 'japanese-v1', initialView: 'compare', initialCompare: ['synthetic-demo'] }, parameters: { docs: { description: { story: 'Synthetic comparison with compact icon-only training disclosures. Hover or focus the icon for a short hint; click to highlight disclosures in the model sidebar.' } } } };
 export const JapaneseScopeMobile: Story = { ...JapaneseScope, globals: { viewport: { value: 'mobile1', isRotated: false } } };
 export const TrainingExposureMobile: Story = { ...TrainingExposure, globals: { viewport: { value: 'mobile1', isRotated: false } } };
 export const BilingualComparisonMobile: Story = { ...BilingualComparison, globals: { viewport: { value: 'mobile1', isRotated: false } } };
@@ -500,7 +500,7 @@ const scopeDesignFixture: Snapshot = { ...bilingualFixture, results: bilingualFi
 export const ScopeMetadataSegmented: Story = { args: { snapshot: scopeDesignFixture }, parameters: { docs: { description: { story: 'Both evaluation sets are always visible in a compact segmented selector in the existing category metadata row, with grouped Guide and GitHub resources. Synthetic measurements.' } } } };
 export const ScopeMetadataSegmentedMobile: Story = { ...ScopeMetadataSegmented, globals: { viewport: { value: 'mobile1', isRotated: false } } };
 
-export const LeaderboardKnownDomains: Story = { args: { snapshot: scopeDesignFixture }, parameters: { docs: { description: { story: "Synthetic leaderboard with a compact known-domain icon vertically centered on the first line of the model name, including labels above a repository subtitle. Hover or focus for the meaning, disclosed domains and reasons; click for model details. Only the selected scope contributes." } } } };
+export const LeaderboardKnownDomains: Story = { args: { snapshot: scopeDesignFixture }, parameters: { docs: { description: { story: "Synthetic leaderboard with a compact known-domain icon vertically centered on the first line of the model name, including labels above a repository subtitle. Hover or focus for a short hint; click to open and highlight training disclosures. Only the selected scope contributes." } } } };
 export const LeaderboardKnownDomainsMobile: Story = { ...LeaderboardKnownDomains, globals: { viewport: { value: 'mobile1', isRotated: false } } };
 
 
@@ -563,3 +563,28 @@ export const QueryComparison: Story = {
 };
 
 export const QuerySidebarMobile: Story = { ...QuerySidebar, globals: { viewport: { value: 'mobile1', isRotated: false } } };
+
+export const KnownDomainFocused: Story = {
+  args: { snapshot: scopeDesignFixture, initialState: parseDashboardState(new URLSearchParams('run=synthetic-demo&training=all')) },
+  parameters: { docs: { description: { story: 'Synthetic disclosures. Clicking a compact training icon opens the model sidebar, expands Known domains and highlights the disclosure panel. The focus survives URL restoration.' } } },
+};
+export const KnownDomainFocusedMobile: Story = { ...KnownDomainFocused, globals: { viewport: { value: 'mobile1', isRotated: false } } };
+export const BenchmarkDomainFocused: Story = {
+  args: { snapshot: scopeDesignFixture, initialState: parseDashboardState(new URLSearchParams(`run=synthetic-demo&training=${benchmarks[0].id}`)) },
+  parameters: { docs: { description: { story: 'Synthetic benchmark-specific training badge opens and highlights the matching disclosure, including its reason and evidence.' } } },
+};
+export const KnownDomainClick: Story = {
+  args: { snapshot: scopeDesignFixture },
+  play: async ({ canvasElement }) => {
+    const badge = canvasElement.querySelector<HTMLButtonElement>('[data-training-exposure="model"] button');
+    if (!badge) throw new globalThis.Error('Synthetic leaderboard must expose a training disclosure button.');
+    badge.click();
+    const document = canvasElement.ownerDocument;
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const panel = document.querySelector<HTMLDetailsElement>('[data-training-focus="all"]');
+      if (panel?.open && new URL(document.location.href).searchParams.get('training') === 'all') return;
+      await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    throw new globalThis.Error('Training badge must open, highlight and share the disclosure panel.');
+  },
+};

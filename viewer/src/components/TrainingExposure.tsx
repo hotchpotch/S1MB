@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, GraduationCap, TriangleAlert } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import type { Benchmark, ModelInfo } from '../lib/types';
 import { exposuresFor, exposureLabel, exposureRelationship } from '../lib/training-exposure';
 import { benchmarkName } from '../lib/comparison';
@@ -21,17 +22,31 @@ export function TrainingBadge({ model, benchmarkId, benchmarkIds, onClick }: { m
   const Icon = label === 'Known domain' ? GraduationCap : TriangleAlert;
   return <span className="inline-flex align-middle text-primary" data-training-exposure={benchmarkId ?? 'model'}>
     <ColumnHelp label={`${label}: ${coverage} · ${benchmarkId ?? model.display_name ?? model.id}`} onClick={onClick}
-      description={<div className="max-h-[50vh] space-y-2 overflow-y-auto"><p className="font-semibold">{label} · {coverage}</p><p>{label === 'Known domain' ? knownDomainContext : 'Documented evidence reports that evaluation examples were used for training.'}</p><p className="mt-2">{disclosureContext}</p>{entries.slice(0, 5).map((e, i) => <p key={i}>{e.benchmark_id} · {exposureRelationship[e.relationship]}<br />{e.note}</p>)}{entries.length > 5 && <p className="mt-2">{entries.length - 5} more disclosures in model details.</p>}</div>}>
+      description={<><p className="font-semibold">{label} · {coverage}</p><p>{onClick ? 'Click to view training disclosures.' : 'Disclosed training exposure.'}</p></>}>
       <Icon aria-hidden="true" className="size-3.5 shrink-0" />
     </ColumnHelp>
   </span>;
 }
 
-export function TrainingDetails({ model, benchmarks }: { model: ModelInfo; benchmarks: Benchmark[] }) {
+export function TrainingDetails({ model, benchmarks, focus = '' }: { model: ModelInfo; benchmarks: Benchmark[]; focus?: string }) {
   const entries = exposuresFor(model).filter(e => benchmarks.some(b => b.id === e.benchmark_id));
   const domainIds = [...new Set(entries.map(e => e.benchmark_id))];
+  const selected = entries.length > 0 && (focus === 'all' || domainIds.includes(focus));
+  const [expanded, setExpanded] = useState(selected);
+  const panel = useRef<HTMLDetailsElement>(null);
+  const target = useRef<HTMLLIElement>(null);
+  useEffect(() => {
+    if (!selected) return;
+    setExpanded(true);
+    const frame = requestAnimationFrame(() => {
+      const element = focus === 'all' ? panel.current : target.current;
+      element?.scrollIntoView({ block: 'nearest' });
+      element?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focus, selected]);
   return <section aria-label="Training exposure" className="border-t pt-5">
-    {!entries.length ? <p className="text-sm text-muted-foreground">Training exposure is unknown / not disclosed for this scope. The model may still have trained on these domains.</p> : <details className="group rounded-lg border border-primary/30 bg-primary/5 p-4 open:space-y-4">
+    {!entries.length ? <p className="text-sm text-muted-foreground">Training exposure is unknown / not disclosed for this scope. The model may still have trained on these domains.</p> : <details ref={panel} tabIndex={-1} open={expanded} onToggle={event => setExpanded(event.currentTarget.open)} data-training-focus={selected ? focus : undefined} className={`group rounded-lg border border-primary/30 outline-none bg-primary/5 p-4 open:space-y-4 ${selected ? 'ring-2 ring-primary ring-offset-2 ring-offset-card' : ''}`}>
       <summary className="flex cursor-pointer list-none items-center gap-3 rounded-sm focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-4 [&::-webkit-details-marker]:hidden">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary"><GraduationCap aria-hidden="true" className="size-6" /></span>
         <span className="min-w-0 flex-1">
@@ -45,8 +60,8 @@ export function TrainingDetails({ model, benchmarks }: { model: ModelInfo; bench
         {domainIds.map(id => {
           const benchmark = benchmarks.find(b => b.id === id)!;
           const disclosures = entries.filter(e => e.benchmark_id === id);
-          return <li key={id} className="rounded-md border bg-muted/20 p-3 text-xs [overflow-wrap:anywhere]">
-            <details className="space-y-2">
+          return <li key={id} ref={focus === id ? target : undefined} tabIndex={focus === id ? -1 : undefined} data-training-domain={id} className={`rounded-md border p-3 text-xs outline-none [overflow-wrap:anywhere] ${focus === id ? 'border-primary bg-primary/10 ring-2 ring-primary' : 'bg-muted/20'}`}>
+            <details open={focus === id || undefined} className="space-y-2">
               <summary className="cursor-pointer font-medium">{benchmarkName(benchmark)} · {benchmark.task === 'noul' ? 'Noul' : benchmark.task === 'choice' ? 'Choice' : 'Score'}</summary>
               <p className="font-mono text-muted-foreground">{id}</p>
               {disclosures.map((e, i) => <div key={i} className="space-y-1">
