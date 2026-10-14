@@ -1386,3 +1386,24 @@ Validate saved smoke results before running `--category english-v1` with a fresh
 run ID and no `--limit`. Metadata records measured parameter counts, checkpoint
 and code provenance, and native inference settings. Scores from other benchmarks in the model card are separate measurements;
 reevaluate the model with S1MB before submitting S1MB results.
+
+## Saihai 310M
+
+Use the separate `saihai-310m` adapter for `hotchpotch/saihai-v1-310m`.
+This encoder release uses `AutoModel` with its pinned remote `BekkoModel` code
+and native Choice, Noul and Score heads, rather than Saihai 8B's decoder backend.
+Install the `bekko-v0` extra in an isolated Python 3.12 environment. Pin checkpoint
+and source to the same snapshot; pass `--source SNAPSHOT --device cuda:0`.
+Select an available physical GPU with `CUDA_VISIBLE_DEVICES`.
+
+The adapter preserves native `instruction_state` rendering and default saved
+query/document/context limits, uses SDPA and native BF16 autocast, and replaces
+Choice/Score identifiers with anonymous aligned slots. It compares complete
+native branch tokenization with native prepared branches before inference and
+rejects any query or candidate shortening. Default strict evaluation rejects shortening and leaves overflows as failed
+measurements. With explicit `--native-adaptive-budget`, use the same released
+`adaptive-v1` budgeting as Bekko v0: balanced query shortening, right candidate
+shortening, equal context shares with unused capacity lent to the other branch.
+The saved limits and shortening policy are recorded in result metadata. Run and validate a three-task smoke check before `--all`
+or separate English/Japanese v1 evaluations. Keep this private research model
+and its checkpoint files outside the source repository.

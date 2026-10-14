@@ -53,10 +53,8 @@ instructions. Check input lengths and reject overflow instead of silent truncati
 except Bekko v0 evaluations explicitly use native adaptive budgeting and record
 its truncation policy in model metadata.
 
-On the maintainers' shared workspace, use physical GPU 1 only
-(`CUDA_VISIBLE_DEVICES=1`), inspect free memory, and run smoke checks first.
-On other machines, select an available GPU explicitly. Do not fall back to CPU
-inference. Prefer supported FlashAttention 2 or SDPA.
+Inspect free memory and use available GPUs. Run smoke checks first. Do not fall
+back to CPU inference. Prefer supported FlashAttention 2 or SDPA.
 Tokenization, data validation and unit tests may run on CPU.
 
 ## Results and publication
