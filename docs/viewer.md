@@ -1,7 +1,7 @@
 # Viewing the leaderboard locally
 
 Use Node.js 22.22.2 and npm. The viewer reads a prepared display JSON; it requires
-no Python, XZ, evaluation inputs, Hub token or network access at runtime. Offline
+no Python, XZ, evaluation inputs, Hub token or external Hub access at runtime. Offline
 conversion of original results additionally requires `xz` (`xz-utils` on Debian/Ubuntu).
 
 ## Display published results
@@ -98,7 +98,10 @@ From `viewer/`, run `npm test`, `npm run typecheck`, and `npm run build`.
 The build includes synthetic Storybook examples at `/storybook/`. Ordinary tests
 and Next.js builds are offline; the Docker bundling step deliberately fetches a
 public artifact. Missing or corrupt display JSON is an error, not a silent empty
-leaderboard. Check the selected file, converter report and server logs.
+leaderboard. The initial page displays a loading shell while the browser fetches
+the compact bundled JSON from `/api/display/`. Failed requests show a Retry
+button; successful data remains available for language changes and navigation.
+Check the selected file, converter report and server logs.
 
 See [display data architecture](../viewer/DISPLAY_DATA.md) for integrity checks,
 publication safeguards and recovery, and [developer workflow](developer_workflow.md)

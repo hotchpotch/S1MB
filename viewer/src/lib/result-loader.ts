@@ -32,7 +32,11 @@ type Parsed = Benchmark | Category | Metadata | Registry | ResultSummary;
 const epsilon = 1e-12;
 
 export function summarize(value: unknown): ResultSummary {
-  const r = resultSchema.parse(value);
+  return summarizeValidated(resultSchema.parse(value));
+}
+
+/** Check score semantics after the enclosing format has validated the schema. */
+export function summarizeValidated(r: z.infer<typeof resultSchema>): ResultSummary {
   const b = r.benchmark, c = r.counts, m = r.metrics;
   if (b.primary_metric !== METRICS[b.task].name) throw new Error('Unknown primary metric');
   const bounded = (name: string): number | null => {
