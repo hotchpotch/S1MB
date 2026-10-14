@@ -521,7 +521,7 @@ export const UnknownTrainingSnapshot: Story = {
 export const HeroSpaceOverlay: Story = {
   args: { snapshot: scopeDesignFixture },
   decorators: [(Story) => <div className="relative">
-    <div aria-label="Synthetic Hugging Face mini header" className="absolute right-3 top-4 z-50 flex h-11 max-w-[calc(100%-24px)] items-center rounded-xl border border-slate-700 bg-slate-950 px-4 text-sm text-slate-300">
+    <div aria-label="Synthetic Hugging Face mini header" className="pointer-events-auto absolute right-3 top-4 z-[100] flex h-11 max-w-[calc(100%-24px)] items-center rounded-xl border border-slate-700 bg-slate-950 px-4 text-sm text-slate-300">
       🤗 hotchpotch / <strong className="ml-1">S1MB-Leaderboard</strong><span className="ml-4">♡ 69</span>
     </div>
     <Story />
@@ -546,8 +546,20 @@ export const QueryState: Story = {
   parameters: { docs: { description: { story: 'Synthetic URL-state fixture. Change controls and reload the iframe URL to restore sorting, sidebar, filters, comparison configuration and selected scope. S1MB home clears controls while keeping the language.' } } },
 };
 export const QuerySidebar: Story = {
+  decorators: HeroSpaceOverlay.decorators,
+  play: async ({ canvasElement }) => {
+    const document = canvasElement.ownerDocument;
+    const close = document.querySelector<HTMLButtonElement>('[aria-label="Close run details"]');
+    if (!close) throw new globalThis.Error('Model details must provide a close button.');
+    const bounds = close.getBoundingClientRect();
+    if (document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2)?.closest('button') !== close) {
+      throw new globalThis.Error('The Space mini header must not obstruct the model details close button.');
+    }
+  },
   args: { snapshot: queryFixture, initialState: parseDashboardState(new URLSearchParams('category=japanese-v1&sort=overall&ascending=1&run=synthetic-radar-0&detailTask=noul')) },
 };
 export const QueryComparison: Story = {
   args: { snapshot: queryFixture, initialState: parseDashboardState(new URLSearchParams('view=compare&compare=synthetic-radar-1&compare=synthetic-radar-0&comparisonSort=name&delta=1&reference=synthetic-radar-1&raw=1&pickerClosed=1')) },
 };
+
+export const QuerySidebarMobile: Story = { ...QuerySidebar, globals: { viewport: { value: 'mobile1', isRotated: false } } };
