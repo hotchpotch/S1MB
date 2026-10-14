@@ -143,6 +143,19 @@ def deploy(api: HfApi, space: str, files: dict[str, bytes], source_sha: str) -> 
     return commit.oid
 
 
+def read_http_body(url: str, headers: dict, limit: int) -> bytes | None:
+    """Read a bounded, decompressed readiness response and always close it."""
+    with httpx.stream("GET", url, headers=headers, timeout=30, follow_redirects=False) as response:
+        if response.status_code != 200:
+            return None
+        body = bytearray()
+        for chunk in response.iter_bytes():
+            if len(body) + len(chunk) > limit:
+                return None
+            body.extend(chunk)
+        return bytes(body)
+
+
 def wait_ready(api: HfApi, space: str, revision: str, timeout: int, private: bool) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -162,14 +175,19 @@ def wait_ready(api: HfApi, space: str, revision: str, timeout: int, private: boo
             if not host or not re.fullmatch(r"https://[a-z0-9-]+\.hf\.space", host):
                 raise RuntimeError("Space did not return a supported application URL")
             try:
-                response = httpx.get(host + "/", headers=build_hf_headers(token=api.token if private else False),
-                                     timeout=60, follow_redirects=False)
-            except httpx.TransportError:
+                headers = build_hf_headers(token=api.token if private else False)
+                page = read_http_body(host + "/", headers, 64 * 1024)
+                if page is not None and b"Preparing the leaderboard" in page:
+                    body = read_http_body(host + "/api/display/", headers, 32 * 1024 * 1024)
+                    data = json.loads(body) if body is not None else None
+                    if isinstance(data, dict) and data.get("version") == 1 and isinstance(data.get("payload"), dict):
+                        results = data["payload"].get("results")
+                        if isinstance(results, list) and results:
+                            print(f"Verified Space revision {revision}", flush=True)
+                            return
+            except (httpx.TransportError, ValueError):
                 time.sleep(15)
                 continue
-            if response.status_code == 200 and "About S1MB" in response.text:
-                print(f"Verified Space revision {revision}", flush=True)
-                return
         time.sleep(15)
     raise TimeoutError("Space did not become ready before the deployment deadline")
 

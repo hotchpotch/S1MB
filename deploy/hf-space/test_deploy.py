@@ -3,7 +3,7 @@
 import importlib.util
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 
@@ -62,7 +62,7 @@ def test_old_running_image_is_not_success(monkeypatch):
     monkeypatch.setattr(deployment.time, "monotonic", Mock(side_effect=[0, 0, 2]))
     monkeypatch.setattr(deployment.time, "sleep", Mock())
     request = Mock()
-    monkeypatch.setattr(deployment.httpx, "get", request)
+    monkeypatch.setattr(deployment.httpx, "stream", request)
     with pytest.raises(TimeoutError):
         deployment.wait_ready(api, "example/S1MB-leaderboard", SHA, 1, private=True)
     request.assert_not_called()
@@ -74,8 +74,12 @@ def test_space_readiness(monkeypatch, private):
     api.space_info.return_value = SimpleNamespace(private=private, sha=SHA,
                                                   host="https://example-s1mb-leaderboard.hf.space")
     api.get_space_runtime.return_value = SimpleNamespace(stage="RUNNING", raw={"sha": SHA})
-    request = Mock(return_value=SimpleNamespace(status_code=200, text="About S1MB"))
-    monkeypatch.setattr(deployment.httpx, "get", request)
+    request = MagicMock()
+    request.return_value.__enter__.side_effect = [
+        deployment.httpx.Response(200, text="Preparing the leaderboard"),
+        deployment.httpx.Response(200, json={"version": 1, "payload": {"results": [{}]}}),
+    ]
+    monkeypatch.setattr(deployment.httpx, "stream", request)
     deployment.wait_ready(api, "example/S1MB-leaderboard", SHA, 1, private=private)
     assert request.call_args.kwargs["follow_redirects"] is False
     if private:
@@ -257,3 +261,57 @@ def test_bounded_training_metadata_can_cover_both_languages(tmp_path, monkeypatc
     assert 65536 < api.dataset_info.return_value.siblings[0].size < 1024 * 1024
     monkeypatch.setattr(deployment, "hf_hub_download", download)
     assert deployment.published_models(api, "example/results") == ["example/model"]
+
+
+@pytest.mark.parametrize("data,status", [
+    ({"version": 1, "payload": {"results": [1]}}, 200),
+    ({"error": "unavailable"}, 503),
+    ({"version": 1, "payload": {"results": []}}, 200),
+    ({"version": 1, "payload": {"results": "invalid"}}, 200),
+    ("invalid JSON", 200),
+])
+def test_async_readiness_requires_successful_display_api(monkeypatch, data, status):
+    import json
+    from contextlib import contextmanager
+    api = Mock(token=False)
+    api.space_info.return_value = SimpleNamespace(private=False, sha=SHA,
+        host="https://example-s1mb-leaderboard.hf.space")
+    api.get_space_runtime.return_value = SimpleNamespace(stage="RUNNING", raw={"sha": SHA})
+    requests = []
+
+    @contextmanager
+    def stream(method, url, **kwargs):
+        requests.append(url)
+        shell = url.endswith(".space/")
+        body = b"Preparing the leaderboard" if shell else (
+            data.encode() if isinstance(data, str) else json.dumps(data).encode())
+        yield SimpleNamespace(status_code=200 if shell else status,
+                              iter_bytes=lambda: iter([body]))
+
+    monkeypatch.setattr(deployment.httpx, "get", Mock(return_value=SimpleNamespace(status_code=200, text="Preparing the leaderboard")))
+    monkeypatch.setattr(deployment.httpx, "stream", stream)
+    monkeypatch.setattr(deployment.time, "monotonic", Mock(side_effect=[0, 0, 2]))
+    monkeypatch.setattr(deployment.time, "sleep", Mock())
+    if data == {"version": 1, "payload": {"results": [1]}}:
+        deployment.wait_ready(api, "example/S1MB-leaderboard", SHA, 1, private=False)
+    else:
+        with pytest.raises(TimeoutError):
+            deployment.wait_ready(api, "example/S1MB-leaderboard", SHA, 1, private=False)
+    assert requests == ["https://example-s1mb-leaderboard.hf.space/",
+                        "https://example-s1mb-leaderboard.hf.space/api/display/"]
+
+
+def test_readiness_response_is_bounded_and_closes_the_stream(monkeypatch):
+    from contextlib import contextmanager
+    closed = []
+
+    @contextmanager
+    def stream(*args, **kwargs):
+        try:
+            yield SimpleNamespace(status_code=200, iter_bytes=lambda: iter([b"123", b"456"]))
+        finally:
+            closed.append(True)
+
+    monkeypatch.setattr(deployment.httpx, "stream", stream)
+    assert deployment.read_http_body("https://example.hf.space/", {}, 4) is None
+    assert closed == [True]
