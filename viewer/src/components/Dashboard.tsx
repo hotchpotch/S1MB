@@ -1045,7 +1045,7 @@ function RunDetails({
       <Dialog.Overlay className="fixed inset-0 z-40 bg-black/40" />
       <Dialog.Content
         id="run-details"
-        className="fixed z-50 inset-y-3 right-3 left-3 md:left-auto md:w-[min(960px,calc(100vw-24px))] rounded-xl border bg-card shadow-xl overflow-y-auto p-4 sm:p-6 space-y-5"
+        className="fixed z-50 inset-y-3 right-3 left-3 md:left-auto md:w-[min(960px,calc(100vw-24px))] rounded-xl border bg-card shadow-xl overflow-y-auto p-4 pt-16 sm:p-6 sm:pt-16 space-y-5"
         onOpenAutoFocus={() => { returnFocus.current = document.activeElement as HTMLElement; }}
         onCloseAutoFocus={event => { event.preventDefault(); returnFocus.current?.focus(); }}
       >
