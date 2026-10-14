@@ -188,6 +188,10 @@ Every abstention remains in the scoring denominator:
 These are explicit maximum-error penalties for absent judgments, rather than
 probability-based Brier/MAE observations. Existing answered predictions retain
 their original formulas; dataset-wide baselines and eligibility remain fixed.
+These penalties reduce reported scores; their magnitude depends on refusal
+frequency and the normal benchmark/task weights, rather than a separate flat
+deduction. API safety refusals receive the same penalty, without claiming that
+the model would have answered incorrectly if the API had allowed it.
 A fully attempted benchmark may be complete with abstentions. Missing judgments,
 HTTP/transport failures and malformed outputs remain operational failures and
 keep results incomplete; never relabel them as model abstentions.

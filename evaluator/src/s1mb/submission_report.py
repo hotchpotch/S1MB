@@ -192,7 +192,7 @@ def render_report(benchmarks: list[Benchmark], models: list[ModelSummary]) -> st
             "| --- | ---: | ---: | ---: |",
             *abstention_rows,
             "",
-            "Abstentions remain in scoring denominators and receive zero correct credit or maximum normalized error. Operational failures remain incomplete.",
+            "Abstentions remain in scoring denominators and receive zero correct credit or maximum normalized error. These penalties reduce the reported score according to normal benchmark/task weights; there is no additional flat deduction. Operational failures remain incomplete.",
         ]
     lines.append("Validated against each result's recorded dataset revision.")
     return "\n".join(lines) + "\n"

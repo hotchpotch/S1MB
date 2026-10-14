@@ -583,5 +583,129 @@
       "baseline_adjusted_skill": -3,
       "baseline_adjusted_score": 0
     }
+  },
+  {
+    "name": "choice-mixed-answer-and-api-refusal",
+    "task": "choice",
+    "options": [
+      {
+        "id": "a"
+      },
+      {
+        "id": "b"
+      }
+    ],
+    "samples": [
+      {
+        "target": {
+          "a": 1,
+          "b": 0
+        },
+        "prediction": {
+          "a": 1,
+          "b": 0
+        },
+        "repeat": 1
+      },
+      {
+        "target": {
+          "a": 0,
+          "b": 1
+        },
+        "prediction": null,
+        "abstention": "refusal",
+        "repeat": 1
+      }
+    ],
+    "expected": {
+      "target_mass_at_prediction": 0.5,
+      "baseline_adjusted_skill": 0,
+      "baseline_adjusted_score": 0
+    }
+  },
+  {
+    "name": "noul-mixed-answer-and-api-refusal",
+    "task": "noul",
+    "options": [
+      {
+        "id": "false"
+      },
+      {
+        "id": "true"
+      }
+    ],
+    "samples": [
+      {
+        "target": {
+          "false": 1,
+          "true": 0
+        },
+        "prediction": {
+          "false": 1,
+          "true": 0
+        },
+        "repeat": 1
+      },
+      {
+        "target": {
+          "false": 0,
+          "true": 1
+        },
+        "prediction": null,
+        "abstention": "refusal",
+        "repeat": 1
+      }
+    ],
+    "expected": {
+      "binary_brier": 0.5,
+      "accuracy": 0.5,
+      "balanced_accuracy": 0.5,
+      "specificity": 1,
+      "positive_recall": 0,
+      "baseline_adjusted_skill": 0,
+      "baseline_adjusted_score": 0
+    }
+  },
+  {
+    "name": "score-mixed-answer-and-api-refusal",
+    "task": "score",
+    "options": [
+      {
+        "id": "a",
+        "value": 10
+      },
+      {
+        "id": "b",
+        "value": 90
+      }
+    ],
+    "samples": [
+      {
+        "target": {
+          "a": 1,
+          "b": 0
+        },
+        "prediction": {
+          "a": 1,
+          "b": 0
+        },
+        "repeat": 1
+      },
+      {
+        "target": {
+          "a": 0,
+          "b": 1
+        },
+        "prediction": null,
+        "abstention": "refusal",
+        "repeat": 1
+      }
+    ],
+    "expected": {
+      "normalized_expected_score_mae": 0.5,
+      "normalized_score_rmse": 0.7071067811865476,
+      "baseline_adjusted_skill": 0,
+      "baseline_adjusted_score": 0
+    }
   }
 ]

@@ -193,3 +193,5 @@ def test_abstention_disclosure_is_scoped_by_task():
     assert "| Model | 3 | 2 | 0 |" in report
     assert "2/2 complete" in report
     assert "99 failed" not in report
+    assert "penalties reduce the reported score" in report
+    assert "no additional flat deduction" in report

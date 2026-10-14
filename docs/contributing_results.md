@@ -605,4 +605,6 @@ probabilities, drop refusals, or retry until an answer is obtained.
 In the Dataset PR, report the number counted as incorrect for Choice, Noul and
 Score in each language scope, even when complete coverage is achieved. The
 comparison report and PR template generate these counts from validated results.
-Explain any retries or rescoring and preserve original local measurements.
+Explain that these refusals incur score penalties, whose magnitude depends on
+frequency and the normal benchmark/task weights. Explain any retries or
+rescoring and preserve original local measurements.

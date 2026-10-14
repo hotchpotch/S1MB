@@ -69,6 +69,7 @@ def test_native_probabilities_and_anonymous_ids(monkeypatch, task):
     [
         ([], 200),
         ({"secret": "upstream text"}, 400),
+        ({"error": {"message": "refusal"}}, 403),
         ({"model": "gpt-6-luna", "answers": [None]}, 200),
         (
             {
@@ -96,6 +97,7 @@ def test_failures_are_not_predictions_or_upstream_text(monkeypatch, body, status
     try:
         result = adapter.predict(InferenceCase(case_id="c", state="hello", questions=[q]))[0]
         assert result.error
+        assert result.abstention is None
         assert result.probabilities is None
         assert "upstream text" not in result.error
     finally:
@@ -155,5 +157,47 @@ def test_request_bound_does_not_send(monkeypatch):
         with pytest.raises(ValueError, match="byte limit"):
             adapter._post({"input": "too large"})
         assert adapter.usage["requests"] == 0
+    finally:
+        adapter.close()
+
+
+def test_refusal_preserves_other_answers_without_retry(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    calls = 0
+
+    def respond(request):
+        nonlocal calls
+        calls += 1
+        answer = (
+            {"name": "question", "type": "refusal"}
+            if calls == 1
+            else {"name": "question", "type": "predicate", "probability": 0.7}
+        )
+        return httpx.Response(200, json={"model": "gpt-6-luna", "answers": [answer]})
+
+    questions = [
+        Question(
+            id=qid,
+            task="noul",
+            instructions="Judge.",
+            options=[Option(id="false", description="No"), Option(id="true", description="Yes")],
+        )
+        for qid in ("refused", "answered")
+    ]
+    adapter = OpenAIDecisionsAdapter()
+    adapter.client.close()
+    adapter.client = httpx.Client(
+        base_url="https://api.openai.com", transport=httpx.MockTransport(respond)
+    )
+    try:
+        results = adapter.predict(InferenceCase(case_id="c", state="hello", questions=questions))
+        assert results[0].question_id == "refused"
+        assert results[0].abstention == "refusal"
+        assert results[0].probabilities is None and results[0].error is None
+        assert results[1].question_id == "answered"
+        assert results[1].probabilities == pytest.approx({"false": 0.3, "true": 0.7})
+        assert results[1].abstention is None and results[1].error is None
+        assert calls == 2
+        assert adapter.usage["retries"] == 0
     finally:
         adapter.close()

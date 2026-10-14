@@ -48,6 +48,46 @@ usage, or implementation bugs. Do not use the resulting test labels or scores to
 tune performance or select the highest-scoring run. For reruns following technical
 fixes, disclose the changes and reasons and preserve the original measurements.
 
+## API refusals and unanswerable judgments
+
+When an API explicitly rejects answering an individual question (for example,
+an OpenAI Decisions `refusal` answer), record it as `abstention: "refusal"`.
+An explicit inability-to-determine outcome may use `"cannot_determine"`.
+Keep that judgment in the scoring denominator and count it as incorrect:
+
+| Task | Penalty for an abstention |
+| --- | --- |
+| Choice | Zero target mass / correct credit. |
+| Noul | Zero correct credit and Brier error 1; include it in balanced-accuracy class denominators. |
+| Score | Normalized absolute and squared error 1. |
+
+Refusals therefore reduce the reported score rather than making a benchmark
+unscorable. A small number may cause only a small reduction, but the actual
+impact depends on their frequency, task and benchmark weights. There is no
+additional flat deduction: these penalties are included in the normal scoring
+and baseline-adjustment formulas. They apply even when the refusal reflects
+an API safety policy; they do not establish that an answered prediction would
+have been incorrect. See the exact [scoring rules](../evaluator/SCORING.md#unanswerable-judgments-and-refusals),
+including soft targets.
+
+This rule applies to explicit refusal outcomes, not every rejected HTTP request.
+Authentication/authorization errors, rate limits, timeouts, malformed responses,
+input overflow and missing work remain operational failures and keep a benchmark
+incomplete. Only map a documented API refusal outcome to an abstention; do not
+infer one from an arbitrary error message or status code.
+
+Record `counts.abstained` separately from `counts.succeeded` and `counts.failed`,
+and set `environment.abstention_scoring` to `"incorrect-max-error-v1"`.
+A fully attempted benchmark with abstentions and no operational failures is
+complete. Preserve other valid answers when one question in a case is refused.
+Do not invent probabilities, omit refused questions or retry them until an
+answer is obtained. Disclose any fixed retries or rescoring, preserving the
+original measurements.
+
+In the results Dataset PR, state how many judgments were counted as incorrect
+for Choice, Noul and Score in each language scope, and note the resulting score
+penalty. Follow the [submission disclosure rules](contributing_results.md#refusals-and-unanswerable-judgments).
+
 ## 1. Prepare the evaluator and model
 
 Use Python 3.11 and uv. From the project root:
