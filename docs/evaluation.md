@@ -751,3 +751,36 @@ conversion as Saihai's native evaluation reference. Follow the Python 3.12+, pin
 setup and GPU smoke invocation in [adapter notes](../evaluator/OPEN_MODELS.md#saihai-8b-bf16).
 Keep native candidate ordering and strict overflow rejection; validate saved
 smoke results before a full `english-v1` run.
+
+## OpenAI Decisions API
+
+Use the `openai-decisions` adapter for the native Decisions endpoint, rather than
+chat completions. Set `OPENAI_API_KEY` in the repository root's ignored `.env`
+file, then run from `evaluator/`:
+
+```bash
+uv run --env-file ../.env s1mb run --adapter openai-decisions \
+  --model gpt-6-luna --category smoke-v1 --limit 2 --run-id decisions-smoke
+uv run s1mb validate data/results/decisions-smoke
+uv run --env-file ../.env s1mb run --adapter openai-decisions \
+  --model gpt-6-luna --all --case-batch-size 4 --run-id decisions-full
+uv run s1mb validate data/results/decisions-full
+```
+
+The suggested display name is **GPT-6 Luna (Decisions API)**. The model ID remains
+`gpt-6-luna`; the endpoint, requested and returned model IDs, API usage, and
+rendering policy are recorded in provenance. API-only parameter counts remain
+unknown. Freeze evaluation settings before the full run.
+
+Choice uses native candidate probabilities. Noul uses a native predicate with
+both authored outcome descriptions. Score uses per-level probabilities mapped
+back to the original numeric scale, preserving declared criterion order; the
+API's ordinal expected score is not used. Transport names are anonymous and
+targets and benchmark identifiers are excluded from requests. Each request
+contains one question and the complete input, without local truncation.
+Refusals, invalid responses, and rejected inputs remain failed measurements.
+Concurrency is bounded by `--case-batch-size` (1–32; default 4). Transient HTTP
+and transport failures receive at most three attempts.
+
+See the [official Decisions guide](https://developers.openai.com/api/docs/guides/decisions)
+for API availability and supported models.
