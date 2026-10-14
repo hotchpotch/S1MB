@@ -22,7 +22,7 @@ test('benchmark ranking, ranges, comparison settings and sidebar filters survive
   assert.equal(state.comparisonAdjusted, false);
   assert.equal(state.detailTask, 'score');
   assert.deepEqual(parseDashboardState(serializeDashboardState(state)), state);
-  for (const [key, value] of params) assert.equal(serializeDashboardState(state).get(key), value);
+  for (const [key, value] of params) assert.equal(serializeDashboardState(state).get(key), key === 'category' ? null : value);
 });
 
 test('invalid enums, flags, metrics and ranges fall back to usable defaults', () => {
@@ -35,7 +35,7 @@ test('home resets all controls while preserving English or Japanese scope', () =
     const state = parseDashboardState(new URLSearchParams(`category=${categoryId}&view=compare&run=x&compare=x&sort=score&query=x&filtersOpen=1&raw=1`));
     const reset = resetDashboardState(state);
     assert.deepEqual(reset, { ...defaultDashboardState(), categoryId });
-    assert.equal(serializeDashboardState(reset).toString(), `category=${categoryId}`);
+    assert.equal(serializeDashboardState(reset).toString(), categoryId === 'english-v1' ? '' : `category=${categoryId}`);
   }
 });
 
@@ -90,4 +90,24 @@ test('training disclosure focus survives sharing and clears when model details c
   for (const params of ['training=all', 'run=x&training=../../x', 'run=x&training=']) {
     assert.equal(parseDashboardState(new URLSearchParams(params)).trainingFocus, '');
   }
+});
+
+test('default scope and system theme leave a bare URL while explicit state survives', () => {
+  const defaults = defaultDashboardState();
+  for (const base of ['', 'category=english-v1&__theme=system']) {
+    const params = serializeDashboardState(defaults, new URLSearchParams(base));
+    assert.equal(params.toString(), '');
+    assert.deepEqual(parseDashboardState(params), defaults);
+  }
+  const japanese = serializeDashboardState({ ...defaults, categoryId: 'japanese-v1', runId: 'model', trainingFocus: 'all' }, new URLSearchParams('__theme=system&embed=1'));
+  assert.equal(japanese.get('category'), 'japanese-v1');
+  assert.equal(japanese.get('run'), 'model');
+  assert.equal(japanese.get('training'), 'all');
+  assert.equal(japanese.get('embed'), '1');
+  assert.equal(japanese.has('__theme'), false);
+  for (const theme of ['light', 'dark']) assert.equal(serializeDashboardState(defaults, new URLSearchParams({ __theme: theme })).get('__theme'), theme);
+  const messages: unknown[] = [], urls: unknown[] = [];
+  syncDashboardUrl({ parent: { postMessage: (...args: unknown[]) => messages.push(args) }, location: { hostname: 'synthetic.hf.space', pathname: '/', search: '?__theme=system&category=english-v1', hash: '' }, history: { replaceState: (...args: unknown[]) => urls.push(args) } }, serializeDashboardState(defaults));
+  assert.deepEqual(urls, [[null, '', '/']]);
+  assert.deepEqual(messages, [[{ queryString: '', hash: '' }, 'https://huggingface.co']]);
 });

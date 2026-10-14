@@ -87,7 +87,8 @@ const keys = ['category', 'task', 'benchmarkTask', 'view', 'run', 'benchmark', '
 export function serializeDashboardState(state: DashboardState, base = new URLSearchParams()): URLSearchParams {
   const params = new URLSearchParams(base);
   for (const key of keys) params.delete(key);
-  params.set('category', state.categoryId);
+  if (params.get('__theme') === 'system') params.delete('__theme');
+  if (state.categoryId !== 'english-v1') params.set('category', state.categoryId);
   if (state.generalizationView) {
     params.set('task', 'generalization');
     if (state.task !== 'choice') params.set('benchmarkTask', state.task);
