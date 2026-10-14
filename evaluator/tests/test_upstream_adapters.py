@@ -135,6 +135,39 @@ def test_laya_full_sequence_retains_long_options_and_rejects_overflow():
         full_sequence(Tokenizer(), "evidence", q, common, 2048, 32)
 
 
+def test_naluri_full_sequence_keeps_native_layout_and_rejects_every_overflow():
+    from s1mb.adapters.naluri import full_sequence
+
+    class Tokenizer:
+        mask_token = "<mask>"
+        cls_token_id, sep_token_id, mask_token_id = 1, 2, 3
+
+        def __call__(self, texts, **kwargs):
+            assert kwargs == {"add_special_tokens": False, "truncation": False}
+            return {"input_ids": [[ord(c) for c in text] for text in texts]}
+
+    s1 = SimpleNamespace(
+        render_options=lambda q: list(q["criteria"]), serialize_state=lambda s: s,
+        MAX_LEN=512, HEAD_MAX_LEN=192, OPT_MAX=48,
+    )
+    q = {"type": "choice", "instructions": "pick", "criteria": {"x": "", "y<mask>": ""}}
+    result = full_sequence(Tokenizer(), "st", q, s1)
+    head = [ord(c) for c in "choice question: pick"]
+    assert result["ids"] == [1, *head, 2, 3, *map(ord, " x"), 3, *map(ord, " y "), 2, *map(ord, "st"), 2]
+    assert result["markers"] == [len(head) + 2, len(head) + 5]
+    with pytest.raises(ValueError, match="option exceeds 48"):
+        full_sequence(Tokenizer(), "st", {**q, "criteria": {"o" * 48: ""}}, s1)
+    many = {f"o{i:02}": "" for i in range(40)}
+    with pytest.raises(ValueError, match="exceed 192"):
+        full_sequence(Tokenizer(), "st", {**q, "criteria": many}, s1)
+    with pytest.raises(ValueError, match="exceeding 512"):
+        full_sequence(Tokenizer(), "s" * 500, q, s1)
+    long = full_sequence(Tokenizer(), "s" * 600, {**q, "criteria": many}, s1, context_limit=8192)
+    assert len(long["markers"]) == 40 and long["ids"].count(ord("s")) >= 600
+    with pytest.raises(ValueError, match="exceeding 1024"):
+        full_sequence(Tokenizer(), "s" * 1200, q, s1, context_limit=1024)
+
+
 @pytest.mark.parametrize("subfolder", ["..", ".", "", "../weights", "nested/weights"])
 def test_checkpoint_subfolder_is_validated_before_network_access(subfolder):
     from s1mb.adapters.upstream import checkpoint_path

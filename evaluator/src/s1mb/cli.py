@@ -83,6 +83,7 @@ def main() -> None:
             "torchcast",
             "solomon",
             "openthai",
+            "naluri",
             "kotoba",
             "jeff",
             "firelex-jeff",
@@ -363,6 +364,7 @@ def validate_run_arguments(args, parser):
         or args.adapter
         not in {
             "knowline",
+            "naluri",
             "von",
             "jevforge",
             "kev",
@@ -1000,6 +1002,7 @@ def execute(args, parser):
         "torchcast",
         "solomon",
         "openthai",
+        "naluri",
         "kotoba",
         "jeff",
         "firelex-jeff",
@@ -1065,6 +1068,7 @@ def execute(args, parser):
             "torchcast": "TorchcastAdapter",
             "solomon": "SolomonAdapter",
             "openthai": "OpenThaiAdapter",
+            "naluri": "NaluriAdapter",
             "kotoba": "KotobaAdapter",
             "jeff": "JeffAdapter",
             "firelex-jeff": "FirelexJeffAdapter",
