@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, open, readFile, rename, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
-import { benchmarkSchema, categorySchema, resultSchema, summarize } from './result-loader';
+import { benchmarkSchema, categorySchema, resultSchema, summarizeValidated } from './result-loader';
 import type { Snapshot } from './types';
 
 const link = z.url().refine(value => ['http:', 'https:'].includes(new URL(value).protocol)).nullish();
@@ -14,7 +14,10 @@ const snapshotSchema = z.object({ benchmarks: z.array(benchmarkSchema), categori
   results: z.array(summary), issues: z.array(z.string()), sources: z.array(z.object({ name: z.string(), files: z.number().int().nonnegative() })),
 }).strict();
 export function checkedSnapshot(value: unknown): Snapshot {
-  const s = snapshotSchema.parse(value);
+  return validateSnapshot(snapshotSchema.parse(value));
+}
+
+function validateSnapshot(s: z.infer<typeof snapshotSchema>): Snapshot {
   const ids = new Set(s.benchmarks.map(b => b.id));
   if (!ids.size || ids.size !== s.benchmarks.length || !s.categories.length || s.categories.some(c => c.benchmarks.some(id => !ids.has(id)))) throw new Error('Invalid display definitions');
   if (s.issues.length || new Set(s.categories.map(c => c.id)).size !== s.categories.length || s.categories.some(c => new Set(c.benchmarks).size !== c.benchmarks.length)) throw new Error('Invalid display categories or issues');
@@ -28,7 +31,7 @@ export function checkedSnapshot(value: unknown): Snapshot {
     if (r.model.training_exposure?.some(e => !ids.has(e.benchmark_id))) throw new Error("Unknown training exposure benchmark");
     const current = s.benchmarks.find(b => b.id === r.benchmark.id);
     if (!current || ['task', 'dataset', 'split', 'primary_metric'].some(k => current[k as keyof typeof current] !== r.benchmark[k as keyof typeof r.benchmark])) throw new Error('Incompatible display benchmark');
-    const checked = summarize({ ...r, format_version: 1 });
+    const checked = summarizeValidated({ ...r, format_version: 1 });
     const key = JSON.stringify([r.run_id, r.benchmark.id]);
     if (!ids.has(r.benchmark.id) || keys.has(key) || JSON.stringify(checked.scoring) !== JSON.stringify(r.scoring)) throw new Error('Invalid display result');
     keys.add(key);
@@ -61,7 +64,12 @@ export function decodeDisplay(value: unknown): { artifact: DisplayData; snapshot
     if (!m || !b) throw new Error('Invalid display reference');
     return { ...r, ...m, benchmark: b };
   });
-  const snapshot = checkedSnapshot({ benchmarks: p.definitions.map(i => p.benchmarks[i]), categories: p.categories,
+  const definitions = p.definitions.map(i => {
+    const benchmark = p.benchmarks[i];
+    if (!benchmark) throw new Error('Invalid display reference');
+    return benchmark;
+  });
+  const snapshot = validateSnapshot({ benchmarks: definitions, categories: p.categories,
     results, issues: [], sources: [{ name: a.source?.repo ?? 'local', files: results.length }] });
   const modelKeys = p.models.map(m => JSON.stringify(m));
   if (new Set(modelKeys).size !== modelKeys.length) throw new Error('Duplicate display model entry');
