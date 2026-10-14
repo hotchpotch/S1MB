@@ -20,8 +20,8 @@ Follow `../docs/contributing_results.md` for publication layout. Published folde
 supply row identity and display metadata. Preserve raw run identity for local runs.
 Keep complete coverage requirements and per-result baseline eligibility.
 
-Use one prepared display format for local startup and Docker. Runtime loads a local
-JSON once; do not add source scans, worker IPC, mounted Dataset/Bucket dependencies
+Use one prepared display format for local startup and Docker. Build-time preparation validates and compresses the JSON. Runtime loads prepared
+response bytes once; do not add source scans, worker IPC, mounted Dataset/Bucket dependencies
 or background refresh. Offline conversion validates a full snapshot. Publication
 compares against the last published artifact and stops for human approval when
 measurements or coverage decrease. Preserve atomic writes, bounded decoding,

@@ -65,7 +65,7 @@ jobs:
       - name: Check bundled display without credentials or mounts
         run: |
           docker run --rm --workdir /app/viewer --entrypoint node s1mb-space:test -e 'require("next"); require("tsx")'
-          docker run --rm --workdir /app/viewer --entrypoint node s1mb-space:test --import tsx -e 'import("./src/lib/display-data.ts").then(m => m.readDisplay("display/viewer-summary.json")).then(d => console.log(d.snapshot.results.length))'
+          docker run --rm --workdir /app/viewer --entrypoint node s1mb-space:test --import tsx -e 'import("./src/lib/results.ts").then(m => m.displayResponse(new Request("http://localhost/api/display/", {headers: {"accept-encoding": "gzip"}}), m.createDisplayStore("display/viewer-summary.json"))).then(async r => {if(r.status !== 200 || r.headers.get("content-encoding") !== "gzip") throw new Error("Prepared delivery unavailable"); console.log((await r.arrayBuffer()).byteLength)})'
 
   publish-and-deploy:
     needs: validate

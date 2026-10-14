@@ -9,6 +9,7 @@ RUN npm run build
 FROM build AS bundled
 ARG RESULTS_REVISION
 RUN npm run fetch-display -- --revision "$RESULTS_REVISION"
+RUN npm run prepare-delivery && rm display/viewer-summary.json
 
 FROM node:22.22.2-bookworm-slim AS runtime
 WORKDIR /app/viewer
