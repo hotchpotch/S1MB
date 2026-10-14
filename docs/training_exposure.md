@@ -16,6 +16,15 @@ Missing metadata means **unknown / not disclosed**, never "unseen" or "not train
 Training disclosures concern the submitted model/configuration; they are not an audit
 of unknown base-model pretraining.
 
+**Known domain** means disclosed training on the same source family or a related
+domain. It does not establish that S1MB evaluation examples were used or that
+record-level overlap was independently audited. Exact training revisions and
+splits may be undisclosed; inspect each entry's evidence and limitations. A pinned
+manifest can document retained training source names and counts without making
+the underlying training rows available for an independent overlap audit. Actual
+evaluation-example use is labeled separately as **Evaluation examples used**.
+The sidebar explains this distinction below **Known domains**.
+
 ## Metadata format
 
 Add `training_exposure` to the model folder's `metadata.json` when training used a

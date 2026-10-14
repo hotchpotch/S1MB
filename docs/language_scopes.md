@@ -90,8 +90,11 @@ separate applicable OpenAI terms. Preserve source-specific retrieval conditions.
 ## Training exposure
 
 See [training exposure](training_exposure.md). Missing disclosure means unknown,
-not an unseen domain. Same source family does not establish duplicated evaluation
-examples. The Bekko v0 training manifest at
+not an unseen domain. **Known domain** denotes disclosed source-family or
+related-domain training, without establishing use of S1MB evaluation examples or
+an independent record-level overlap audit. Exact training revisions and splits may
+be undisclosed; consult each entry's evidence and limitations. Actual evaluation-example
+use is labeled separately as **Evaluation examples used**. The Bekko v0 training manifest at
 `9c673a09c31e145684ab9915871afa72ba40a383` intersects 77 English source subsets,
 covering 98 benchmark definitions. `evaluator/model-training-exposure.json` contains a
 bounded authored disclosure for exactly the three current Bekko v0 model IDs.
