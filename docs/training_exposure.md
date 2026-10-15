@@ -27,13 +27,86 @@ the underlying training rows available for an independent overlap audit. Actual
 evaluation-example use is labeled separately as **Evaluation examples used**.
 The sidebar explains this distinction below **Known domains**.
 
+## Registration source and unknown exposure
+
+Indicators describe disclosures, not trust, endorsement, or model quality. Models
+and benchmark results without a disclosure in the selected scope show **? Unknown**.
+The model sidebar also states **Unknown / not disclosed**. This does not mean that
+the model avoided these domains. Partial disclosed coverage leaves the other
+benchmarks unknown; the coverage count is not a training independence measure.
+For example, Jev and OpenAI model rows without supported disclosures remain
+Unknown. Do not infer exposure from a model name, score, architecture, or provider.
+Open-Jev releases with documented training provenance are separate model rows.
+
+Each exposure can record two independent, optional facts:
+
+| Field | Values | Meaning |
+| --- | --- | --- |
+| `registration_source` | `author_declaration`, `contributor_review`, `unknown` | How this disclosure was registered |
+| `dataset_access` | `public`, `private`, `unknown` | Availability of the actual disclosed training data |
+
+**Author declaration** means an author submitted the disclosure. **Contributor
+reviewed sources** means a contributor created or amended the disclosure after
+consulting public materials or an identified author statement. A contributor may
+quote an author's self-report; that entry remains contributor-registered. This
+label describes source review, not an independent training or overlap audit.
+The linked evidence and note should identify whose assertion is being reported,
+what the material supports, and what remains unknown. No trust or verification
+badge is assigned to either registration source.
+
+Public data availability alone does not establish that a measured release used
+it. Record evidence of actual training use separately in `evidence_url` and `note`.
+A public source family, loader, recipe, or names/counts manifest does not establish
+that the actual retained training corpus is open. Mark `dataset_access` public
+only when the disclosed training data are publicly available; explain filtering
+and snapshot limitations. Keep availability unknown when the materials do not
+establish it. Readers assess these facts and sources themselves.
+
+Both fields accept omission or null for existing metadata. Older metadata and
+prepared summaries remain readable; their registration source and data access
+are displayed as unknown, without discarding supported domain disclosures.
+Do not infer author registration from a model-folder location or contributor
+registration merely from registry membership. Explicit model-folder metadata
+continues to take precedence over the authored registry.
+
+On 2026-10-15, the existing authored registry was reviewed for this migration: its 69 groups
+(850 benchmark-source entries) were collected or amended by contributors from
+linked cards, release records, training manifests, reports, and identified author
+comments. These entries record `contributor_review`; evidence, notes, and source
+snapshots are preserved. The 98 Bekko v0 entries record public data access: the
+release card identifies the capped-pool training recipe and exact public Dataset
+revision `c6a49c450fe88b40bd96c54d9cc19fafd9aa5591`, whose training files are
+publicly accessible. Other entries retain unspecified access where these records
+do not establish availability of the actual training corpus. New entries must record
+their own provenance rather than inherit that migration decision automatically.
+
+For example, a contributor can record a source-family declaration with unknown
+training data availability while preserving the evidence:
+
+```json
+{
+  "benchmark_id": "example-choice",
+  "relationship": "same_source_family",
+  "registration_source": "contributor_review",
+  "dataset_access": "unknown",
+  "dataset": null,
+  "revision": null,
+  "config": null,
+  "split": null,
+  "evidence_url": "https://example.org/release/training-record",
+  "note": "The release record names this source family. The retained corpus and evaluation-example overlap are not disclosed."
+}
+```
+
+Use a real benchmark ID and source link when submitting an entry.
+
 ## Metadata format
 
 Add `training_exposure` to the model folder's `metadata.json` when training used a
 benchmark's source family, related domain, or evaluation examples. Keep the actual
 training provenance and disclosure together. Omit the field or use `null` when no
-verified declaration is available; an empty array is rejected to avoid implying
-independence. The UI identifies these as submitter declarations.
+supported declaration is available; an empty array is rejected to avoid implying
+independence. The UI shows the recorded registration source; missing registration provenance remains unknown.
 
 Each entry targets one stable `benchmark_id` and records the training `dataset`
 repo, exact 40-character lowercase commit `revision`, `config`, and `split` when known, a pinned
@@ -64,7 +137,7 @@ exceptions in [evaluation](evaluation.md) and [source partitions](language_scope
 The schema permits at most 256 entries; IDs are bounded to 128 characters, config to
 128, split to 64, URLs to 2,048, and notes to 1,000. Unexpected keys, unpinned
 non-null revisions, credential-bearing URLs and invalid relationship values are rejected.
-A verified declaration may omit `dataset`, `revision`, `config`, or `split`, or set them to
+A supported declaration may omit `dataset`, `revision`, `config`, or `split`, or set them to
 `null`, when actual training snapshot or source details are unavailable. Keep its
 primary evidence pinned and explain the limitation in `note`. Never substitute a
 current Dataset SHA for an unknown historical training revision. Unknown source
