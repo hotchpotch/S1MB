@@ -31,10 +31,12 @@ class Record(BaseModel):
 
 
 class TrainingExposure(Record):
-    """Submitter-declared training provenance, never an inference instruction."""
+    """Authored training provenance, never an endorsement or inference instruction."""
 
     benchmark_id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
     relationship: Literal["same_source_family", "related_domain", "evaluation_examples"]
+    registration_source: Literal["author_declaration", "contributor_review", "unknown"] | None = None
+    dataset_access: Literal["public", "private", "unknown"] | None = None
     dataset: str | None = Field(
         default=None,
         pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$",

@@ -588,3 +588,12 @@ export const KnownDomainClick: Story = {
     throw new globalThis.Error('Training badge must open, highlight and share the disclosure panel.');
   },
 };
+
+const provenanceFixture: Snapshot = { ...scopeDesignFixture, results: scopeDesignFixture.results.map(r => ({ ...r, model: { ...r.model, training_exposure: r.model.training_exposure?.flatMap(e => [
+  { ...e, registration_source: 'author_declaration' as const, dataset_access: 'public' as const },
+  { ...e, registration_source: 'contributor_review' as const, dataset_access: 'unknown' as const },
+  { ...e },
+]) } })) };
+export const TrainingDisclosureSources: Story = { args: { snapshot: provenanceFixture, initialState: parseDashboardState(new URLSearchParams('run=synthetic-demo&training=all')) }, parameters: { docs: { description: { story: 'Synthetic author declarations, contributor-reviewed public sources and legacy unspecified provenance. Registration and dataset access are factual text, without trust badges.' } } } };
+export const TrainingDisclosureSourcesMobile: Story = { ...TrainingDisclosureSources, decorators: [(Story) => <div style={{ width: 390, maxWidth: '100%' }}><Story /></div>] };
+export const UnknownTrainingExposure: Story = { args: { snapshot: { ...fixture, results: fixture.results.map(r => ({ ...r, provenance: 'measured' as const })) }, initialRun: 'synthetic-demo' }, parameters: { docs: { description: { story: 'Synthetic measurements with no training disclosure. Model and benchmark indicators and the sidebar explicitly show Unknown, without implying unused domains.' } } } };

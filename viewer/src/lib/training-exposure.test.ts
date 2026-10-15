@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { metadataSchema } from './result-files';
-import { exposureLabel, exposuresFor } from './training-exposure';
+import { exposureLabel, exposuresFor, registrationSourceLabel, datasetAccessLabel } from './training-exposure';
 import { encodeDisplay, decodeDisplay } from './display-data';
 import { summarize } from './result-loader';
 
@@ -28,6 +28,7 @@ test('declared exposure survives the bounded display artifact without changing m
 
 test('missing disclosure is unknown, and badges apply only to named benchmarks', () => {
   assert.deepEqual(exposuresFor(raw.model), []);
+  assert.equal(exposureLabel(exposuresFor(raw.model)), 'Unknown');
   const model = { ...raw.model, training_exposure: [exposure] };
   assert.deepEqual(exposuresFor(model, 'score'), []);
   assert.equal(exposureLabel(exposuresFor(model, 'choice')), 'Known domain');
@@ -46,9 +47,27 @@ test('a pinned declaration with unpublished training source details survives dis
 
 test('reject unpinned, unbounded, secret-bearing and unexpected training metadata', () => {
   for (const bad of [{ revision: 'main' }, { evidence_url: 'https://user:secret@example.org' },
-    { evidence_url: 'javascript:alert(1)' }, { split: 'x'.repeat(65) }, { predictions: [] }, { note: 'x'.repeat(1001) }, { relationship: 'unseen' }]) {
+    { evidence_url: 'javascript:alert(1)' }, { split: 'x'.repeat(65) }, { predictions: [] }, { note: 'x'.repeat(1001) }, { relationship: 'unseen' },
+    { registration_source: 'verified' }, { dataset_access: 'open_weights' }]) {
     assert.throws(() => metadataSchema.parse({ ...metadata, training_exposure: [{ ...exposure, ...bad }] }));
   }
   assert.throws(() => metadataSchema.parse({ ...metadata, training_exposure: Array(257).fill(exposure) }));
   assert.throws(() => metadataSchema.parse({ ...metadata, training_exposure: [] }));
+});
+
+test('registration provenance and data access survive preparation independently of scores', () => {
+  for (const registration_source of [undefined, null, 'unknown', 'author_declaration', 'contributor_review'] as const) {
+    for (const dataset_access of [undefined, null, 'unknown', 'public', 'private'] as const) {
+      const entry = { ...exposure, registration_source, dataset_access };
+      metadataSchema.parse({ ...metadata, training_exposure: [entry] });
+      const result = summarize({ ...raw, model: { ...raw.model, training_exposure: [entry] } });
+      const snapshot = { categories: [{ id: 'all', name: 'All', description: '', benchmarks: ['choice'] }], benchmarks: [benchmark], results: [result], sources: [], issues: [] };
+      const decoded = decodeDisplay(encodeDisplay(snapshot, null)).snapshot.results[0];
+      assert.equal(decoded.model.training_exposure![0].registration_source, registration_source);
+      assert.equal(decoded.model.training_exposure![0].dataset_access, dataset_access);
+      assert.deepEqual(decoded.metrics, summarize(raw).metrics);
+      assert.equal(registrationSourceLabel[registration_source ?? 'unknown'], registration_source === 'contributor_review' ? 'Contributor reviewed sources' : registration_source === 'author_declaration' ? 'Author declaration' : 'Unknown / not recorded');
+      assert.equal(datasetAccessLabel[dataset_access ?? 'unknown'], dataset_access === 'public' ? 'Public' : dataset_access === 'private' ? 'Private' : 'Unknown / not disclosed');
+    }
+  }
 });

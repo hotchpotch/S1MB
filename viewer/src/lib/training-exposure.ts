@@ -4,6 +4,8 @@ import type { ModelInfo } from './types';
 export const trainingExposureSchema = z.object({
   benchmark_id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/),
   relationship: z.enum(['same_source_family', 'related_domain', 'evaluation_examples']),
+  registration_source: z.enum(['author_declaration', 'contributor_review', 'unknown']).nullish(),
+  dataset_access: z.enum(['public', 'private', 'unknown']).nullish(),
   dataset: z.string().max(256).regex(/^[A-Za-z0-9][A-Za-z0-9._-]*\/[A-Za-z0-9][A-Za-z0-9._-]*$/).nullish(),
   revision: z.string().regex(/^[0-9a-f]{40}$/).nullish(),
   config: z.string().min(1).max(128).nullish(), split: z.string().min(1).max(64).nullish(),
@@ -16,6 +18,9 @@ export function exposuresFor(model: ModelInfo, benchmarkId?: string): TrainingEx
   return (model.training_exposure ?? []).filter(e => benchmarkId == null || e.benchmark_id === benchmarkId);
 }
 export function exposureLabel(entries: TrainingExposure[]): string {
+  if (!entries.length) return 'Unknown';
   return entries.some(e => e.relationship === 'evaluation_examples') ? 'Evaluation examples used' : 'Known domain';
 }
 export const exposureRelationship = { same_source_family: 'Same source family', related_domain: 'Related domain', evaluation_examples: 'Evaluation examples used' };
+export const registrationSourceLabel = { author_declaration: 'Author declaration', contributor_review: 'Contributor reviewed sources', unknown: 'Unknown / not recorded' };
+export const datasetAccessLabel = { public: 'Public', private: 'Private', unknown: 'Unknown / not disclosed' };

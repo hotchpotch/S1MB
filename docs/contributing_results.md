@@ -578,7 +578,12 @@ default is one and the maximum is 32. Smoke-test the chosen concurrency first.
 See [language scopes](language_scopes.md) for English/Japanese datasets, language
 switching, `s1mb run --all`, measurement provenance and shared result publication.
 See [training exposure](training_exposure.md) for model metadata and known-domain
-badges. **Known domain** denotes disclosed source-family or related-domain training;
+indicators. Missing disclosures show **? Unknown**, never unused or untrained.
+Optional `registration_source` and `dataset_access` describe how an entry was
+registered and whether its training data are public. Contributor-created or
+amended disclosures use `contributor_review`; this denotes source review, not
+endorsement or an independent audit. Older entries without these fields remain
+readable with unknown provenance. **Known domain** denotes disclosed source-family or related-domain training;
 it does not establish use of S1MB evaluation examples or an independent record-level
 overlap audit. Exact training revisions and splits may be undisclosed; consult the
 linked evidence and limitations. Actual evaluation-example use is labeled separately.

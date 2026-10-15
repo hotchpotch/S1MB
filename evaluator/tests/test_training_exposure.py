@@ -24,6 +24,7 @@ def test_disclosure_missing_is_unknown_and_valid_provenance_round_trips():
     {"split": "x" * 65},
     {"evidence_url": "https://user:secret@example.org"}, {"evidence_url": "file:///tmp/data"},
     {"predictions": []},
+    {"registration_source": "verified"}, {"dataset_access": "open_weights"},
 ])
 def test_invalid_training_provenance(change):
     with pytest.raises(ValidationError):
@@ -92,6 +93,33 @@ def test_unknown_training_snapshot_and_registry_groups():
                   groups[0]):
         with pytest.raises(ValidationError):
             TrainingExposureRegistry.model_validate(value)
+
+
+@pytest.mark.parametrize("source", [None, "unknown", "author_declaration", "contributor_review"])
+@pytest.mark.parametrize("access", [None, "unknown", "public", "private"])
+def test_registration_and_access_are_independent_optional_provenance(source, access):
+    entry = {**EXPOSURE, "registration_source": source, "dataset_access": access}
+    metadata = ModelMetadata.model_validate({**METADATA, "training_exposure": [entry]})
+    assert metadata.training_exposure is not None
+    assert metadata.training_exposure[0].registration_source == source
+    assert metadata.training_exposure[0].dataset_access == access
+    assert ModelMetadata.model_validate(metadata.model_dump()) == metadata
+
+
+def test_authored_registry_records_contributor_registration_without_inventing_data_access():
+    from pathlib import Path
+
+    from s1mb.data import read_json
+    from s1mb.result_repository import TrainingExposureRegistry
+
+    registry = TrainingExposureRegistry.model_validate(read_json(Path(__file__).parents[1] / "model-training-exposure.json"))
+    for group in registry.disclosures:
+        for entry in group.training_exposure:
+            assert entry.registration_source == "contributor_review"
+            if entry.dataset_access is not None:
+                assert entry.dataset_access == "public"
+                assert entry.dataset == "hotchpotch/bekko-system-one-dataset-v0"
+                assert entry.revision == "c6a49c450fe88b40bd96c54d9cc19fafd9aa5591"
 
 
 def test_export_matches_second_registry_group_and_explicit_metadata_wins(tmp_path):
