@@ -173,6 +173,10 @@ def test_pr_template_always_requests_training_domain_disclosure(tmp_path, catego
     assert "For English v1 and Japanese v1" in report
     assert "bekko-system-one-dataset-v0" in report and "saihai-v1-dataset" in report
     assert "other datasets covering the same tasks or source domains" in report
+    assert "evaluation_sources.md" in report
+    assert "PolyAI/banking77" in report and "sbintuitions/JamC-QA" in report
+    assert "Not using Bekko System One or Saihai" in report
+    assert "not leaderboard-eligible" in report
     assert "`training_exposure`" in report
     assert "Missing disclosure does not mean a domain was unseen" in report
     assert "not an explanation or prediction of high scores" in report
@@ -195,3 +199,75 @@ def test_abstention_disclosure_is_scoped_by_task():
     assert "99 failed" not in report
     assert "penalties reduce the reported score" in report
     assert "no additional flat deduction" in report
+
+
+@pytest.mark.parametrize("incomplete", ["missing", "failed", "demo", "complete"])
+def test_pr_generation_requires_complete_coverage_without_flag(tmp_path, monkeypatch, incomplete):
+    """An incomplete submission cannot replace a PR draft, even without the flag."""
+    import sys
+    from types import SimpleNamespace
+
+    from s1mb import submission_report
+
+    required = [benchmark("choice"), benchmark("noul", "noul"), benchmark("score", "score")]
+    model = ModelSummary(
+        ModelMetadata(model_id="example__model", display_name="Example", short_name="Example"),
+        False,
+    )
+    model.measurements = {b.id: measurement() for b in required}
+    if incomplete == "missing":
+        model.measurements.pop("choice")
+    elif incomplete != "complete":
+        from s1mb.data import Result
+
+        result = Result.model_validate(
+            {
+                "run_id": "synthetic",
+                "benchmark": required[0].model_dump(),
+                "model": {"id": "example/model", "adapter": "dummy", "revision": "synthetic"},
+                "created_at": "2026-10-15",
+                "evaluator_version": "test",
+                "provenance": "demo" if incomplete == "demo" else "measured",
+                "status": "complete" if incomplete == "demo" else "partial",
+                "counts": {
+                    "cases": 1, "expected": 1,
+                    "succeeded": 1 if incomplete == "demo" else 0,
+                    "failed": 0 if incomplete == "demo" else 1,
+                },
+                "metrics": {}, "elapsed_seconds": 0, "predictions": [], "environment": {},
+            }
+        )
+        model.measurements["choice"] = Measurement.from_result(result)
+    monkeypatch.setattr(
+        submission_report, "load_category",
+        lambda *a: SimpleNamespace(benchmarks=[b.id for b in required]),
+    )
+    monkeypatch.setattr(
+        submission_report, "load_benchmark",
+        lambda root, bid: next(b for b in required if b.id == bid),
+    )
+    monkeypatch.setattr(submission_report, "load_models", lambda *a, **kw: [model])
+    output = tmp_path / "pr.md"
+    output.write_text("Original draft")
+    monkeypatch.setattr(sys, "argv", [
+        "create_results_pr.py", "--results-dir", str(tmp_path), "--output", str(output),
+    ])
+    if incomplete == "complete":
+        submission_report.main(template=True)
+        assert "3/3 complete" in output.read_text()
+        assert "evaluation_sources.md" in output.read_text()
+    else:
+        with pytest.raises(SystemExit) as error:
+            submission_report.main(template=True)
+        assert error.value.code == 1
+        assert output.read_text() == "Original draft"
+
+
+def test_source_checklist_covers_every_active_benchmark():
+    """The public checklist must not silently omit new English or Japanese members."""
+    root = Path(__file__).resolve().parents[2]
+    checklist = (root / "docs/evaluation_sources.md").read_text()
+    for scope in ("english-v1", "japanese-v1"):
+        category = json.loads((root / f"evaluator/data/categories/{scope}.json").read_text())
+        for bid in category["benchmarks"]:
+            assert f"`{bid}`" in checklist, bid

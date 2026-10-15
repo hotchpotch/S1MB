@@ -20,6 +20,27 @@ Consult the dataset card for access, provenance and license terms. For a new
 model interface, follow [adapter development](adapters.md); for display setup,
 see [the viewer guide](viewer.md).
 
+## Before evaluating: source disclosure and leaderboard eligibility
+
+Review the [English/Japanese source checklist](evaluation_sources.md), including
+original HF dataset names, sources outside HF and derived collections. Not using
+Bekko System One or Saihai does not mean the model did not train on S1MB source
+families or evaluation inputs. Record actual source use, supported overlaps and
+unknown training details using [training exposure](training_exposure.md).
+
+**A model with any missing benchmark, incomplete task or failed decision in the
+selected language scope is not eligible for that scope’s leaderboard.** Complete
+all active Choice, Noul and Score benchmarks: `english-v1` and `japanese-v1` are
+independent scopes, so submitting one language does not require the other.
+Saving every benchmark file, passing validation, or completing a synthetic subset
+does not establish full-scope eligibility. For example, 131/137 complete with six
+candidate-capacity failures is not an English leaderboard submission.
+
+Diagnose and fix failures, preserve the original run, and rerun with a fresh ID.
+Do not drop unsupported examples, replace failures with abstentions, or tune on
+test scores. Use the submission guide’s mandatory completion check before opening
+a Dataset PR; incomplete results belong in local diagnostics until coverage is complete.
+
 ## Test-set policy
 
 **Do not use the S1MB test set to tune parameters or select evaluation settings.**
@@ -216,6 +237,11 @@ Choose that folder only when the recorded version supports the name.
 
 ### Explicit state shortening for constrained models
 
+First identify the actual failing limit using the
+[adapter failure guide](evaluation_failures.md#supported-controls-and-their-boundaries).
+A smaller batch does not change one question's capacity, and `--context-limit`
+cannot universally raise a native head limit or a hosted API's context limit.
+
 Dinah, Decision 2.0 and JADE accept `--state-token-reduction FRACTION`.
 The default `0` preserves strict overflow rejection. Use `1` only when the
 experiment explicitly permits shortening as much body text as needed to fit
@@ -330,8 +356,11 @@ the category. Give each rerun a new ID, then export the intended replacement fil
 into the same published model folder. Do not select different configurations per
 benchmark without documenting that choice in the submission.
 
-Input overflow and model failures must remain visible. Address the underlying
-issue and rerun, or submit the available coverage as incomplete. A run can leave
+Input overflow and model failures must remain visible. Follow the
+[failure and input-limit guide](evaluation_failures.md) to distinguish request,
+head/candidate, transport, memory and hosted-API failures. Address the underlying
+issue and rerun before leaderboard submission. Keep incomplete measurements for
+local diagnosis; they are not leaderboard-eligible. A run can leave
 saved files even if its process exits unsuccessfully; inspect and validate them.
 
 ## Dataset revisions
@@ -376,7 +405,9 @@ uv run s1mb validate data/results/jev-full-001
 Validation recomputes metrics from predictions and checks input hashes, IDs,
 probabilities, counts, completion status, and consistency within the run. A valid
 partial result is still partial. Check completed coverage against `s1mb list`;
-validation success alone is not evidence of complete category coverage.
+validation success alone is not evidence of complete category coverage. The PR
+generator independently requires complete measured coverage and zero failed
+decisions for the selected category; it rejects incomplete submissions.
 
 Optional local preview, from `viewer/`:
 
@@ -411,7 +442,8 @@ generalization benchmarks (currently six in `english-v1`). This intersects with
 `--task` and repeated `--benchmark` filters; an empty selection is an error.
 Use a fresh run ID. These runs retain normal per-benchmark completeness, but do
 not provide full-category coverage. The viewer lists them when **Generalization tasks only** is checked and all six
-benchmarks are complete. The default leaderboard requires full-category coverage.
+benchmarks are complete. This is a local diagnostic subset, not a full-scope
+leaderboard submission. Complete the selected language before creating a results PR.
 
 
 Capacity-limited decision adapters can be retried under explicitly extended
@@ -821,9 +853,15 @@ preserving declared criterion order; the
 API's ordinal expected score is not used. Transport names are anonymous and
 targets and benchmark identifiers are excluded from requests. Each request
 contains one question and the complete input, without local truncation.
-Refusals, invalid responses, and rejected inputs remain failed measurements.
+Explicit refusals are scored abstentions; invalid responses and rejected HTTP
+requests remain operational failures.
 Concurrency is bounded by `--case-batch-size` (1–32; default 4). Transient HTTP
-and transport failures receive at most three attempts.
+and transport failures receive at most three attempts. See the
+[Luna rejection procedure](evaluation_failures.md#luna--openai-decisions-when-the-api-rejects-an-input)
+for HTTP rejection versus answer refusal, retryable statuses, client byte bounds
+and the current runner's error-recording limitations. This adapter has no local
+context-extension or shortening override; a permanently rejected required input
+keeps the submission incomplete.
 
 See the [official Decisions guide](https://developers.openai.com/api/docs/guides/decisions)
 for API availability and supported models.

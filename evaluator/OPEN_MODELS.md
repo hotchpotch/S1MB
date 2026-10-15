@@ -10,6 +10,10 @@ Use `--source /path/to/checkout`, an explicit `--model` and `--device`, and run
 `smoke-v1 --limit 2` before a complete evaluation. Record distinct configurations
 under distinct run IDs. Inspect the result's model metadata for resolved weights,
 source hashes, rendering, attention backend, precision and input limits.
+For failure diagnosis and supported remedies, including fixed model capacity,
+head/candidate limits, explicit shortening and Luna/API rejections, use the
+[failure and input-limit guide](../docs/evaluation_failures.md). Smaller batches
+address memory/concurrency pressure; they do not enlarge a single request.
 
 | Adapter | Interface |
 | --- | --- |

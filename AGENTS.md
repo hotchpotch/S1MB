@@ -59,6 +59,13 @@ Tokenization, data validation and unit tests may run on CPU.
 
 ## Results and publication
 
+Leaderboard submissions require complete measured coverage of the selected language
+scope across Choice, Noul and Score, with zero failed decisions. Incomplete saved
+results may be inspected locally but are not full-scope leaderboard submissions.
+Use `create_results_pr.py` for the mandatory completion check before upload.
+Review `docs/evaluation_sources.md` for original source families; not using Bekko
+System One or Saihai does not establish separation from those sources or inputs.
+
 Validate saved results before presenting them. Local `s1mb run` output goes to
 `evaluator/data/results/<run-id>/`; use a fresh run ID and preserve original local
 measurements. Store reports and auxiliary JSON outside result roots.

@@ -68,9 +68,14 @@ Probabilities must have exactly the declared option IDs, be finite and within
 `false` and `true` probabilities. A prediction contains either probabilities or
 an error, never both. Do not manufacture uniform answers on inference failure.
 
-Check input lengths before inference and reject overflow. Bekko v0 is the
-explicit exception: its native adaptive budgeting and truncation policy are
-recorded in metadata. Do not introduce silent truncation for another adapter.
+Check complete native input lengths before inference and reject overflow.
+Distinguish total request, query/state, candidate text, fixed head/schema,
+candidate count and transport bounds. Bekko v0 uses its declared native adaptive
+budgeting by default; other existing shortening paths require explicit opt-in and
+metadata. Follow the [failure and input-limit guide](evaluation_failures.md) for
+implemented controls and their boundaries. Do not introduce silent truncation or
+an unrecorded fallback. A hosted API's fixed capacity is not a client-side context
+setting, and batching cannot reduce one intact question's length.
 Record actual precision, attention backend, input limits, batching, model/source
 revision and transformations in `ModelInfo`; omit secrets. Do not guess revisions
 from display names. Define credential variable names only in [`.env.sample`](../.env.sample).
@@ -83,6 +88,11 @@ Return one prediction list per case in input order and use bounded batches.
 The runner retries a failed batch case by case, so `predict` must work on its own;
 API adapters should account for possible repeated calls and their cost.
 Preserve failures in saved results rather than dropping difficult cases.
+The runner preserves valid per-question errors and abstentions. Thrown exceptions
+or invalid returned predictions can instead fail the entire case with only an
+exception type; document safe diagnostic steps instead of assuming that saved
+`ValueError`/`RuntimeError` identifies the cause. See
+[error recording](evaluation_failures.md#read-saved-failures-and-logs-correctly).
 
 ## Verify and submit
 
