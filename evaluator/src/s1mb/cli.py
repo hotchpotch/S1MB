@@ -56,6 +56,7 @@ def main() -> None:
             "knowline",
             "llamacpp",
             "liquid",
+            "kettei",
             "unee",
             "system-ichi",
             "bekko-v0",
@@ -307,11 +308,11 @@ def validate_run_arguments(args, parser):
     ):
         parser.error("--microbatch-tokens must be positive and applies only to Bekko")
     if args.case_batch_size is not None and (
-        args.adapter not in {"bekko-v0", "kev", "open-jev", "clm", "tev", "liquid", "llamacpp", "openai-decisions"}
+        args.adapter not in {"bekko-v0", "kev", "open-jev", "clm", "tev", "liquid", "kettei", "llamacpp", "openai-decisions"}
         or args.case_batch_size < 1
     ):
         parser.error(
-            "--case-batch-size must be positive and applies only to Bekko v0, Kev, Open-Jev, CLM, Tev, Liquid, llama.cpp or OpenAI Decisions"
+            "--case-batch-size must be positive and applies only to Bekko v0, Kev, Open-Jev, CLM, Tev, Liquid, Kettei, llama.cpp or OpenAI Decisions"
         )
     if args.compile and args.adapter != "bekko-v0":
         parser.error("--compile applies only to Bekko v0")
@@ -618,6 +619,13 @@ def execute(args, parser):
         from .adapters.liquid import LiquidAdapter
 
         adapter = LiquidAdapter(
+            args.model,
+            case_batch_size=args.case_batch_size if args.case_batch_size is not None else 1,
+        )
+    elif args.adapter == "kettei":
+        from .adapters.kettei import KetteiAdapter
+
+        adapter = KetteiAdapter(
             args.model,
             case_batch_size=args.case_batch_size if args.case_batch_size is not None else 1,
         )
