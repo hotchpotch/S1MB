@@ -596,4 +596,13 @@ const provenanceFixture: Snapshot = { ...scopeDesignFixture, results: scopeDesig
 ]) } })) };
 export const TrainingDisclosureSources: Story = { args: { snapshot: provenanceFixture, initialState: parseDashboardState(new URLSearchParams('run=synthetic-demo&training=all')) }, parameters: { docs: { description: { story: 'Synthetic author declarations, contributor-reviewed public sources and legacy unspecified provenance. Registration and dataset access are factual text, without trust badges.' } } } };
 export const TrainingDisclosureSourcesMobile: Story = { ...TrainingDisclosureSources, decorators: [(Story) => <div style={{ width: 390, maxWidth: '100%' }}><Story /></div>] };
-export const UnknownTrainingExposure: Story = { args: { snapshot: { ...fixture, results: fixture.results.map(r => ({ ...r, provenance: 'measured' as const })) }, initialRun: 'synthetic-demo' }, parameters: { docs: { description: { story: 'Synthetic measurements with no training disclosure. Model lists use the known-domain graduation-cap icon in light gray for unknown exposure, with no visible label; hover or focus explains Unknown. Benchmark indicators and the sidebar retain explicit Unknown text.' } } } };
+export const UnknownTrainingExposure: Story = { args: { snapshot: { ...fixture, results: fixture.results.map(r => ({ ...r, provenance: 'measured' as const })) }, initialRun: 'synthetic-demo' }, parameters: { docs: { description: { story: 'Synthetic measurements with no training disclosure. All compact training indicators use a light gray graduation cap for unknown exposure, without visible labels. Hover/focus help and the disclosure panel explain Unknown.' } } } };
+
+export const UnknownTrainingBenchmarks: Story = {
+  args: { ...UnknownTrainingExposure.args, initialRun: undefined, initialView: 'benchmarks', initialTask: 'choice' },
+  parameters: { docs: { description: { story: 'Synthetic benchmark rankings use icon-only unknown training indicators beside model names.' } } },
+};
+export const UnknownTrainingComparison: Story = {
+  args: { ...UnknownTrainingExposure.args, initialRun: undefined, initialView: 'compare', initialCompare: ['synthetic-demo'] },
+  parameters: { docs: { description: { story: 'Synthetic comparison headers and benchmark cells use icon-only unknown training indicators.' } } },
+};
