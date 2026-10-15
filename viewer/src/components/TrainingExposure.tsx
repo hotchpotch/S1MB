@@ -20,13 +20,11 @@ export function TrainingBadge({ model, benchmarkId, benchmarkIds, onClick }: { m
   const total = benchmarkId ? 1 : benchmarkIds ? new Set(benchmarkIds).size : null;
   const coverage = total == null ? `${known} benchmarks` : `${known}/${total} benchmarks in this scope`;
   const label = exposureLabel(entries);
-  const Icon = label === 'Unknown' ? (benchmarkId ? CircleHelp : GraduationCap) : label === 'Known domain' ? GraduationCap : TriangleAlert;
-  return <span className={`inline-flex align-middle ${entries.length ? 'text-primary' : benchmarkId ? 'text-muted-foreground' : 'text-muted-foreground/40'}`} data-training-exposure={benchmarkId ?? 'model'}>
+  const Icon = label === 'Evaluation examples used' ? TriangleAlert : GraduationCap;
+  return <span className={`inline-flex align-middle ${entries.length ? 'text-primary' : 'text-muted-foreground/40'}`} data-training-exposure={benchmarkId ?? 'model'}>
     <ColumnHelp label={`${label}${entries.length ? `: ${coverage}` : ''} · ${benchmarkId ?? model.display_name ?? model.id}`} onClick={onClick}
       description={<><p className="font-semibold">{label}{entries.length ? ` · ${coverage}` : ''}</p><p>{entries.length ? 'Inspect the declaration and linked sources; this is not a trust rating.' : unknownContext}</p><p>{onClick ? 'Click to view training disclosures.' : 'Training disclosure information.'}</p></>}>
-      <span className="inline-flex items-center gap-1 whitespace-nowrap"><Icon aria-hidden="true" className="size-3.5 shrink-0" />
-        {!entries.length && benchmarkId && <span className="text-xs font-normal">Unknown</span>}
-      </span>
+      <Icon aria-hidden="true" className="size-3.5 shrink-0" />
     </ColumnHelp>
   </span>;
 }
