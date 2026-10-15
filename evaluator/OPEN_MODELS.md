@@ -40,6 +40,7 @@ source hashes, rendering, attention backend, precision and input limits.
 | NeoHorse (`neohorse`) | Native branch engine, one question per call |
 | Jebadiah (`jebadiah`) | LoRA or merged BF16 checkpoints, native AINode renderer and saved per-task temperatures |
 | OpenThai (`openthai`) | Native typed client with one candidate permutation |
+| Naluri (`naluri`) | Native `s1.py` layout (one `<mask>` marker per option), FP32, saved per-type temperatures; rejects any input `s1.build_sequence` would shorten |
 | Kotoba (`kotoba`) | Released DeBERTa backbone plus trained span-pooling head |
 | Jeff (`jeff`) | Native prompt and automatic first-token or whole-label scoring |
 | Pngwn (`pngwn`) | Trained scalar option head and native split tokenization |

@@ -194,6 +194,13 @@
     "revision": "f3709948b5e3cc9606a57e74ba62b7a639d17dd3"
   },
   {
+    "adapter": "naluri",
+    "repository": "https://github.com/jerichosiahaya/naluri",
+    "commit": "473a7891be0a21b97f06c0f074cd006612f32732",
+    "model": "jerichosiahaya/Naluri-308M-encoder",
+    "revision": "2346b4080037bb353c8820020b905ed4154f83aa"
+  },
+  {
     "adapter": "kotoba",
     "repository": "https://huggingface.co/com-kotobalabs/open-jev-deberta-v3-large",
     "commit": "188ee67a5c93122b916e5acd5bdb0cb3623e380a",
