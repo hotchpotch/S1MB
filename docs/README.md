@@ -26,6 +26,8 @@ and component READMEs instead of maintaining duplicate procedures.
 | --- | --- |
 | Task meaning, category scope, and interpretation limits | [Benchmark scope](benchmark_scope.md) |
 | Setup, smoke/full runs, reruns, and dataset revisions | [Evaluation](evaluation.md) |
+| Input limits, failed runs, supported remedies and hosted-API rejections | [Evaluation failures](evaluation_failures.md) |
+| Original English/Japanese dataset names and training-source review | [Evaluation source checklist](evaluation_sources.md) |
 | Result layout, metadata, export, validation, Dataset PRs, and synchronization | [Result submission](contributing_results.md) |
 | Local viewer startup, source selection, Docker, and troubleshooting | [Viewer guide](viewer.md) |
 | Inference interface and integration requirements | [Adapter development](adapters.md) |

@@ -100,6 +100,18 @@ training data availability while preserving the evidence:
 
 Use a real benchmark ID and source link when submitting an entry.
 
+## Review original sources, not only training collections
+
+Use the [English/Japanese evaluation source checklist](evaluation_sources.md) to
+review the original HF dataset names and other public source families for every
+active benchmark. Bekko System One and Saihai are examples of collections; their
+absence from training does not establish separation from the original sources.
+Check direct originals, mirrors, translated/converted versions and mixtures.
+Source-family use still requires disclosure after duplicate filtering or when a
+different task/split was used. Record confirmed evaluation-input use separately
+from approximate-match candidates, and reconcile audit findings with metadata and
+claims such as “no S1MB inputs used.” Unavailable training inventories are unknown.
+
 ## Metadata format
 
 Add `training_exposure` to the model folder's `metadata.json` when training used a

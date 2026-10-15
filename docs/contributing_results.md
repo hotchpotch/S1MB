@@ -39,6 +39,33 @@ Community evaluations depend on volunteer capacity and are not guaranteed.
 
 All Python/Hub CLI commands below run from `evaluator/` unless stated otherwise.
 
+## Leaderboard eligibility comes before submission
+
+**Do not open a leaderboard submission PR while any required benchmark or task is
+missing, any result is partial, or any decision has failed.** The selected language
+scope must have complete measured coverage of Choice, Noul and Score with zero
+failed decisions. Completing 131/137 English benchmarks and recording the other
+six as capacity failures is not sufficient, even if all 137 files validate.
+Abstentions must not be used to conceal capacity, overflow or runtime failures.
+Use the [adapter failure guide](evaluation_failures.md) for supported context/head
+extensions, explicit shortening, memory controls and hosted-API rejection handling.
+A provider's permanent rejection does not waive the completion requirement.
+
+English and Japanese eligibility are independent; only the submitted language
+must be complete. Existing incomplete measurements may remain available for
+inspection, but they do not qualify for the full-scope leaderboard. A separately
+labeled General subset view does not establish full English/Japanese eligibility.
+For incremental updates, stage the canonical model folder with its existing
+measurements plus the proposed additions/replacements and check the combined
+coverage before submitting. Preserve the original local runs.
+
+Before evaluating or writing the PR, review the
+[original dataset/source checklist for both languages](evaluation_sources.md).
+**“We did not use Bekko System One or Saihai” is not a sufficient training-data
+disclosure.** Check the original HF repositories and source names, mirrors,
+derived datasets and training mixtures too. State what was actually used and
+what remains unknown; register supported benchmark-level exposure in metadata.
+
 ## Submission rules
 
 - Do not use S1MB test labels or evaluation scores to tune parameters or select
@@ -48,10 +75,10 @@ All Python/Hub CLI commands below run from `evaluator/` unless stated otherwise.
   disclosed. See the [test-set policy](evaluation.md#test-set-policy).
 - Submit actual model measurements. The dummy adapter produces demo results and
   cannot represent a measured leaderboard entry.
-- Aim for complete coverage of the submitted language scope (`english-v1` or
-  `japanese-v1`) across Choice, Noul, and Score. Partial
-  submissions may add benchmark results, but must disclose missing or failed
-  benchmarks and do not qualify for aggregates requiring complete coverage.
+- Require complete measured coverage of the submitted language scope (`english-v1`
+  or `japanese-v1`) across Choice, Noul and Score, with zero failed decisions.
+  Missing benchmarks, partial results and unfinished tasks block leaderboard
+  submission. Structural validation alone does not establish eligibility.
 - Use dataset-default instructions and the model's supported adapter. Preserve
   authored criteria, structured input, numeric Score levels, and soft targets.
   Reject input overflow; do not silently truncate or drop difficult examples.
@@ -80,7 +107,8 @@ All Python/Hub CLI commands below run from `evaluator/` unless stated otherwise.
   S1MB is a mosaic of specialized tasks; its scores do not establish unseen-task
   generalization or training-data non-overlap.
 - For English v1 and Japanese v1, disclose to the best of your knowledge whether
-  training used the [Bekko System One Dataset](https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0),
+  training used any [original S1MB source families](evaluation_sources.md), directly
+  or through mixtures, mirrors or derivatives, as well as the [Bekko System One Dataset](https://huggingface.co/datasets/hotchpotch/bekko-system-one-dataset-v0),
   the [Saihai Dataset](https://huggingface.co/datasets/hotchpotch/saihai-v1-dataset),
   or other datasets covering the same tasks or source domains. Identify the source
   families actually used and the affected benchmarks, with available training
@@ -266,7 +294,8 @@ Authenticate with an account allowed to access the designated results repository
 uv run hf auth login
 ```
 
-Prepare the PR description using the template below. Then upload only the model
+First generate the PR body and pass the mandatory [completion check](#generate-the-pr-body).
+Do not upload an incomplete leaderboard submission. Then upload only the model
 folder, excluding the export directory's local lock files:
 
 ```sh
@@ -354,8 +383,10 @@ baseline-adjusted scores multiplied by 100. It uses current category membership,
 equal benchmark weights and per-result baseline eligibility. Gen columns contain
 the Diverse and Contextual subset already included in the full task columns.
 Missing, partial or demo results cannot produce a complete task aggregate.
-Omit `--require-complete` only for an explicitly partial submission; unavailable
-aggregates remain `N/A`. Repeat `--reference-dir` for more reference repositories.
+Keep `--require-complete` for submission checks. Without it, `report_results.py`
+is a local diagnostic report only; `N/A` values do not grant leaderboard eligibility.
+`create_results_pr.py` always requires complete submitted coverage, even when the
+flag is omitted. References may be partial. Repeat `--reference-dir` for more references.
 
 Put the generated comparison first in the PR body. Follow it with a short summary
 of additions/replacements, validation, the pinned reference commit, and material
@@ -393,8 +424,10 @@ validation. Publish display data and redeploy only after merge.
 
 ### Generate the PR body
 
-Use `scripts/create_results_pr.py` for results PRs. Its default category is
-`english-v1`. Generated evidence must be accompanied by your own explanation
+Use `scripts/create_results_pr.py` before uploading any results PR. Its default
+category is `english-v1`. It refuses to generate a PR body unless each submitted
+model has every benchmark in the selected category complete and measured, with
+zero failed decisions. There is no partial-submission bypass. Generated evidence must be accompanied by your own explanation
 and assessment: explain additions/replacements, model availability, exact run
 commands, retries, limitations, training overlap, and your interpretation of the
 results. Generated output alone is not a complete submission.
@@ -411,7 +444,7 @@ Run from `evaluator/`. References are optional and repeatable; `--category`
 overrides the default. The script validates results before generating comparison,
 per-task saved coverage, decision counts and recorded provenance/settings.
 Use `--download-datasets` if needed. Without an explanation file, it emits an
-editable checklist. Every generated body also includes the English/Japanese
+editable checklist after the completion check passes. Every generated body also includes the English/Japanese
 training-source and domain disclosure request, including when an explanation
 file is supplied. Complete all placeholders before submitting. Review the
 output and pin reference and PR parent commits in your explanation. Saved-file
@@ -440,12 +473,29 @@ results and execution logs; do not infer missing settings from model names.
 
 - Exact evaluation command(s):
 - Dataset repo ID and commit SHA(s):
-- Coverage: completed / required benchmarks for Choice, Noul, and Score:
-- Missing, partial, or failed benchmarks and reasons:
+- Submitted language scope (`english-v1` or `japanese-v1`):
+- Coverage: completed / required benchmarks for each of Choice, Noul and Score:
+- Confirm every required benchmark is complete and measured, with zero failed decisions:
+- Completion-check command and successful outcome (`create_results_pr.py`):
+- If any benchmark/task is missing or partial, stop: this is not leaderboard-eligible.
 - Machine/runtime: GPU, memory, OS, Python, relevant package versions:
 - Effective precision, attention backend, batching and input limits:
 - Non-default inference behavior and known training/evaluation overlap:
 - Reruns, retries, or configuration differences within this folder:
+- Failures diagnosed and fixes applied: actual failing limit/status, supported
+  capacity/shortening policy or memory/concurrency change, original and replacement
+  run IDs, and sanitized diagnostic evidence (see `docs/evaluation_failures.md`):
+
+## Training source review
+
+- Review https://github.com/hotchpotch/S1MB/blob/main/docs/evaluation_sources.md.
+- Original English/Japanese dataset families reviewed (not only Bekko/Saihai):
+- Direct sources, mirrors, derivatives and mixtures actually used:
+- Affected benchmark IDs and corresponding `training_exposure` metadata entries:
+- Confirmed evaluation-input use versus approximate-match candidates:
+- Actual training revisions/configs/splits/filtering and pinned evidence:
+- Unknown or unaudited training data, including base-model pretraining:
+- Not using Bekko/Saihai alone does not establish source or evaluation-input separation.
 
 ## Results and changes
 
@@ -465,7 +515,13 @@ for adjustment; its primary raw metric is Brier, where lower is better. See
 ### Maintainer review
 
 Before merging, check the model ID and metadata, the intended additions and
-replacements, coverage, and reproducibility information. Check for duplicate
+replacements, coverage, and reproducibility information. Require a successful
+`create_results_pr.py` check against the complete staged PR revision and the
+submitted language category. Do not approve a new leaderboard submission with
+missing/partial benchmarks, unfinished tasks or failed decisions. Review the
+[original source checklist](evaluation_sources.md) and reconcile reported overlaps
+with `training_exposure` and prose claims; absence of Bekko/Saihai use is insufficient.
+Check for duplicate
 trained models, including mirrors, quantized builds and API routes, and apply the
 public-weight and non-quantized evaluation preferences above. Validate the PR revision
 using the preview command below. Review changes to inference code separately from
@@ -542,13 +598,14 @@ coverage. Detailed provenance remains in original result files and Hub history.
 Results remain self-reported: consistency checks do not prove which model
 generated a prediction.
 
-### Generalization-only submissions
+### Generalization-only diagnostics
 
-Runs made with `s1mb run --generalization-only` use the same export and validation
-workflow. Publish only the completed benchmarks; do not fill missing measurements.
-The viewer includes these models only when **Generalization tasks only** is
-checked and all six active Generalization benchmarks are complete. The default
-leaderboard requires full-category coverage. See [the viewer guide](viewer.md)
+Runs made with `s1mb run --generalization-only` can be exported and validated for
+local diagnosis. Do not fill missing measurements or submit these runs as full
+English/Japanese leaderboard entries. Complete the selected language scope before
+creating a new leaderboard submission PR. Existing subset measurements can still
+be inspected in the separately labeled **Generalization tasks only** view when
+its required benchmarks are complete; this does not establish full-scope eligibility. See [the viewer guide](viewer.md)
 for combining a verified remote snapshot with local runs before publication.
 
 ### Liquid decision models

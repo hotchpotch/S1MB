@@ -178,6 +178,10 @@ def render_report(benchmarks: list[Benchmark], models: list[ModelSummary]) -> st
     ]
     if incomplete:
         lines.append("Coverage exceptions: " + "; ".join(incomplete) + ".")
+        lines.append(
+            "Incomplete rows are **not eligible for the selected full-scope leaderboard**. "
+            "This diagnostic table is not approval to submit an incomplete results PR."
+        )
     else:
         lines.append(
             f"All {len(models)} rows: **{len(benchmarks)}/{len(benchmarks)} complete, "
@@ -219,7 +223,7 @@ def main(*, template: bool = False) -> None:
     parser.add_argument(
         "--require-complete",
         action="store_true",
-        help="Reject incomplete submitted models; references may be partial",
+        help="Reject incomplete submitted models (always enforced for PR bodies); references may be partial",
     )
     parser.add_argument("--output", type=Path, help="Markdown file; stdout if omitted")
     if template:
@@ -233,13 +237,24 @@ def main(*, template: bool = False) -> None:
         models = load_models(
             args.data_dir, args.results_dir, reference=False, download=args.download_datasets
         )
-        if args.require_complete:
+        if template or args.require_complete:
             for model in models:
                 if any(
                     b.id not in model.measurements or not model.measurements[b.id].complete
                     for b in benchmarks
                 ):
-                    raise ValueError(f"Incomplete submitted model: {model.metadata.model_id}")
+                    missing = [
+                        b.id
+                        for b in benchmarks
+                        if b.id not in model.measurements or not model.measurements[b.id].complete
+                    ]
+                    raise ValueError(
+                        f"Not leaderboard-eligible: {model.metadata.model_id}; "
+                        f"{len(missing)}/{len(benchmarks)} required benchmarks missing or incomplete "
+                        f"in {args.category}. Complete every task with zero failed decisions "
+                        "before creating a results PR. Use report_results.py for local diagnostics. "
+                        f"Affected benchmarks: {', '.join(missing)}"
+                    )
         for reference in args.reference_dir:
             models.extend(
                 load_models(
