@@ -18,7 +18,7 @@ class NativeRendererTest(unittest.TestCase):
             ],
         }
         args.update(overrides)
-        return Question(**args)
+        return Question.model_validate(args)
 
     def test_plain_text_matches_existing_adapter(self):
         q = self.question(system_prompt="system")
