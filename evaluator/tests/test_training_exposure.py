@@ -116,8 +116,7 @@ def test_authored_registry_records_contributor_registration_without_inventing_da
     for group in registry.disclosures:
         for entry in group.training_exposure:
             assert entry.registration_source == "contributor_review"
-            if "mohit67890__imajev-4b" in group.model_ids:
-                assert entry.dataset_access == "unknown"
+            if entry.dataset_access == "unknown":
                 assert entry.dataset is None and entry.revision is None
                 continue
             if entry.dataset_access is not None:

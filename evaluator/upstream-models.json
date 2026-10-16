@@ -669,5 +669,121 @@
     "repository": "https://huggingface.co/DangerLabs/DM-JEPA",
     "model": "DangerLabs/DM-JEPA",
     "revision": "6c7b6a6c5ca3bfa5221130fc00cc2c3cbb4a5a8c"
+  },
+  {
+    "adapter": "onejev",
+    "repository": "https://github.com/OmniJev/OneJev",
+    "commit": "f51faae7660790c4d60cf828be3b33dfe7521cdb",
+    "model": "OmniJev/OneJev1.6-0.8B",
+    "revision": "0acd65660ac22ca42f40b8b6a6da3a039590b412",
+    "image_inputs": true,
+    "weights_license": "apache-2.0"
+  },
+  {
+    "adapter": "onejev",
+    "repository": "https://github.com/OmniJev/OneJev",
+    "commit": "f51faae7660790c4d60cf828be3b33dfe7521cdb",
+    "model": "OmniJev/OneJev1.6-4B",
+    "revision": "7d55a87ce87ff77e25c4a43eb637dc3a52342977",
+    "image_inputs": true,
+    "weights_license": "apache-2.0"
+  },
+  {
+    "adapter": "onejev",
+    "repository": "https://github.com/OmniJev/OneJev",
+    "commit": "f51faae7660790c4d60cf828be3b33dfe7521cdb",
+    "model": "OmniJev/OneJev1.6-9B",
+    "revision": "5428206a2e5828d03481eab9271d1ed0507e2322",
+    "image_inputs": true,
+    "weights_license": "apache-2.0"
+  },
+  {
+    "adapter": "vev",
+    "repository": "https://github.com/Xiaooolong/vev",
+    "commit": "2d8c403b1c8459d34be214d76c19e0b158a1979c",
+    "model": "CountingSheep/vev-4b",
+    "revision": "793c449dfb5579655c979f94552176dd41dc597e",
+    "image_inputs": true,
+    "weights_license": "cc-by-nc-4.0"
+  },
+  {
+    "adapter": "vev",
+    "repository": "https://github.com/Xiaooolong/vev",
+    "commit": "2d8c403b1c8459d34be214d76c19e0b158a1979c",
+    "model": "CountingSheep/vev-9b",
+    "revision": "b79976f9b6e432453adb9d51d9f66d133c0237a3",
+    "image_inputs": true,
+    "weights_license": "cc-by-nc-4.0"
+  },
+  {
+    "adapter": "vision-jev",
+    "repository": "https://github.com/LMDHQ-0420/Vision-Jev",
+    "commit": "39b0e7ba798901ff4f948891972d4feca5aa159e",
+    "model": "LMDHQ-0420/vision-jev",
+    "revision": "b42c2f29eb6572f4a2ee31bd99d85d45ae8510c7",
+    "image_inputs": true,
+    "weights_license": "apache-2.0",
+    "subfolder": "vision-jev-0.8b",
+    "base_model": "Qwen/Qwen3.5-0.8B",
+    "base_revision": "2fc06364715b967f1860aea9cf38778875588b17"
+  },
+  {
+    "adapter": "vision-jev",
+    "repository": "https://github.com/LMDHQ-0420/Vision-Jev",
+    "commit": "39b0e7ba798901ff4f948891972d4feca5aa159e",
+    "model": "LMDHQ-0420/vision-jev",
+    "revision": "b42c2f29eb6572f4a2ee31bd99d85d45ae8510c7",
+    "image_inputs": true,
+    "weights_license": "apache-2.0",
+    "subfolder": "vision-jev-9b",
+    "base_model": "Qwen/Qwen3.5-9B",
+    "base_revision": "c202236235762e1c871ad0ccb60c8ee5ba337b9a"
+  },
+  {
+    "adapter": "jevvision",
+    "repository": "https://huggingface.co/divyanshx11/JEVision",
+    "commit": "e1cfde19bfae6548a46812c64a9a6f1a67459c95",
+    "model": "divyanshx11/JEVision",
+    "revision": "e1cfde19bfae6548a46812c64a9a6f1a67459c95",
+    "image_inputs": true,
+    "weights_license": "apache-2.0"
+  },
+  {
+    "adapter": "visual-jev",
+    "repository": "https://github.com/guanxuyu-sv/Visual-Jev",
+    "commit": "a392eaedfa41adae348f9767b55c0f54b3a13b57",
+    "model": "guanxuyu/visual-jev-4b-answer-sft",
+    "revision": "7a3f1bb0d8f7bfbbd8514d968ab7de3518849c8d",
+    "image_inputs": true,
+    "weights_license": "apache-2.0",
+    "base_model": "Qwen/Qwen3-VL-4B-Instruct",
+    "base_revision": "ebb281ec70b05090aa6165b016eac8ec08e71b17"
+  },
+  {
+    "adapter": "decider-vision",
+    "repository": "https://github.com/Mapika/decider",
+    "commit": "d6fc522aed7fc392576a9b66a330409bc6c382bd",
+    "model": "Mapika/decider-2b-vision",
+    "revision": "863e290863655f1d6b69324d77d09ac972d21609",
+    "image_inputs": true,
+    "weights_license": "apache-2.0"
+  },
+  {
+    "adapter": "pplx-decider",
+    "repository": "https://huggingface.co/perplexity-ai/pplx-decider-flash-v1.2",
+    "commit": "6d771ad7b5ecff5e93b8fc7b90d4c5ccc341954d",
+    "model": "perplexity-ai/pplx-decider-flash-v1.2",
+    "revision": "6d771ad7b5ecff5e93b8fc7b90d4c5ccc341954d",
+    "image_inputs": true,
+    "weights_license": "apache-2.0"
+  },
+  {
+    "adapter": "clef",
+    "repository": "https://huggingface.co/Cloudflare/clef-flash",
+    "commit": "8b2e5fd17c09fd49bc2880b805d5323ec7ff4ff3",
+    "model": "Cloudflare/clef-flash",
+    "revision": "8b2e5fd17c09fd49bc2880b805d5323ec7ff4ff3",
+    "image_inputs": true,
+    "weights_license": "apache-2.0"
   }
 ]

@@ -1,12 +1,15 @@
-"""OneJev's pinned native multimodal runtime for complete text-only requests."""
+"""OneJev's pinned native runtime for complete text and image requests."""
 
 import importlib
+import io
 
 from .base import decode_answers, questions_for_api
 from .upstream import UpstreamAdapter
 
 
 def onejev_questions(case):
+    if any(q.task not in {"noul", "choice", "score"} for q in case.questions):
+        raise ValueError("OneJev decision transport does not support Box")
     questions = questions_for_api(case.questions, structured=True, anonymous_choice=True)
     for question in case.questions:
         if question.task == "score":
@@ -20,11 +23,13 @@ def onejev_questions(case):
 
 class OneJevAdapter(UpstreamAdapter):
     case_batch_size = 1
+    supports_images = True
 
     def __init__(self, model, revision, source, device, context_limit=None):
         if context_limit is not None and context_limit < 1:
             raise ValueError("OneJev context_limit must be positive")
         self.setup("onejev", model, revision, source, device)
+        self.image_receipts = {}
         native = importlib.import_module("qev.mm_engine")
         self.schema = importlib.import_module("qev.schema")
         calibration_module = importlib.import_module("qev.calibrate")
@@ -49,6 +54,7 @@ class OneJevAdapter(UpstreamAdapter):
         )
         self.attention_model = self.engine.model
         self.set_attention("sdpa")
+        self.enable_kernels()
         self.settings.update(
             {
                 "dtype": "bfloat16-float32-head",
@@ -57,7 +63,8 @@ class OneJevAdapter(UpstreamAdapter):
                 "fork_mode": "sequential",
                 "debias": 1,
                 "questions_per_call": 1,
-                "media": "none-text-benchmarks",
+                "media": "native-ordered-pil-images-v1",
+                "image_preprocessing": "shared-full-image-policy-v1-then-native-processor",
                 "native_prompt_version": self.engine.style.name,
                 "calibration_temperatures": calibration.temperatures,
                 "calibration_policy": "release-file" if calibration_path.exists() else "native-T1",
@@ -67,12 +74,27 @@ class OneJevAdapter(UpstreamAdapter):
         )
 
     def predict(self, case):
+        state, media = case.state, []
+        if case.images:
+            from PIL import Image
+
+            from s1mb.vision import prepare_image
+
+            receipts, references = [], {}
+            for index, (name, asset) in enumerate(case.images.items(), 1):
+                payload, _, receipt = prepare_image(asset)
+                with Image.open(io.BytesIO(payload)) as image:
+                    media.append({"type": "image", "image": image.convert("RGB")})
+                receipts.append(receipt)
+                references[name] = f"<image:{index}>"
+            self.image_receipts[case.case_id] = receipts
+            state = {"context": case.state, "visual_inputs": references}
         answers = {}
         for key, question in onejev_questions(case).items():
             request = self.schema.SystemOneRequest.model_validate(
-                {"state": case.state, "questions": {"decision": question}}
+                {"state": state, "questions": {"decision": question}}
             )
-            response, _ = self.engine.decide(request, debias=1, media=[])
+            response, _ = self.engine.decide(request, debias=1, media=media)
             native = response.model_dump(mode="json")["answers"]
             if set(native) != {"decision"}:
                 raise ValueError("OneJev returned incorrect answer count")

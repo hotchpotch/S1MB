@@ -9995,6 +9995,89 @@
           "note": "Pinned upstream training recipe lists VisA in the defects mixture (7,459 combined VisA/DAGM/BTAD decisions in its source inventory). The evaluated imajev-4b card at 27d4e54fc11efeea2ea4d10e910643440d2333b5 reports training on the stage-1 mixture, followed by continuations. Actual sampled source counts, training snapshot/splits and record-level S1MB overlap are not independently audited. This is source-family exposure, not evidence of evaluation-example use; base-model pretraining is unknown."
         }
       ]
+    },
+    {
+      "model_ids": [
+        "Mapika__decider-2b-vision"
+      ],
+      "training_exposure": [
+        {
+          "benchmark_id": "scienceqa-choice",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/Mapika/decider-2b-vision/blob/863e290863655f1d6b69324d77d09ac972d21609/README.md",
+          "note": "Original source: ScienceQA. The vision model card explicitly lists ScienceQA in its visual SFT mixture. This establishes source-family exposure, not use of the adopted test examples.",
+          "registration_source": "contributor_review",
+          "dataset_access": "unknown"
+        }
+      ]
+    },
+    {
+      "model_ids": [
+        "CountingSheep__vev-4b",
+        "CountingSheep__vev-9b"
+      ],
+      "training_exposure": [
+        {
+          "benchmark_id": "nlvr2-noul",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://github.com/Xiaooolong/vev/blob/2d8c403b1c8459d34be214d76c19e0b158a1979c/TRAINING.md",
+          "note": "Original source: NLVR2. The released research mixture reports positive training-record counts for this family; exact selected rows of the 100k sample are not established. No adopted evaluation-example use is asserted.",
+          "registration_source": "contributor_review",
+          "dataset_access": "unknown"
+        },
+        {
+          "benchmark_id": "vsr-noul",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://github.com/Xiaooolong/vev/blob/2d8c403b1c8459d34be214d76c19e0b158a1979c/TRAINING.md",
+          "note": "Original source: VSR. The released research mixture reports positive training-record counts for this family; exact selected rows of the 100k sample are not established. No adopted evaluation-example use is asserted.",
+          "registration_source": "contributor_review",
+          "dataset_access": "unknown"
+        }
+      ]
+    },
+    {
+      "model_ids": [
+        "LMDHQ-0420__vision-jev-0.8b",
+        "LMDHQ-0420__vision-jev-9b"
+      ],
+      "training_exposure": [
+        {
+          "benchmark_id": "scienceqa-choice",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://github.com/LMDHQ-0420/Vision-Jev/blob/39b0e7ba798901ff4f948891972d4feca5aa159e/configs/data/sft_117k.json",
+          "note": "Original source: ScienceQA. The released SFT recipe allocates 4,000 ScienceQA questions. Source-family exposure does not establish adopted test-example use.",
+          "registration_source": "contributor_review",
+          "dataset_access": "unknown"
+        },
+        {
+          "benchmark_id": "koniq-score",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": "custom SHA-256 image-name split",
+          "evidence_url": "https://github.com/LMDHQ-0420/Vision-Jev/blob/39b0e7ba798901ff4f948891972d4feca5aa159e/vision_jev/data/pipeline.py",
+          "note": "Original source: KonIQ-10k. The SFT recipe allocates 6,000 KonIQ questions. Its normalizer independently re-splits all images: 239 of the 300 adopted author-test images fall in its candidate train pool (33 dev, 28 test). The final consumed 6,000-row manifest was not available for confirmation, so this is potential evaluation-image overlap, not confirmed consumed-example overlap.",
+          "registration_source": "contributor_review",
+          "dataset_access": "unknown"
+        }
+      ]
     }
   ]
 }
