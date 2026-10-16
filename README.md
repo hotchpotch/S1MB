@@ -139,6 +139,24 @@ or GPU. Start with [Contributing](CONTRIBUTING.md) and the
 [developer workflow](docs/developer_workflow.md). Keep downloaded datasets,
 checkpoints, credentials, generated results, and reports out of source commits.
 
+## Citation
+
+If you use S1MB in your research, please cite:
+
+```bibtex
+@misc{tateno2026s1mb,
+  author       = {Tateno, Yuichi},
+  title        = {{S1MB}: System One Mosaic Benchmark},
+  year         = {2026},
+  howpublished = {\url{https://github.com/hotchpotch/S1MB}}
+}
+```
+
+For reproducibility, also report the evaluation scope, dataset repository
+and exact revision, and evaluator version or commit used in your experiments.
+When using benchmarks derived from existing datasets, also cite the relevant
+original sources listed in [Evaluation sources](docs/evaluation_sources.md).
+
 ## License
 
 Project code is released under the [MIT License](LICENSE). Datasets, model
