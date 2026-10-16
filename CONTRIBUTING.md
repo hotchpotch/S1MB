@@ -28,6 +28,15 @@ Describe the problem, resulting behavior and validation in a pull request. Netwo
 publication, model API calls, and GPU measurements should be explicit; unit tests
 must not perform them implicitly.
 
+Submit completed GitHub and Hugging Face PRs in a reviewable state. Maintainers
+cannot tell from a draft whether you are ready for review, so drafts are not
+treated as review requests. Once the changes, description and required checks
+are ready, change the status yourself: select **Ready for review** on GitHub, or
+**Publish** on Hugging Face to change the PR status to **Open**. Verify that the
+PR is no longer a draft before requesting review. If work is still in progress,
+keep it in draft and explain what remains. Result submissions must pass the
+[completion check](docs/contributing_results.md#generate-the-pr-body) before upload.
+
 See [adapter development](docs/adapters.md) for the inference contract and tests,
 and [viewer setup](docs/viewer.md) for local UI development. GitHub provides a
 bug report form, a [model evaluation request form](docs/model_requests.md), and a

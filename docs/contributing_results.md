@@ -311,6 +311,17 @@ and inspect the file diff: every changed path should be inside the intended mode
 folder, and replacements should be deliberate. A compressed diff is not enough
 for review; include the validation and coverage summary in the PR body.
 
+**Finish by making the PR ready for review.** Check its status after the upload;
+if it is a draft, click **Publish** on the Hugging Face PR page to change it to
+**Open** once the description, file inspection and required validation are
+complete. Maintainers cannot tell whether a draft is ready, so a draft is not
+treated as a review request. The author is responsible for this status change;
+uploading files or adding a comment alone does not complete submission for review.
+Verify that the final status is **Open** before reporting it as ready. For any
+linked GitHub PR, select **Ready for review** when its changes and checks are ready.
+See the [Hub PR status guide](https://huggingface.co/docs/hub/repositories-pull-requests-discussions)
+for the draft-to-open workflow.
+
 To update the same PR after review, use its existing ref. Replace `12` with its
 PR number; do not pass `--create-pr` again:
 
