@@ -62,7 +62,7 @@ def test_labels_and_auxiliary_text_do_not_change_inference():
     row["targets"][0]["metadata_json"] = '{"answer":"teacher-secret"}'
     row["private_note"] = "must never enter model input"
     assert case_from_row(row).inference() == baseline
-    assert set(baseline.model_dump()) == {"case_id", "state", "state_json", "questions"}
+    assert set(baseline.model_dump()) == {"case_id", "state", "state_json", "questions", "images"}
 
 
 @pytest.mark.parametrize(

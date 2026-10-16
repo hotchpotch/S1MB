@@ -8,7 +8,7 @@ import { METRICS, type Benchmark, type Category, type ResultSummary, type Snapsh
 
 const id = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/);
 const count = z.number().int().nonnegative();
-export const benchmarkSchema = z.object({ id, task: z.enum(['choice', 'noul', 'score']), dataset: z.string(), split: z.string(), case_count: count.positive(), decision_count: count.positive(), primary_metric: z.string() });
+export const benchmarkSchema = z.object({ id, task: z.enum(['choice', 'noul', 'score', 'box']), dataset: z.string(), split: z.string(), case_count: count.positive(), decision_count: count.positive(), primary_metric: z.string() });
 export const categorySchema = z.object({ id, name: z.string(), description: z.string(), benchmarks: z.array(id).nonempty() });
 export const resultSchema = z.object({
   format_version: z.literal(1), run_id: id, benchmark: benchmarkSchema,
@@ -46,14 +46,19 @@ export function summarizeValidated(r: z.infer<typeof resultSchema>): ResultSumma
   };
   const abstained = c.abstained ?? 0;
   const primary = bounded(b.primary_metric);
-  const adjusted = bounded('baseline_adjusted_score');
+  const adjusted = b.task === 'box' ? null : bounded('baseline_adjusted_score');
   if (c.expected !== b.decision_count || c.cases > b.case_count || c.succeeded + c.failed + abstained > c.expected ||
       (c.succeeded + abstained === 0) !== (primary === null)) throw new Error('Inconsistent result counts');
   const complete = c.failed === 0 && c.succeeded + abstained === c.expected && c.cases === b.case_count;
   if ((r.status === 'complete') !== complete) throw new Error('Incorrect completion status');
   if (r.model.adapter === 'dummy' && r.provenance !== 'demo') throw new Error('Dummy results must be demo');
   let eligible: boolean, reason: string, skill: number | null;
-  if (b.task === 'choice') {
+  if (b.task === 'box') {
+    bounded('accuracy_at_iou_0_5');
+    eligible = false;
+    reason = 'Optional Box IoU; excluded from ranking and baseline adjustment.';
+    skill = null;
+  } else if (b.task === 'choice') {
     const baseline = bounded('fixed_answer_accuracy_baseline');
     if (baseline === null) throw new Error('Missing Choice baseline');
     eligible = baseline < 1 - epsilon;

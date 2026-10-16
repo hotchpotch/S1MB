@@ -221,6 +221,10 @@ def main() -> None:
         type=int,
         help="Ichi/Bekko candidate token cap including special tokens; v0 truncates adaptively",
     )
+    run.add_argument(
+        "--max-images", type=int, choices=[2, 3],
+        help="Imajev image limit (default 2); 3 enables an experimental native extension",
+    )
     run.add_argument("--max-len", type=int, help="Laya total token limit")
     run.add_argument("--head-max-len", type=int, help="Laya question/candidate token budget")
     run.add_argument("--questions-per-call", type=int, help="Laya/System Ichi question batch limit")
@@ -238,6 +242,7 @@ def main() -> None:
     run.add_argument("--base-revision", help="Explicit dependency checkpoint revision")
     scope = run.add_mutually_exclusive_group()
     scope.add_argument("--category", default="english-v1")
+    run.add_argument("--exclude-box", action="store_true", help="Exclude optional Box benchmarks")
     scope.add_argument("--all", action="store_true", help="Evaluate English v1 and Japanese v1 in one run")
     run.add_argument("--benchmark", action="append", help="Select specific category benchmarks")
     run.add_argument(
@@ -245,7 +250,7 @@ def main() -> None:
         action="store_true",
         help="Select only generalization benchmarks within the category",
     )
-    run.add_argument("--task", choices=["choice", "noul", "score"], help="Select one task")
+    run.add_argument("--task", choices=["choice", "noul", "score", "box"], help="Select one task")
     run.add_argument("--limit", type=int, help="First N cases per benchmark; remains partial")
     run.add_argument("--output", type=Path)
     run.add_argument("--run-id")
@@ -313,6 +318,8 @@ def validate_run_arguments(args, parser):
         parser.error(
             "--case-batch-size must be positive and applies only to Bekko v0, Kev, Open-Jev, CLM, Tev, Liquid, llama.cpp or OpenAI Decisions"
         )
+    if args.max_images is not None and args.adapter != "imajev":
+        parser.error("--max-images applies only to Imajev")
     if args.compile and args.adapter != "bekko-v0":
         parser.error("--compile applies only to Bekko v0")
     if (
@@ -563,6 +570,8 @@ def execute(args, parser):
         benchmarks = [
             b for b in benchmarks if b.dataset.startswith(("datasets/s1mb-generalization-", "datasets/generalization-"))
         ]
+    if args.exclude_box:
+        benchmarks = [b for b in benchmarks if b.task != "box"]
     if args.task:
         benchmarks = [b for b in benchmarks if b.task == args.task]
     if not benchmarks:
@@ -1141,6 +1150,8 @@ def execute(args, parser):
             options["subfolder"] = args.subfolder
         if args.case_batch_size is not None:
             options["case_batch_size"] = args.case_batch_size
+        if args.max_images is not None:
+            options["max_images"] = args.max_images
         if args.adapter in {"lev", "pngwn"}:
             options["base_revision"] = args.base_revision
         if args.adapter == "saihai-310m":

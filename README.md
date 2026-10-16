@@ -184,3 +184,11 @@ model trained on these examples to S1MB, declare the applicable **Known domains*
 in `metadata.json` using `training_exposure` and `same_source_family`. Record the
 exact training revision and effective configurations, including any filtering.
 See [training disclosure requirements](docs/training_exposure.md#training-for-japanese-decisions).
+
+
+Vision v1 is available as a separate evaluation scope alongside English v1 and
+Japanese v1. Its [private Dataset](https://huggingface.co/datasets/hotchpotch/S1MB-vision-v1)
+contains 26 image benchmarks /7,800 judgments. Rankings use all 20 non-Box
+benchmarks; optional Box and gen-box remain separate columns. See
+[vision evaluation](docs/vision-evaluation.md) for installation, image policies,
+source licenses, synthetic teachers and supported adapters.

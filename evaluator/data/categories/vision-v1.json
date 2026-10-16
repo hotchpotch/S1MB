@@ -1,0 +1,33 @@
+{
+  "id": "vision-v1",
+  "name": "Vision v1",
+  "description": "18 source-derived and 8 synthetic general vision benchmarks; 7,800 judgments. Local evaluation; individual source rights apply.",
+  "benchmarks": [
+    "cvbench-depth-choice",
+    "cvbench-distance-choice",
+    "cvbench-relation-choice",
+    "koniq-score",
+    "mvtec-ad-noul",
+    "nights-choice",
+    "nlvr2-noul",
+    "pope-noul",
+    "refcoco-box",
+    "refcoco-plus-box",
+    "refcocog-box",
+    "rvlcdip-choice",
+    "scienceqa-choice",
+    "screenspot-box",
+    "sugarcrepe-choice",
+    "tallyqa-score",
+    "visa-noul",
+    "vsr-noul",
+    "generalization-vision-easy-noul",
+    "generalization-vision-easy-choice",
+    "generalization-vision-easy-score",
+    "generalization-vision-easy-box",
+    "generalization-vision-hard-noul",
+    "generalization-vision-hard-choice",
+    "generalization-vision-hard-score",
+    "generalization-vision-hard-box"
+  ]
+}

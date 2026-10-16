@@ -88,3 +88,12 @@ test('Require two complete models and defined adjustments for every active bench
   assert.equal(calculate(snapshot).get('0'), null);
   assert.equal(calculate(snapshot).get('1'), null);
 });
+
+test('Optional Box is excluded from Borda and Task Avg without excluding non-Box models', () => {
+  const snapshot = fixture([[1, 1, 1, 0], [0, 0, 0, 1]], ['choice', 'noul', 'score', 'box']);
+  snapshot.categories[0].id = 'vision-v1';
+  const withBox = calculate(snapshot);
+  close(withBox.get('0'), 1); close(withBox.get('1'), 0);
+  snapshot.results = snapshot.results.filter(r => r.benchmark.task !== 'box');
+  assert.deepEqual(calculate(snapshot), withBox);
+});

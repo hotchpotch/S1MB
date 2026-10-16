@@ -107,7 +107,7 @@ def test_fixture_state_json_remains_valid_and_target_free():
     case = case_from_row(native_row()).inference()
     assert case.state_json is not None
     assert json.loads(case.state_json) == case.state
-    assert set(case.model_dump()) == {"case_id", "state", "state_json", "questions"}
+    assert set(case.model_dump()) == {"case_id", "state", "state_json", "questions", "images"}
 
 
 @pytest.mark.parametrize(

@@ -31,7 +31,7 @@ test('invalid enums, flags, metrics and ranges fall back to usable defaults', ()
 });
 
 test('home resets all controls while preserving English or Japanese scope', () => {
-  for (const categoryId of ['english-v1', 'japanese-v1']) {
+  for (const categoryId of ['english-v1', 'japanese-v1', 'vision-v1']) {
     const state = parseDashboardState(new URLSearchParams(`category=${categoryId}&view=compare&run=x&compare=x&sort=score&query=x&filtersOpen=1&raw=1`));
     const reset = resetDashboardState(state);
     assert.deepEqual(reset, { ...defaultDashboardState(), categoryId });
@@ -110,4 +110,13 @@ test('default scope and system theme leave a bare URL while explicit state survi
   syncDashboardUrl({ parent: { postMessage: (...args: unknown[]) => messages.push(args) }, location: { hostname: 'synthetic.hf.space', pathname: '/', search: '?__theme=system&category=english-v1', hash: '' }, history: { replaceState: (...args: unknown[]) => urls.push(args) } }, serializeDashboardState(defaults));
   assert.deepEqual(urls, [[null, '', '/']]);
   assert.deepEqual(messages, [[{ queryString: '', hash: '' }, 'https://huggingface.co']]);
+});
+
+test('Vision scope and optional Box sorting survive URL round trips', () => {
+  const query = new URLSearchParams('category=vision-v1&task=box&sort=general-box');
+  const state = parseDashboardState(query);
+  assert.equal(state.categoryId, 'vision-v1');
+  assert.equal(state.task, 'box');
+  assert.equal(state.leaderboardSort, 'general-box');
+  assert.deepEqual(parseDashboardState(serializeDashboardState(state)), state);
 });

@@ -1,5 +1,5 @@
 import { categoryRuns, hasCompleteCoverage } from './comparison';
-import { overallIndex, type Category, type Snapshot } from './types';
+import { overallIndex, rankingCategory, type Category, type Snapshot } from './types';
 
 export const BORDA_DESCRIPTION = `How a model ranks against other models (0–100; higher is better).
 
@@ -24,6 +24,7 @@ General benchmarks count once. Requires complete measured results. Other models 
 
 /** Relative display score in [0, 1], computed against the full category cohort. */
 export function bordaScores(snapshot: Snapshot, category: Category): Map<string, number | null> {
+  category = rankingCategory(snapshot, category);
   const benchmarks = snapshot.benchmarks.filter(benchmark => category.benchmarks.includes(benchmark.id));
   const cohort = categoryRuns(snapshot, category).filter(run =>
     !run.demo && hasCompleteCoverage(category, run.results) && overallIndex(snapshot, category, run.results) !== null);

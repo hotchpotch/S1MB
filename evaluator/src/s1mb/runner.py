@@ -1,5 +1,6 @@
 """Run each benchmark once and preserve predictions, including failed decisions."""
 
+import hashlib
 import platform
 import subprocess
 import time
@@ -15,7 +16,7 @@ from .data import (
     Counts,
     Prediction,
     Result,
-    check_probabilities,
+    check_prediction,
     load_cases,
     validate_result,
     write_json,
@@ -64,6 +65,8 @@ def evaluate(
     dataset_source = source_for_subset(root, Path(benchmark.dataset).name)
     cases = load_cases(root, benchmark)
     selected = cases[:limit] if limit is not None else cases
+    if any(c.images for c in selected) and not getattr(adapter, "supports_images", False):
+        raise ValueError("This adapter does not support image inputs")
     predictions = []
     usage_before = dict(getattr(adapter, "usage", {}))
     start = time.perf_counter()
@@ -77,10 +80,7 @@ def evaluate(
             for pred in current:
                 if pred.case_id != case.case_id:
                     raise ValueError("Adapter returned an invalid case ID")
-                if pred.probabilities is not None:
-                    check_probabilities(
-                        pred.probabilities, [o.id for o in questions[pred.question_id].options]
-                    )
+                check_prediction(pred, questions[pred.question_id])
             predictions.extend(current)
         except Exception as exc:  # noqa: BLE001 - preserve a failed case without losing the run
             # Exception messages from third-party clients may contain sensitive request data.
@@ -99,6 +99,12 @@ def evaluate(
         "platform": platform.platform(),
         "input_hashes": {c.case_id: c.provenance["input_hash"] for c in cases},
     }
+    sources = Path(__file__).resolve().parent
+    source_hash = hashlib.sha256()
+    for source_file in sorted(sources.rglob("*.py")):
+        source_hash.update(source_file.relative_to(sources).as_posix().encode() + b"\0")
+        source_hash.update(source_file.read_bytes())
+    environment["evaluator_source_sha256"] = source_hash.hexdigest()
     checkout = Path(__file__).resolve().parents[2]
     if (checkout / "pyproject.toml").is_file():
         try:
@@ -117,6 +123,11 @@ def evaluate(
         }
     if any(p.abstention is not None for p in predictions):
         environment["abstention_scoring"] = "incorrect-max-error-v1"
+    receipts = getattr(adapter, "image_receipts", {})
+    if receipts:
+        environment["image_preprocessing"] = {
+            c.case_id: receipts[c.case_id] for c in selected if c.case_id in receipts
+        }
     if usage_before:
         environment["api_usage"] = {
             key: value - usage_before[key] for key, value in getattr(adapter, "usage", {}).items()
@@ -132,7 +143,7 @@ def evaluate(
         counts=Counts(
             cases=len(selected),
             expected=benchmark.decision_count,
-            succeeded=sum(p.probabilities is not None for p in predictions),
+            succeeded=sum(p.probabilities is not None or p.box is not None for p in predictions),
             failed=failed,
             abstained=sum(p.abstention is not None for p in predictions),
         ),

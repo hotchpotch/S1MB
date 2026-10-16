@@ -14,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 MAX_JSON_BYTES = 64 * 1024 * 1024
 
-Task = Literal["choice", "noul", "score"]
+Task = Literal["choice", "noul", "score", "box"]
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 if not DATA_DIR.is_dir():
     # Installed wheels use the checkout's data, selected from the working directory.
@@ -23,6 +23,7 @@ METRICS = {
     "choice": "target_mass_at_prediction",
     "noul": "binary_brier",
     "score": "normalized_expected_score_mae",
+    "box": "mean_iou",
 }
 
 
@@ -35,7 +36,9 @@ class TrainingExposure(Record):
 
     benchmark_id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
     relationship: Literal["same_source_family", "related_domain", "evaluation_examples"]
-    registration_source: Literal["author_declaration", "contributor_review", "unknown"] | None = None
+    registration_source: Literal["author_declaration", "contributor_review", "unknown"] | None = (
+        None
+    )
     dataset_access: Literal["public", "private", "unknown"] | None = None
     dataset: str | None = Field(
         default=None,
@@ -76,10 +79,16 @@ class Question(Record):
     instructions: str = Field(min_length=1)
     instructions_json: str | None = None
     system_prompt: str = ""
-    options: list[Option] = Field(min_length=2)
+    options: list[Option] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def check_options(self) -> Self:
+        if self.task == "box":
+            if self.options:
+                raise ValueError("Box has no criteria")
+            return self
+        if len(self.options) < 2:
+            raise ValueError("Judgments require at least two options")
         ids = [o.id for o in self.options]
         if len(set(ids)) != len(ids):
             raise ValueError("Duplicate option IDs")
@@ -101,16 +110,45 @@ def check_probabilities(probabilities: dict[str, float], ids: list[str]) -> None
         raise ValueError("Probabilities must sum to one")
 
 
+class Box(Record):
+    left: float = Field(ge=0, le=1)
+    top: float = Field(ge=0, le=1)
+    right: float = Field(ge=0, le=1)
+    bottom: float = Field(ge=0, le=1)
+
+    @model_validator(mode="after")
+    def check_edges(self) -> Self:
+        if self.left > self.right or self.top > self.bottom:
+            raise ValueError("Box edges must be ordered")
+        return self
+
+
+class ImageAsset(Record):
+    path: str
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    policy: Literal["scene-896", "detail-1568", "original"] = "scene-896"
+
+
 class Target(Record):
     kind: str
-    probabilities: dict[str, float]
+    probabilities: dict[str, float] = Field(default_factory=dict)
+    box: Box | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def check_box_area(self) -> Self:
+        if self.box is not None and (
+            self.box.left == self.box.right or self.box.top == self.box.bottom
+        ):
+            raise ValueError("Target box must have positive area")
+        return self
 
 
 class InferenceCase(Record):
     case_id: str
     state: Any
     state_json: str | None = None
+    images: dict[str, ImageAsset] = Field(default_factory=dict)
     questions: list[Question]
 
 
@@ -126,7 +164,14 @@ class Case(InferenceCase):
         if len(set(ids)) != len(ids) or set(ids) != set(self.targets):
             raise ValueError("Question and target IDs must match without duplicates")
         for q in self.questions:
-            check_probabilities(self.targets[q.id].probabilities, [o.id for o in q.options])
+            target = self.targets[q.id]
+            if q.task == "box":
+                if target.box is None or target.probabilities:
+                    raise ValueError("Box requires only a box target")
+            else:
+                if target.box is not None:
+                    raise ValueError("Distribution target cannot contain a box")
+                check_probabilities(target.probabilities, [o.id for o in q.options])
         return self
 
     def inference(self) -> InferenceCase:
@@ -134,6 +179,7 @@ class Case(InferenceCase):
             case_id=self.case_id,
             state=self.state,
             state_json=self.state_json,
+            images=self.images,
             questions=self.questions,
         )
 
@@ -176,16 +222,22 @@ class Prediction(Record):
     case_id: str
     question_id: str
     probabilities: dict[str, float] | None = None
+    box: Box | None = None
     error: str | None = None
     abstention: Literal["refusal", "cannot_determine"] | None = None
 
     @model_validator(mode="after")
     def check_outcome(self) -> Self:
         if (
-            sum(value is not None for value in (self.probabilities, self.error, self.abstention))
+            sum(
+                value is not None
+                for value in (self.probabilities, self.box, self.error, self.abstention)
+            )
             != 1
         ):
-            raise ValueError("A prediction needs exactly one of probabilities, error or abstention")
+            raise ValueError(
+                "A prediction needs exactly one of probabilities, box, error or abstention"
+            )
         return self
 
 
@@ -308,8 +360,14 @@ def load_cases(root: Path, benchmark: Benchmark) -> list[Case]:
         raise ValueError("Dataset path escapes the datasets directory")
     from .hf_data import load_hf_cases
 
+    if (path / "vision-cases.json").is_file():
+        from .vision import load_vision_cases
+
+        loaded = load_vision_cases(path)
+    else:
+        loaded = load_hf_cases(path, benchmark.split)
     cases = []
-    for case in load_hf_cases(path, benchmark.split):
+    for case in loaded:
         questions = [q for q in case.questions if q.task == benchmark.task]
         if questions:
             cases.append(
@@ -351,9 +409,8 @@ def validate_result(root: Path, result: Result, *, published: bool = False) -> N
         if key not in index or key in seen:
             raise ValueError("Unknown or duplicate prediction ID")
         seen.add(key)
-        if pred.probabilities is not None:
-            check_probabilities(pred.probabilities, [o.id for o in index[key].options])
-    succeeded = sum(p.probabilities is not None for p in result.predictions)
+        check_prediction(pred, index[key])
+    succeeded = sum(p.probabilities is not None or p.box is not None for p in result.predictions)
     expected_counts = Counts(
         cases=len({p.case_id for p in result.predictions}),
         expected=len(index),
@@ -381,3 +438,12 @@ def validate_result(root: Path, result: Result, *, published: bool = False) -> N
                 raise ValueError("Stored metrics differ from recomputed metrics")
         elif not math.isclose(value, actual, abs_tol=1e-8):
             raise ValueError("Stored metrics differ from recomputed metrics")
+
+
+def check_prediction(pred: Prediction, question: Question) -> None:
+    if pred.box is not None and question.task != "box":
+        raise ValueError("Box prediction for a distribution question")
+    if pred.probabilities is not None:
+        if question.task == "box":
+            raise ValueError("Distribution prediction for a Box question")
+        check_probabilities(pred.probabilities, [o.id for o in question.options])

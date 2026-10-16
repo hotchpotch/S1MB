@@ -1,6 +1,7 @@
 """Imajev's CUDA decision readout, conditioned on declared benchmark options."""
 
 import importlib
+import io
 import json
 import sys
 
@@ -12,8 +13,14 @@ from .upstream import UpstreamAdapter, checkpoint_path
 
 class ImajevAdapter(UpstreamAdapter):
     case_batch_size = 1
+    supports_images = True
+    max_images = 2
 
-    def __init__(self, model, revision, source, device, context_limit=None):
+    def __init__(self, model, revision, source, device, context_limit=None, max_images=2):
+        if type(max_images) is not int or max_images not in {2, 3}:
+            raise ValueError("Imajev max_images must be 2 or 3")
+        self.max_images = max_images
+        self.input_token_counts = {}
         self.setup("imajev", model, revision, source, device)
         sys.path.insert(0, str(self.source / "scripts"))
         runtime = importlib.import_module("torch_decision")
@@ -29,6 +36,7 @@ class ImajevAdapter(UpstreamAdapter):
         else:
             repo, base_revision = base, config.get("revision") or "main"
         base_path, base_revision = checkpoint_path(repo, base_revision)
+        self.image_receipts = {}
         self.context_limit = context_limit or 4096
         self.engine = runtime.TorchDecision(str(base_path), device, max_length=self.context_limit)
         self.engine.model = peft.PeftModel.from_pretrained(self.engine.model, str(self.path)).eval()
@@ -36,6 +44,14 @@ class ImajevAdapter(UpstreamAdapter):
         self.calibration = calibration.TemperatureCalibrator.load(self.path / "calibration.json")
         self.attention_model = self.engine.model
         self.settings = {
+            "vision_transport": "native-ordered-pil-images-v1",
+            "image_preprocessing": "shared-full-image-policy-v1-then-native-processor",
+            "max_images": self.max_images,
+            "image_limit_policy": (
+                "upstream-two-image-contract" if self.max_images == 2
+                else "experimental-three-image-extension"
+            ),
+            "score_transport": "numeric-choice-field",
             "dtype": "bfloat16",
             "base_model": repo,
             "base_revision": base_revision,
@@ -54,6 +70,23 @@ class ImajevAdapter(UpstreamAdapter):
         self.enable_kernels()
 
     def predict(self, case):
+        if any(q.task == "box" for q in case.questions):
+            raise ValueError("Imajev does not support Box questions")
+        if len(case.images) > self.max_images:
+            raise ValueError(f"Imajev configured for at most {self.max_images} images")
+        images = []
+        if case.images:
+            from PIL import Image
+
+            from s1mb.vision import prepare_image
+
+            receipts = []
+            for asset in case.images.values():
+                payload, _, receipt = prepare_image(asset)
+                with Image.open(io.BytesIO(payload)) as image:
+                    images.append(image.convert("RGB"))
+                receipts.append(receipt)
+            self.image_receipts[case.case_id] = receipts
         predictions = []
         for question in case.questions:
             keys, schema = nimble_field(question)
@@ -86,11 +119,15 @@ class ImajevAdapter(UpstreamAdapter):
             header, choices, texts = self.native.compile_question(
                 field, case.state, self.engine.prompt_layout
             )
-            labels = self.engine.labels(len(choices))
+            labels = self.engine.labels(len(choices), len(images))
             prompt = header + "\n".join(
                 f"{label}: {text}" for label, text in zip(labels, texts, strict=True)
             )
-            _, inputs, candidate_ids = self.engine.prepare(None, prompt, labels)
+            _, inputs, candidate_ids = self.engine.prepare(images or None, prompt, labels)
+            self.input_token_counts[case.case_id] = max(
+                self.input_token_counts.get(case.case_id, 0), inputs["input_ids"].shape[-1]
+            )
+            self.settings["max_observed_input_tokens"] = max(self.input_token_counts.values())
             with self.torch.inference_mode():
                 logits = self.engine.candidate_logits(inputs, candidate_ids).float()
                 temperature = self.calibration.temperature(question.task, len(keys)) or 1.0

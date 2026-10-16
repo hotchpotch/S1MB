@@ -1,0 +1,10 @@
+{
+  "id": "generalization-vision-easy-box",
+  "task": "box",
+  "dataset": "datasets/generalization-vision-easy-box",
+  "split": "test",
+  "case_count": 300,
+  "decision_count": 300,
+  "primary_metric": "mean_iou",
+  "evaluation_family": "ordinary"
+}

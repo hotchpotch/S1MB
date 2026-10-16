@@ -1,0 +1,10 @@
+{
+  "id": "generalization-vision-hard-noul",
+  "task": "noul",
+  "dataset": "datasets/generalization-vision-hard-noul",
+  "split": "test",
+  "case_count": 300,
+  "decision_count": 300,
+  "primary_metric": "binary_brier",
+  "evaluation_family": "ordinary"
+}

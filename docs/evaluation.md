@@ -863,5 +863,10 @@ and the current runner's error-recording limitations. This adapter has no local
 context-extension or shortening override; a permanently rejected required input
 keeps the submission incomplete.
 
+Image-bearing Choice, Noul and Score inputs use ordered, neutrally named image parts
+and the shared full-image preprocessing policies with `detail: high`. Box is not
+supported by the Decisions API. See [local vision evaluation](vision-evaluation.md)
+for transport, selection, and comparison details.
+
 See the [official Decisions guide](https://developers.openai.com/api/docs/guides/decisions)
 for API availability and supported models.

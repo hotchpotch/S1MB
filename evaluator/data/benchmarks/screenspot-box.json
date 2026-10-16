@@ -1,0 +1,9 @@
+{
+  "id": "screenspot-box",
+  "task": "box",
+  "dataset": "datasets/screenspot-box",
+  "split": "test",
+  "case_count": 300,
+  "decision_count": 300,
+  "primary_metric": "mean_iou"
+}

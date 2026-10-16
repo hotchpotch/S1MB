@@ -1,4 +1,4 @@
-# English and Japanese evaluation scopes
+# English, Japanese and vision evaluation scopes
 
 S1MB combines independent English and Japanese evaluation scopes. English v1
 retains its existing active manifest. Japanese v1 replaces the retired S1MB
@@ -156,3 +156,18 @@ npm start
 Restart the viewer after preparation. A public viewer build needs only the
 prepared summary and never downloads private evaluation data. Training disclosures
 and parameter annotations do not rewrite measurements or their model revisions.
+
+
+## Vision v1
+
+The third selector is `?category=vision-v1`, backed by the private
+`hotchpotch/S1MB-vision-v1` Dataset. It has 26 benchmarks /7,800 judgments, including
+8 synthetic easy/hard general sets. The ranking requires the 20 non-Box benchmarks
+/6,000 judgments;6 Box sets /1,800 judgments are optional and excluded from Task
+Avg and Borda. Box and General Box remain visible as independent mean-IoU ×100
+columns. Unsupported tasks stay unavailable. See [vision evaluation](vision-evaluation.md)
+for image storage, exact-revision installation, capabilities, source licenses and
+synthetic-teacher limitations. `--all` continues to mean both text languages;
+request vision separately. English visual instructions do not mix visual and text
+rankings. Training disclosures and results share the existing metadata and result
+repository formats; no private image or evaluation input is served to the browser.

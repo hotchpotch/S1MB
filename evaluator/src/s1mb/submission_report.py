@@ -44,6 +44,8 @@ class ModelSummary:
 
 def eligible(task: Task, metrics: dict[str, float | None]) -> bool:
     """Use validated baselines from each result's own dataset revision."""
+    if task == "box":
+        return True
     key = {
         "noul": "positive_prevalence",
         "choice": "fixed_answer_accuracy_baseline",
@@ -68,7 +70,7 @@ def task_score(required: list[Benchmark], measurements: dict[str, Measurement]) 
         metrics = measurements[benchmark.id].metrics
         if not eligible(benchmark.task, metrics):
             continue
-        value = metrics.get("baseline_adjusted_score")
+        value = metrics.get("mean_iou" if benchmark.task == "box" else "baseline_adjusted_score")
         if value is None:
             return None
         if not 0 <= value <= 1:
@@ -120,26 +122,31 @@ def format_parameters(value: int | None) -> str:
 
 
 def render_report(benchmarks: list[Benchmark], models: list[ModelSummary]) -> str:
+    displayed_tasks = (*TASKS, "box") if any(b.task == "box" for b in benchmarks) else TASKS
+    columns = [*displayed_tasks, *("gen-" + t for t in displayed_tasks)]
+    required_ranking = [b for b in benchmarks if b.task != "box"]
     lines = [
         "## Leaderboard comparison",
         "",
-        (
-            "| Model | Total Params | Active Params | noul | choice | score "
-            "| gen-noul | gen-choice | gen-score |"
-        ),
-        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        "| Model | Total Params | Active Params | " + " | ".join(columns) + " |",
+        "| --- | ---: | ---: | " + " | ".join("---:" for _ in columns) + " |",
     ]
     incomplete = []
     abstention_rows = []
     for model in models:
         scores = []
         for general in (False, True):
-            for task in TASKS:
+            for task in displayed_tasks:
                 required = [
                     b
                     for b in benchmarks
                     if b.task == task
-                    and (not general or b.dataset.startswith("datasets/s1mb-generalization-"))
+                    and (
+                        not general
+                        or b.dataset.startswith(
+                            ("datasets/s1mb-generalization-", "datasets/generalization-")
+                        )
+                    )
                 ]
                 value = task_score(required, model.measurements)
                 scores.append("N/A" if value is None else f"{value:.2f}")
@@ -147,10 +154,10 @@ def render_report(benchmarks: list[Benchmark], models: list[ModelSummary]) -> st
         total, active = map(format_parameters, display_parameters(model))
         lines.append(f"| {name} | {total} | {active} | " + " | ".join(scores) + " |")
         complete = sum(
-            b.id in model.measurements and model.measurements[b.id].complete for b in benchmarks
+            b.id in model.measurements and model.measurements[b.id].complete for b in required_ranking
         )
         scoped_failures = sum(
-            model.measurements[b.id].failed for b in benchmarks if b.id in model.measurements
+            model.measurements[b.id].failed for b in required_ranking if b.id in model.measurements
         )
         task_abstentions = [
             sum(
@@ -162,15 +169,15 @@ def render_report(benchmarks: list[Benchmark], models: list[ModelSummary]) -> st
         ]
         if any(task_abstentions):
             abstention_rows.append(f"| {name} | " + " | ".join(map(str, task_abstentions)) + " |")
-        if complete != len(benchmarks) or scoped_failures:
+        if complete != len(required_ranking) or scoped_failures:
             incomplete.append(
-                f"{name}: {complete}/{len(benchmarks)} complete, {scoped_failures} failed decisions"
+                f"{name}: {complete}/{len(required_ranking)} complete, {scoped_failures} failed decisions"
             )
     lines += [
         "",
         (
             "Scores: baseline-adjusted 0–100, higher is better; equal benchmark weights. "
-            "Noul uses balanced accuracy. Gen is the Diverse/Contextual subset of each task. "
+            "Optional Box/gen-box use mean IoU ×100 and never affect ranking. Noul uses balanced accuracy. Gen is the Diverse/Contextual subset of each task. "
             "Static Active Params excludes embedding weights, including tied output weights (`embedding_excluded_parameters_v1`); historic results retain their recorded method. "
             "N/A means unknown parameters or unavailable scores."
         ),
@@ -184,8 +191,8 @@ def render_report(benchmarks: list[Benchmark], models: list[ModelSummary]) -> st
         )
     else:
         lines.append(
-            f"All {len(models)} rows: **{len(benchmarks)}/{len(benchmarks)} complete, "
-            "zero failed decisions**."
+            f"All {len(models)} rows: **{len(required_ranking)}/{len(required_ranking)} complete, "
+            "zero failed decisions** (required non-Box scope; Box optional)."
         )
     if abstention_rows:
         lines += [
@@ -241,12 +248,12 @@ def main(*, template: bool = False) -> None:
             for model in models:
                 if any(
                     b.id not in model.measurements or not model.measurements[b.id].complete
-                    for b in benchmarks
+                    for b in benchmarks if b.task != "box"
                 ):
                     missing = [
                         b.id
                         for b in benchmarks
-                        if b.id not in model.measurements or not model.measurements[b.id].complete
+                        if b.task != "box" and (b.id not in model.measurements or not model.measurements[b.id].complete)
                     ]
                     raise ValueError(
                         f"Not leaderboard-eligible: {model.metadata.model_id}; "

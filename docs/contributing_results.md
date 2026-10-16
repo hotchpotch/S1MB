@@ -76,7 +76,7 @@ what remains unknown; register supported benchmark-level exposure in metadata.
 - Submit actual model measurements. The dummy adapter produces demo results and
   cannot represent a measured leaderboard entry.
 - Require complete measured coverage of the submitted language scope (`english-v1`
-  or `japanese-v1`) across Choice, Noul and Score, with zero failed decisions.
+  or `japanese-v1`, or the `vision-v1` scope) across Choice, Noul and Score, with zero failed decisions.
   Missing benchmarks, partial results and unfinished tasks block leaderboard
   submission. Structural validation alone does not establish eligibility.
 - Use dataset-default instructions and the model's supported adapter. Preserve
@@ -681,3 +681,24 @@ comparison report and PR template generate these counts from validated results.
 Explain that these refusals incur score penalties, whose magnitude depends on
 frequency and the normal benchmark/task weights. Explain any retries or
 rescoring and preserve original local measurements.
+
+
+## Vision submissions and optional Box
+
+Vision submissions must complete all 20 Noul/Choice/Score benchmarks in
+`vision-v1` (6,000 judgments) with zero operational failures. The6 Box benchmarks
+are optional: neither Task Avg nor Borda includes them. Box/gen-box columns show
+mean IoU ×100 only when their own required sets are complete. Do not fabricate
+zero predictions for unsupported Box, or require a fallback model/endpoint.
+Use `--exclude-box` when evaluating an adapter without Box support. The mandatory
+`create_results_pr.py --category vision-v1` completion gate excludes Box and adds
+both optional columns to its report. A partial saved Box result is still visibly
+partial and cannot supply a complete Box summary.
+
+Use `hotchpotch/S1MB-vision-v1` with the exact immutable Dataset SHA in every
+measurement. The Dataset remains private; result publication must not expose
+images, state, labels, source-row identifiers, local paths or credentials. Disclose
+known visual training domains using the existing `training_exposure` schema and
+vision benchmark IDs. Preserve actual training snapshot/split evidence; unknown
+pretraining and unverified record-level overlap remain unknown. These annotations
+never change ranking or grant permission to train on evaluation targets.
