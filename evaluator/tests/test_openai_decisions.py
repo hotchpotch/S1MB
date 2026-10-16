@@ -201,3 +201,92 @@ def test_refusal_preserves_other_answers_without_retry(monkeypatch):
         assert adapter.usage["retries"] == 0
     finally:
         adapter.close()
+
+
+def test_vision_payload_preserves_image_order_and_excludes_provenance(monkeypatch, tmp_path):
+    import base64
+    import hashlib
+
+    from PIL import Image
+
+    from s1mb.data import ImageAsset
+    from s1mb.vision import prepare_image
+
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    images = {}
+    for i, color in enumerate(["red", "blue"], 1):
+        path = tmp_path / f"source-secret-{i}.png"
+        Image.new("RGB", (320, 280), color).save(path)
+        images[f"image_{i}"] = ImageAsset(
+            path=str(path), sha256=hashlib.sha256(path.read_bytes()).hexdigest()
+        )
+    q = Question(
+        id="private-question",
+        task="choice",
+        instructions="Which image is red?",
+        options=[
+            Option(id="private-a", description="image_1"),
+            Option(id="private-b", description="image_2"),
+        ],
+    )
+    case = InferenceCase(
+        case_id="private-case",
+        state={"images": ["image_1", "image_2"]},
+        images=images,
+        questions=[q],
+    )
+    adapter = OpenAIDecisionsAdapter()
+    adapter.client.close()
+
+    def respond(request):
+        body = json.loads(request.content)
+        parts = body["input"][0]["content"]
+        assert json.loads(parts[0]["text"]) == case.state
+        assert [parts[1]["text"], parts[3]["text"]] == ["image_1", "image_2"]
+        for part, asset in zip([parts[2], parts[4]], images.values(), strict=True):
+            assert part["type"] == "input_image" and part["detail"] == "high"
+            assert base64.b64decode(part["image_url"].split(",", 1)[1]) == prepare_image(asset)[0]
+            assert asset.sha256 not in request.content.decode()
+        assert "source-secret" not in request.content.decode()
+        assert "private-" not in request.content.decode()
+        return httpx.Response(
+            200,
+            json={
+                "model": "gpt-6-luna",
+                "answers": [
+                    {
+                        "name": "question",
+                        "type": "choice",
+                        "probabilities": [
+                            {"value": "option_0", "probability": 1.0},
+                            {"value": "option_1", "probability": 0.0},
+                        ],
+                    }
+                ],
+            },
+        )
+
+    adapter.client = httpx.Client(
+        base_url="https://api.openai.com", transport=httpx.MockTransport(respond)
+    )
+    try:
+        result = adapter.predict(case)[0]
+        assert result.probabilities == {"private-a": 1.0, "private-b": 0.0}
+        assert len(adapter.image_receipts[case.case_id]) == 2
+    finally:
+        adapter.close()
+
+
+def test_box_does_not_make_http_request(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    adapter = OpenAIDecisionsAdapter()
+    try:
+        case = InferenceCase(
+            case_id="c",
+            state={},
+            questions=[Question(id="q", task="box", instructions="Find the target.")],
+        )
+        assert adapter.predict(case)[0].error is not None
+        assert adapter.usage["requests"] == 0
+    finally:
+        adapter.close()

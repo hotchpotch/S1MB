@@ -14,7 +14,7 @@ def render_template(repository: Path, category: str, explanation: str | None) ->
         f"Evaluation category: `{category}`.",
         "",
         (
-            "Leaderboard submission requires every active benchmark in the selected language "
+            "Leaderboard submission requires every active benchmark in the selected scope (Box is optional and excluded from ranking) "
             "complete and measured, across Choice, Noul and Score, with zero failed decisions. "
             "Missing benchmarks, unfinished tasks and partial results are not leaderboard-eligible. "
             "Validation success alone does not establish complete coverage. "
@@ -39,7 +39,7 @@ def render_template(repository: Path, category: str, explanation: str | None) ->
             "| Task | Saved benchmarks | Complete | Successful decisions | Abstentions counted as incorrect | Failed decisions |",
             "| --- | ---: | ---: | ---: | ---: | ---: |",
         ]
-        for task in ("choice", "noul", "score"):
+        for task in ("choice", "noul", "score", "box"):
             rows = [r for r in results if r.benchmark.task == task]
             lines.append(
                 f"| {task} | {len(rows)} | {sum(r.status == 'complete' for r in rows)} | {sum(r.counts.succeeded for r in rows)} | {sum(r.counts.abstained for r in rows)} | {sum(r.counts.failed for r in rows)} |"

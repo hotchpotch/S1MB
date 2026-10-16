@@ -34,6 +34,7 @@ Its scores do not establish unseen-task generalization or training-data non-over
 [Read the benchmark introduction](https://huggingface.co/blog/hotchpotch/system-one-mosaic-benchmark/)
 · [English evaluation dataset](https://huggingface.co/datasets/hotchpotch/S1MB-english-v1)
 · [Japanese evaluation dataset](https://huggingface.co/datasets/hotchpotch/S1MB-japanese-v1)
+· [Vision evaluation dataset (private)](https://huggingface.co/datasets/hotchpotch/S1MB-vision-v1)
 · [Browse published results](https://huggingface.co/datasets/hotchpotch/s1mb-result)
 
 ## About this Space
@@ -41,7 +42,7 @@ Its scores do not establish unseen-task generalization or training-data non-over
 This is an interactive viewer of saved benchmark measurements; it does not load
 model weights or run inference. The Docker image includes compact display data
 prepared from the shared public results Dataset for `english-v1` and
-`japanese-v1`. Use the evaluation language selector to switch scopes. New results appear after the display
+`japanese-v1`, and `vision-v1`. Vision ranks Noul, Choice and Score; optional Box and gen-box are displayed separately and excluded from ranking. Use the evaluation scope selector to switch scopes. New results appear after the display
 data is regenerated and the Space is redeployed.
 
 The viewer's source code is MIT-licensed. Evaluation datasets and model checkpoints

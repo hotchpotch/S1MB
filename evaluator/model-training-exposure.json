@@ -9940,6 +9940,61 @@
           "registration_source": "contributor_review"
         }
       ]
+    },
+    {
+      "model_ids": [
+        "mohit67890__imajev-4b"
+      ],
+      "training_exposure": [
+        {
+          "benchmark_id": "tallyqa-score",
+          "relationship": "same_source_family",
+          "registration_source": "contributor_review",
+          "dataset_access": "unknown",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://github.com/mohit67890/imajev/blob/318e8dad55c12a1c6faddbec5f30489d2ee529ff/docs/technical-specification.md",
+          "note": "Pinned upstream training recipe lists TallyQA (11,126 decisions in its source inventory). The evaluated imajev-4b card at 27d4e54fc11efeea2ea4d10e910643440d2333b5 reports training on the stage-1 mixture, followed by continuations. Actual sampled source counts, training snapshot/splits and record-level S1MB overlap are not independently audited. This is source-family exposure, not evidence of evaluation-example use; base-model pretraining is unknown."
+        },
+        {
+          "benchmark_id": "vsr-noul",
+          "relationship": "same_source_family",
+          "registration_source": "contributor_review",
+          "dataset_access": "unknown",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://github.com/mohit67890/imajev/blob/318e8dad55c12a1c6faddbec5f30489d2ee529ff/docs/technical-specification.md",
+          "note": "Pinned upstream training recipe lists VSR (7,033 decisions in its source inventory). The evaluated imajev-4b card at 27d4e54fc11efeea2ea4d10e910643440d2333b5 reports training on the stage-1 mixture, followed by continuations. Actual sampled source counts, training snapshot/splits and record-level S1MB overlap are not independently audited. This is source-family exposure, not evidence of evaluation-example use; base-model pretraining is unknown."
+        },
+        {
+          "benchmark_id": "koniq-score",
+          "relationship": "same_source_family",
+          "registration_source": "contributor_review",
+          "dataset_access": "unknown",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://github.com/mohit67890/imajev/blob/318e8dad55c12a1c6faddbec5f30489d2ee529ff/docs/technical-specification.md",
+          "note": "Pinned upstream training recipe lists KonIQ (5,563 decisions in its source inventory). The evaluated imajev-4b card at 27d4e54fc11efeea2ea4d10e910643440d2333b5 reports training on the stage-1 mixture, followed by continuations. Actual sampled source counts, training snapshot/splits and record-level S1MB overlap are not independently audited. This is source-family exposure, not evidence of evaluation-example use; base-model pretraining is unknown."
+        },
+        {
+          "benchmark_id": "visa-noul",
+          "relationship": "same_source_family",
+          "registration_source": "contributor_review",
+          "dataset_access": "unknown",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://github.com/mohit67890/imajev/blob/318e8dad55c12a1c6faddbec5f30489d2ee529ff/docs/technical-specification.md",
+          "note": "Pinned upstream training recipe lists VisA in the defects mixture (7,459 combined VisA/DAGM/BTAD decisions in its source inventory). The evaluated imajev-4b card at 27d4e54fc11efeea2ea4d10e910643440d2333b5 reports training on the stage-1 mixture, followed by continuations. Actual sampled source counts, training snapshot/splits and record-level S1MB overlap are not independently audited. This is source-family exposure, not evidence of evaluation-example use; base-model pretraining is unknown."
+        }
+      ]
     }
   ]
 }

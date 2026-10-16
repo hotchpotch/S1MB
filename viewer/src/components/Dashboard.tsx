@@ -41,8 +41,9 @@ import {
   overallIndex,
   instructionLabel,
   METRICS,
-  TASKS,
+  ALL_TASKS as TASKS,
   DISPLAY_TASKS,
+  rankingCategory as nonBoxCategory,
   generalizationCategory,
   type Snapshot,
   type Task,
@@ -203,7 +204,7 @@ function ScoreValue({
   adjusted?: boolean;
   compact?: boolean;
 }) {
-  const value = result?.metrics[adjusted ? 'baseline_adjusted_score' : result.benchmark.primary_metric];
+  const value = result?.metrics[adjusted && result.benchmark.task !== 'box' ? 'baseline_adjusted_score' : result.benchmark.primary_metric];
   return (
     <div className="space-y-1">
       <div
@@ -307,7 +308,7 @@ export function ComparisonTables({
           {filter && <Button variant="ghost" size="sm" onClick={() => setFilter('')}>Clear filter</Button>}
           <nav aria-label="Comparison tasks" className="flex gap-4 text-sm">{groups.filter(g => g.rows.length).map(g => <a key={g.task} href={`#compare-${g.task}`} className="underline underline-offset-4">{title(g.task)} ({g.rows.length})</a>)}</nav>
         </div>
-        <p className="text-xs text-muted-foreground" role="status">{shown} / {category.benchmarks.length} benchmarks shown. Gap is the range among complete measured results; it is not statistical significance. Summary uses the full category.</p>
+        <p className="text-xs text-muted-foreground" role="status">{shown} / {category.benchmarks.length} benchmarks shown. Gap is the range among complete measured results; it is not statistical significance. Summary uses the full category. {category.id === "vision-v1" && "Box remains raw IoU (×100 in the adjusted display), without baseline adjustment or ranking weight."}</p>
       </div>
       {!shown && <Empty title="No matching benchmarks" description="Clear the filter to return to all tasks." />}
       {groups
@@ -323,7 +324,7 @@ export function ComparisonTables({
               </h3>
               <Badge variant="secondary">{group.rows.length} benchmarks</Badge>
               <span className="text-xs text-muted-foreground">
-                {adjusted ? <MetricDirection direction="up">Baseline-adjusted score · Higher is better</MetricDirection> : <>{METRICS[group.task].label} · {direction(group.task)}</>}
+                {adjusted ? <MetricDirection direction="up">{group.task === "box" ? "Optional mean IoU ×100 · Excluded from ranking" : "Baseline-adjusted score · Higher is better"}</MetricDirection> : <>{METRICS[group.task].label} · {direction(group.task)}</>}
               </span>
             </div>
             <div className="rounded-lg border bg-card overflow-hidden">
@@ -426,7 +427,7 @@ export function Dashboard({
   const leaderboardTable = useRef<HTMLTableElement>(null);
   const [state, setState] = useState<DashboardState>(() => initialState ?? {
     ...defaultDashboardState(),
-    categoryId: initialCategory === 'japanese-v1' ? 'japanese-v1' : 'english-v1',
+    categoryId: ['english-v1', 'japanese-v1', 'vision-v1'].includes(initialCategory ?? '') ? initialCategory! : 'english-v1',
     task: TASKS.includes(initialTask as Task) ? initialTask as Task : 'choice',
     generalizationView: initialTask === 'generalization',
     runId: initialRun ?? '',
@@ -437,6 +438,7 @@ export function Dashboard({
     modelSearch: initialModelSearch,
     filtersOpen: initialFiltersOpen,
     benchmarkId: initialBenchmark ?? '',
+    benchmarkMetric: initialTask === 'box' ? 'mean_iou' : 'baseline_adjusted_score',
   });
   const { categoryId, task, generalizationView, runId, view, selectedIds, generalizationOnly, checkedOnly, modelSearch, filtersOpen, totalRange, activeRange, includeIncomplete, modelPickerOpen, query, leaderboardSort, leaderboardAscending, benchmarkMetric, benchmarkId, detailQuery, detailTask } = state;
   function setter<K extends keyof DashboardState>(key: K): Dispatch<SetStateAction<DashboardState[K]>> {
@@ -506,14 +508,17 @@ export function Dashboard({
   const runs = categoryRuns(snapshot, category);
   const selectedRuns = selectedIds.flatMap(id => { const run = runs.find(r => r.id === id); return run ? [run] : []; });
   const active = runs.find((r) => r.id === runId);
-  const rankingCategory = generalizationOnly ? generalizationCategory(snapshot, category) : category;
-  const rawRows = leaderboard(snapshot, rankingCategory, task);
+  const rankingCategory = nonBoxCategory(snapshot, generalizationOnly ? generalizationCategory(snapshot, category) : category);
+  const displayTasks = category.id === "vision-v1" ? [...DISPLAY_TASKS, "box" as Task] : DISPLAY_TASKS;
+  const rawRows = leaderboard(snapshot, rankingCategory, task).map(row => ({
+    ...row, results: runs.find(run => run.id === row.runId)?.results ?? row.results,
+  }));
   const allRows = rawRows.map(row => ({ ...row, score: overallIndex(snapshot, rankingCategory, row.results) }))
     .sort((a, b) => Number(a.demo) - Number(b.demo) || Number(a.score === null) - Number(b.score === null) || (b.score ?? 0) - (a.score ?? 0) || a.runId.localeCompare(b.runId));
   const rows = allRows.filter(row => hasCompleteCoverage(rankingCategory, row.results));
   const borda = bordaScores(snapshot, rankingCategory);
   const leaderboardValue = (row: typeof rows[number]) => leaderboardSort === 'borda' ? borda.get(row.runId) ?? null : leaderboardSort === 'overall' ? row.score
-    : diagnosticMean(snapshot, leaderboardSort.startsWith('general-') ? generalizationCategory(snapshot, category) : rankingCategory,
+    : diagnosticMean(snapshot, leaderboardSort.startsWith('general-') ? generalizationCategory(snapshot, category) : category,
       leaderboardSort.replace('general-', '') as Task, row.results, 'baseline_adjusted_score');
   const leaderboardRanks = metricRanks(rows.map(row => ({ id: row.runId, value: leaderboardValue(row) })));
   rows.sort((a, b) => {
@@ -553,7 +558,7 @@ export function Dashboard({
     individual?.cells
       .filter((c) => c.result && (includeIncomplete || c.result.provenance === "measured"))
       .sort((a, b) => compareResultMetric(a.result!, b.result!, benchmarkMetric)) ?? [];
-  const metricColumns = [{ name: 'baseline_adjusted_score', label: 'Adjusted' }, ...BENCHMARK_METRICS[task]];
+  const metricColumns = [...(task === 'box' ? [] : [{ name: 'baseline_adjusted_score', label: 'Adjusted' }]), ...BENCHMARK_METRICS[task]];
   const sortLabel = metricColumns.find(m => m.name === benchmarkMetric)?.label ?? 'Adjusted';
   const metricDirection = ['binary_brier', 'normalized_expected_score_mae', 'normalized_score_rmse'].includes(benchmarkMetric) ? 'ascending' : 'descending';
   const benchmarkRanks = metricRanks(individualCells.map(cell => ({ id: cell.runId,
@@ -569,7 +574,7 @@ export function Dashboard({
     setGeneralizationView(value === 'generalization');
     if (value === 'generalization') { setBenchmark(''); setQuery(''); return; }
     setTask(value as Task);
-    setBenchmarkMetric('baseline_adjusted_score');
+    setBenchmarkMetric(value === 'box' ? 'mean_iou' : 'baseline_adjusted_score');
     setBenchmark("");
     setQuery("");
   }
@@ -678,6 +683,7 @@ export function Dashboard({
         {view === "leaderboard" && (
           <section aria-label="Leaderboard" className="space-y-4">
             <div className="space-y-3">
+              {category.id === "vision-v1" && <p className="text-xs text-muted-foreground">Ranks use Noul, Choice and Score. Optional Box / General Box show mean IoU ×100; — means incomplete or unavailable. Box never affects Task Avg or Borda.</p>}
               <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
               <h2 className="text-xl font-semibold">{generalizationOnly ? 'Generalization leaderboard' : 'Overall leaderboard'}</h2>
                 <div className="flex flex-wrap items-center gap-2">
@@ -743,8 +749,8 @@ export function Dashboard({
                   <TableHead className="w-5 sm:w-8"><ColumnHelp label="Rank" description={'Position based on the selected score column.\n\nHigher scores rank first. Tied models share a rank. Reversing the display order does not change ranks.\n\nOnly models with complete measured results are ranked.'}>#</ColumnHelp></TableHead><TableHead className="w-[22%]"><ColumnHelp description={'The evaluated model.\n\nSelect its name to see model details and individual benchmark results.'}>Model</ColumnHelp></TableHead>
                   <TableHead className="text-right" aria-sort={sortDirection('borda')}><ColumnHelp label="Borda Score" onClick={() => sortLeaderboard('borda')} description={`${BORDA_DESCRIPTION}\n\nThis ranking covers ${rankingCategory.benchmarks.length} benchmarks.`}><span className="block">Borda</span><span className="inline-flex items-center whitespace-nowrap">Score{sortIcon('borda')}</span></ColumnHelp></TableHead>
                   <TableHead className="text-right" aria-sort={sortDirection('overall')}><ColumnHelp onClick={() => sortLeaderboard('overall')} label="Task Avg" description={TASK_AVG_DESCRIPTION}><span className="block">Task</span><span className="inline-flex items-center whitespace-nowrap">Avg{sortIcon('overall')}</span></ColumnHelp></TableHead>
-                  {!generalizationOnly && DISPLAY_TASKS.map(t => <TableHead key={t} data-task={t} className="task-accent text-right" aria-sort={sortDirection(t)}><ColumnHelp onClick={() => sortLeaderboard(t)} description={`Average performance on all ${title(t)} benchmarks (0–100; higher is better).\n\nEach benchmark is adjusted against its baseline, clipped to 0–100, then given equal weight.\n\n0 = at or below the baseline; 100 = the reference ceiling. This is not accuracy.\n\nIncludes General ${title(t)}. Requires complete results for this task.`}><span className="inline-flex items-center whitespace-nowrap">{title(t)}{sortIcon(t)}</span></ColumnHelp></TableHead>)}
-                  {DISPLAY_TASKS.map(t => <TableHead key={`general-${t}`} data-task={t} className="task-accent text-right" aria-sort={sortDirection(`general-${t}`)}><ColumnHelp onClick={() => sortLeaderboard(`general-${t}`)} description={`General ${title(t)} limits the score to synthetic datasets designed to evaluate generalization, rather than all ${title(t)} benchmarks.\n\nIncludes the active synthetic ${title(t)} benchmarks in the selected language. Their baseline-adjusted scores receive equal weight (0–100; higher is better). All must be complete.\n\n${generalizationOnly ? 'Only the General benchmarks contribute to Task Avg and Borda Score in this view.' : `These benchmarks already count in ${title(t)}, Task Avg and Borda Score. This column adds no extra weight.`}\n\nThe evaluation purpose does not establish generalization to unseen tasks or rule out training-data overlap.`}><span className="block text-[9px] sm:text-[10px] text-muted-foreground">General</span><span className="inline-flex items-center whitespace-nowrap">{title(t)}{sortIcon(`general-${t}`)}</span></ColumnHelp></TableHead>)}
+                  {!generalizationOnly && displayTasks.map(t => <TableHead key={t} data-task={t} className="task-accent text-right" aria-sort={sortDirection(t)}><ColumnHelp onClick={() => sortLeaderboard(t)} description={t === "box" ? "Optional Box: mean full-image IoU ×100. Complete Box coverage is required for this column only. Excluded from Task Avg and Borda. — means unsupported, incomplete or unavailable." : `Average performance on all ${title(t)} benchmarks (0–100; higher is better).\n\nEach benchmark is adjusted against its baseline, clipped to 0–100, then given equal weight.\n\n0 = at or below the baseline; 100 = the reference ceiling. This is not accuracy.\n\nIncludes General ${title(t)}. Requires complete results for this task.`}><span className="inline-flex items-center whitespace-nowrap">{title(t)}{sortIcon(t)}</span></ColumnHelp></TableHead>)}
+                  {displayTasks.map(t => <TableHead key={`general-${t}`} data-task={t} className="task-accent text-right" aria-sort={sortDirection(`general-${t}`)}><ColumnHelp onClick={() => sortLeaderboard(`general-${t}`)} description={t === "box" ? "Optional gen-box: mean IoU ×100 across all synthetic Box benchmarks. Requires complete coverage of these benchmarks only. Excluded from Task Avg and Borda. — means unsupported, incomplete or unavailable." : `General ${title(t)} limits the score to synthetic datasets designed to evaluate generalization, rather than all ${title(t)} benchmarks.\n\nIncludes the active synthetic ${title(t)} benchmarks in the selected language. Their baseline-adjusted scores receive equal weight (0–100; higher is better). All must be complete.\n\n${generalizationOnly ? 'Only the General benchmarks contribute to Task Avg and Borda Score in this view.' : `These benchmarks already count in ${title(t)}, Task Avg and Borda Score. This column adds no extra weight.`}\n\nThe evaluation purpose does not establish generalization to unseen tasks or rule out training-data overlap.`}><span className="block text-[9px] sm:text-[10px] text-muted-foreground">General</span><span className="inline-flex items-center whitespace-nowrap">{title(t)}{sortIcon(`general-${t}`)}</span></ColumnHelp></TableHead>)}
                   <TableHead className="hidden sm:table-cell text-right w-14"><ColumnHelp label="Coverage" description={'Number of completed benchmarks in the selected ranking scope.\n\nModels with complete measured coverage of the selected scope or its General subset appear here. Full-scope aggregates remain unavailable until that scope is complete.'}>Cov</ColumnHelp></TableHead>
                   <TableHead data-export-columns="TP,AP" className="w-14 sm:w-20 text-right"><ParameterCountsHeader /></TableHead>
                 </TableRow></TableHeader>
@@ -761,8 +767,8 @@ export function Dashboard({
                   <TableCell className="text-right">
                     <span className="font-mono">{adjustedScore(row.score)}</span>
                   </TableCell>
-                  {!generalizationOnly && DISPLAY_TASKS.map(t => <TableCell key={t} className="text-right font-mono">{adjustedScore(diagnosticMean(snapshot, category, t, row.results, 'baseline_adjusted_score'))}</TableCell>)}
-                  {DISPLAY_TASKS.map(t => <TableCell key={`general-${t}`} className="text-right font-mono">{adjustedScore(diagnosticMean(snapshot, generalizationCategory(snapshot, category), t, row.results, 'baseline_adjusted_score'))}</TableCell>)}
+                  {!generalizationOnly && displayTasks.map(t => <TableCell key={t} className="text-right font-mono">{adjustedScore(diagnosticMean(snapshot, category, t, row.results, 'baseline_adjusted_score'))}</TableCell>)}
+                  {displayTasks.map(t => <TableCell key={`general-${t}`} className="text-right font-mono">{adjustedScore(diagnosticMean(snapshot, generalizationCategory(snapshot, category), t, row.results, 'baseline_adjusted_score'))}</TableCell>)}
                   <TableCell className="hidden sm:table-cell text-right text-xs text-muted-foreground">{row.results.filter(r => rankingCategory.benchmarks.includes(r.benchmark.id) && r.status === 'complete').length}{row.demo && ' · Demo'}</TableCell>
                   <TableCell><ParameterCounts model={row.model} /></TableCell>
                 </TableRow>)}</TableBody>
@@ -771,7 +777,7 @@ export function Dashboard({
               <p className="text-sm font-medium">{checkedOnly && !selectedIds.length ? 'Check models to show them here' : 'No models match these filters'}</p>
               <p className="text-xs text-muted-foreground">Filters do not change Borda scores or ranks.</p>
               <Button variant="outline" size="sm" onClick={() => { setCheckedOnly(false); setModelSearch(''); resetParameterFilters(); }}>Show all models</Button>
-            </div> : <Empty title="No complete models yet" description="Only measured models with every benchmark in the selected scope complete appear on the leaderboard. Use Compare to inspect partial results." />}
+            </div> : <Empty title="No complete models yet" description="Only measured models with every required Noul, Choice and Score benchmark complete appear on the leaderboard. Box is optional. Use Compare to inspect partial results." />}
             <details className="text-xs text-muted-foreground py-2">
               <summary>Scoring & scope</summary>
               <div className="mt-3 space-y-2 leading-relaxed">
@@ -982,7 +988,7 @@ export function Dashboard({
               onTrainingSelect={openTraining}
               categoryId={category.id}
               selectedIds={selectedIds}
-              onBenchmarkSelect={(id, selectedTask) => { chooseTask(selectedTask); setBenchmark(id); setBenchmarkMetric('baseline_adjusted_score'); setQuery(''); setRun(''); setView('benchmarks'); window.scrollTo({ top: 0 }); }}
+              onBenchmarkSelect={(id, selectedTask) => { chooseTask(selectedTask); setBenchmark(id); setBenchmarkMetric(selectedTask === 'box' ? 'mean_iou' : 'baseline_adjusted_score'); setQuery(''); setRun(''); setView('benchmarks'); window.scrollTo({ top: 0 }); }}
             />
           </section>
         )}
@@ -1116,7 +1122,7 @@ function RunDetails({
               <TableCell className="text-xs leading-5 task-accent" data-task={b.task}>
                 {title(b.task)}
               </TableCell>
-              <TableCell className="text-right text-xs leading-5 font-mono font-semibold tabular-nums">{percent(run.results.find(r => r.benchmark.id === b.id)?.metrics.baseline_adjusted_score)}</TableCell>
+              <TableCell className="text-right text-xs leading-5 font-mono font-semibold tabular-nums">{b.task === 'box' ? 'Optional' : percent(run.results.find(r => r.benchmark.id === b.id)?.metrics.baseline_adjusted_score)}</TableCell>
               <TableCell>
                 <ScoreValue result={run.results.find(r => r.benchmark.id === b.id)} compact />
                 <p className="mt-1 text-xs leading-4 text-muted-foreground"><MetricDirection direction={METRICS[b.task].direction}>{METRICS[b.task].label}</MetricDirection></p>

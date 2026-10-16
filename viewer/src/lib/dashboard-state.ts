@@ -6,6 +6,7 @@ export type ModelOrderSort = Exclude<LeaderboardSort, 'borda'>;
 export const MODEL_ORDER_SORTS: ModelOrderSort[] = ['overall', 'noul', 'choice', 'score', 'general-noul', 'general-choice', 'general-score'];
 export type View = 'leaderboard' | 'benchmarks' | 'compare';
 export const BENCHMARK_METRICS = {
+  box: [{ name: 'mean_iou', label: 'Mean IoU' }, { name: 'accuracy_at_iou_0_5', label: 'IoU ≥ 0.5' }],
   choice: [{ name: 'target_mass_at_prediction', label: 'Target mass' }],
   noul: [
     { name: 'f1', label: 'F1' }, { name: 'precision', label: 'Precision' },
@@ -37,7 +38,7 @@ export function defaultDashboardState(): DashboardState {
     comparisonAdjusted: true, detailQuery: '', detailTask: 'all', trainingFocus: '', modelOrderSort: null, modelOrderAscending: false,
   };
 }
-const tasks = ['choice', 'noul', 'score'] as const;
+const tasks = ['choice', 'noul', 'score', 'box'] as const;
 function enumValue<T extends string>(value: string | null, values: readonly T[], fallback: T): T {
   return values.includes(value as T) ? value as T : fallback;
 }
@@ -58,15 +59,15 @@ const booleanFields = [
 ] as const;
 export function parseDashboardState(params: URLSearchParams): DashboardState {
   const state = defaultDashboardState();
-  state.categoryId = enumValue(params.get('category'), ['english-v1', 'japanese-v1'], 'english-v1');
+  state.categoryId = enumValue(params.get('category'), ['english-v1', 'japanese-v1', 'vision-v1'], 'english-v1');
   state.generalizationView = params.get('task') === 'generalization';
   state.task = enumValue(params.get(state.generalizationView ? 'benchmarkTask' : 'task'), tasks, 'choice');
   state.view = enumValue(params.get('view'), ['leaderboard', 'benchmarks', 'compare'], 'leaderboard');
   state.runId = params.get('run') ?? '';
   state.selectedIds = [...new Set(params.getAll('compare').filter(Boolean))];
   state.benchmarkId = params.get('benchmark') ?? '';
-  state.leaderboardSort = enumValue<LeaderboardSort>(params.get('sort'), ['borda', 'overall', ...tasks, 'general-choice', 'general-noul', 'general-score'], 'borda');
-  state.benchmarkMetric = enumValue(params.get('metric'), ['baseline_adjusted_score', ...BENCHMARK_METRICS[state.task].map(metric => metric.name)], 'baseline_adjusted_score');
+  state.leaderboardSort = enumValue<LeaderboardSort>(params.get('sort'), ['borda', 'overall', ...tasks, 'general-choice', 'general-noul', 'general-score', 'general-box'], 'borda');
+  state.benchmarkMetric = enumValue(params.get('metric'), ['baseline_adjusted_score', ...BENCHMARK_METRICS[state.task].map(metric => metric.name)], state.task === 'box' ? 'mean_iou' : 'baseline_adjusted_score');
   state.comparisonSort = enumValue(params.get('comparisonSort'), ['gap', 'name'], 'gap');
   const modelSort = params.get('modelSort');
   state.modelOrderSort = MODEL_ORDER_SORTS.includes(modelSort as ModelOrderSort) ? modelSort as ModelOrderSort : null;

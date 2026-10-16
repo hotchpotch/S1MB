@@ -87,8 +87,12 @@ def test_shared_diagnostic_fixtures():
     assert checked >= 3
 
 
-def test_six_columns_general_subset_and_reference_label():
-    required = [benchmark("normal"), benchmark("general", general=True)]
+@pytest.mark.parametrize("prefix", ["s1mb-generalization-", "generalization-"])
+def test_six_columns_general_subset_and_reference_label(prefix):
+    general = benchmark("general", general=True).model_copy(
+        update={"dataset": f"datasets/{prefix}vision-hard-choice"}
+    )
+    required = [benchmark("normal"), general]
     model = ModelSummary(
         ModelMetadata(model_id="test__model", display_name="A|B", short_name="A"), reference=True
     )
@@ -215,6 +219,7 @@ def test_pr_generation_requires_complete_coverage_without_flag(tmp_path, monkeyp
         False,
     )
     model.measurements = {b.id: measurement() for b in required}
+    required.append(benchmark("optional-box", "box"))
     if incomplete == "missing":
         model.measurements.pop("choice")
     elif incomplete != "complete":
@@ -271,3 +276,9 @@ def test_source_checklist_covers_every_active_benchmark():
         category = json.loads((root / f"evaluator/data/categories/{scope}.json").read_text())
         for bid in category["benchmarks"]:
             assert f"`{bid}`" in checklist, bid
+
+
+def test_box_is_optional_and_uses_raw_iou_separate_from_ranking():
+    box = benchmark("optional-box", "box")
+    assert task_score([box], {}) is None
+    assert task_score([box], {box.id: Measurement(True, {"mean_iou": 0.75})}) == 75

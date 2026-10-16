@@ -240,3 +240,12 @@ For smoke checks, full runs, reruns, and validation, follow the
 [evaluation guide](../docs/evaluation.md).
 
 Julia and Dinah native CUDA adapters are described in [OPEN_MODELS.md](OPEN_MODELS.md#julia-and-dinah). See the [open model preparation queue](../docs/model_expansion.md) before scheduling new evaluations.
+
+Local image-bearing evaluation and Box metrics are documented in
+[vision evaluation](../docs/vision-evaluation.md). The TypeSafe adapter supports
+multipart images and Jev 1.14 Box outputs. Dataset permissions are documented
+separately in the [vision source license inventory](../docs/vision-source-licenses.md).
+
+The OpenAI Decisions adapter also supports image-bearing Choice/Noul/Score
+judgments with `gpt-6-luna`. Box remains unsupported by that endpoint; see the
+[vision evaluation guide](../docs/vision-evaluation.md#openai-decisions-images).

@@ -7,6 +7,11 @@
       "repo_id": "hotchpotch/S1MB-japanese-v1",
       "revision": "main",
       "repo_type": "dataset"
+    },
+    "vision-v1": {
+      "repo_id": "hotchpotch/S1MB-vision-v1",
+      "revision": "main",
+      "repo_type": "dataset"
     }
   }
 }

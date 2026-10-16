@@ -13,7 +13,7 @@ from datasets import Dataset, DatasetDict, load_from_disk
 from filelock import FileLock
 from huggingface_hub import HfApi, snapshot_download
 
-from .data import DATA_DIR, load_benchmark, load_cases, load_category, safe_id
+from .data import DATA_DIR, load_benchmark, load_cases, load_category, safe_id, write_json
 
 SOURCE_CONFIG = DATA_DIR.parent / "dataset-source.json"
 
@@ -97,7 +97,8 @@ def ensure_dataset(
             and installed.get("revision") == resolved
             and installed.get("subsets")
             and all(
-                (root / "datasets" / name / "dataset_dict.json").is_file()
+                ((root / "datasets" / name / "dataset_dict.json").is_file()
+                 or (root / "datasets" / name / "vision-cases.json").is_file())
                 for name in installed["subsets"]
             )
         ):
@@ -138,6 +139,25 @@ def ensure_dataset(
     # Ownership follows the receipt slot, including a renamed repository.
     other_paths = [root / "datasets/hub-source.json", *sorted((root / "datasets/hub-sources").glob("*.json"))]
     others = [read(p) for p in other_paths if p.is_file() and p != installed_path]
+    asset_manifest = snapshot / "vision-assets.json"
+    if asset_manifest.exists():
+        if "vision-assets.json" not in checksums:
+            raise ValueError("Unverified asset manifest")
+        assets = read(asset_manifest)
+        cache = target / "image-cache"
+        cache.mkdir(exist_ok=True)
+        seen = set()
+        for file in assets["files"]:
+            if file not in checksums:
+                raise ValueError("Unverified image shard")
+            for asset in pq.read_table(snapshot / file).to_pylist():
+                sha, blob = asset["sha256"], asset["bytes"]
+                if hashlib.sha256(blob).hexdigest() != sha or sha in seen:
+                    raise ValueError("Invalid or duplicate image blob")
+                seen.add(sha)
+                (cache / sha).write_bytes(blob)
+        if len(seen) != assets["count"]:
+            raise ValueError("Asset count mismatch")
     for entry in rows:
         name, split = entry["dataset"], entry["split"]
         if Path(name).name != name or Path(split).name != split:
@@ -147,6 +167,26 @@ def ensure_dataset(
         if any(f not in checksums for f in entry["data_files"]):
             raise ValueError(f"Unverified Parquet file: {name}")
         table = pa.concat_tables([pq.read_table(snapshot / f) for f in entry["data_files"]])
+        if entry.get("format") == "s1mb-vision-case-v1":
+            from .data import Case
+
+            cases = [json.loads(row["case_json"]) for row in table.to_pylist()]
+            if len(cases) != entry["cases"]:
+                raise ValueError("Vision case count mismatch")
+            for case in cases:
+                Case.model_validate(case)
+                for image in case["images"].values():
+                    if image["path"] != "../image-cache/" + image["sha256"]:
+                        raise ValueError("Noncanonical image path")
+                    blob = target / "image-cache" / image["sha256"]
+                    if not blob.is_file() or digest(blob) != image["sha256"]:
+                        raise ValueError("Missing or corrupt case image")
+            destination = target / name
+            if destination.exists():
+                shutil.rmtree(destination)
+            write_json(destination / "vision-cases.json", cases)
+            counts[name] = len(cases)
+            continue
         dataset = Dataset(table)
         if len(dataset) != entry["cases"]:
             raise ValueError(f"Case count mismatch: {name}")
@@ -181,7 +221,8 @@ def ensure_dataset(
             {
                 **source,
                 "requested_revision": requested_revision,
-                "materialization": "datasets.save_to_disk",
+                "materialization": ("s1mb-vision-case-v1" if asset_manifest.exists()
+                                    else "datasets.save_to_disk"),
                 "subsets": counts,
                 "category": scope,
             },

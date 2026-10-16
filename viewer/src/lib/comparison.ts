@@ -1,6 +1,6 @@
 import {
   METRICS,
-  TASKS,
+  ALL_TASKS,
   type Benchmark,
   type Category,
   type ModelInfo,
@@ -57,7 +57,7 @@ export function compareRuns(
     return run ? [run] : [];
   });
   const required = new Set(category.benchmarks);
-  const groups = TASKS.map((task) => ({
+  const groups = ALL_TASKS.filter(task => task !== 'box' || snapshot.benchmarks.some(b => category.benchmarks.includes(b.id) && b.task === task)).map((task) => ({
     task,
     rows: snapshot.benchmarks
       .filter((b) => required.has(b.id) && b.task === task)
@@ -70,7 +70,7 @@ export function compareRuns(
           return {
             runId: run.id,
             result,
-            value: result?.metrics[adjusted ? 'baseline_adjusted_score' : benchmark.primary_metric] ?? null,
+            value: result?.metrics[adjusted && task !== 'box' ? 'baseline_adjusted_score' : benchmark.primary_metric] ?? null,
             best: false,
           };
         });

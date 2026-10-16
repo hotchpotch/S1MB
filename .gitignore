@@ -32,3 +32,9 @@
 /viewer/display/
 
 /viewer/scripts/__pycache__/
+
+# Locally installed, license-restricted vision draft and image read cache.
+evaluator/data/vision-local/
+# Dataset-session locks for explicit nested data roots.
+evaluator/tmp/
+evaluator/data/vision-count10-local/

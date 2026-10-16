@@ -34,3 +34,14 @@ npm run build
 Public checks use synthetic fixtures without private data, credentials, or GPUs.
 The build includes Storybook at `/storybook/`; its measurements are synthetic.
 Follow [viewer guidance](AGENTS.md) for implementation and visual changes.
+
+
+## Vision scope
+
+The scope selector includes `vision-v1` alongside English and Japanese v1.
+Rankings require complete Noul/Choice/Score coverage and exclude optional Box.
+Box and General Box columns use mean IoU ×100; missing coverage stays unavailable.
+The Box comparison and details views retain raw IoU and training-disclosure badges.
+No private images, questions, teachers or prediction arrays enter the prepared
+browser artifact. Synthetic Storybook states include VisionScope,
+VisionComparison and VisionKnownDomains.

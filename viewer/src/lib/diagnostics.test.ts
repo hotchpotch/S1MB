@@ -77,3 +77,13 @@ test('General-purpose breakdown participates in full task means without extra ov
   assert.equal(diagnosticMean(snapshot, general, 'choice', missing, 'baseline_adjusted_score'), 0.9);
   assert.equal(generalizationCategory(snapshot, { ...category, benchmarks: ['specialized-noul'] }).benchmarks.length, 0);
 });
+
+test('Box summaries validate raw IoU without fabricating baseline scores', () => {
+  const result = summarize({format_version: 1, run_id: 'synthetic',
+    benchmark: {id: 'synthetic-box', task: 'box', dataset: 'datasets/synthetic', split: 'test', case_count: 1, decision_count: 1, primary_metric: 'mean_iou'},
+    model: {id: 'Synthetic', adapter: 'synthetic', settings: {}}, provenance: 'measured', status: 'complete',
+    counts: {cases: 1, expected: 1, succeeded: 1, failed: 0}, metrics: {mean_iou: 0.7, accuracy_at_iou_0_5: 1}});
+  assert.equal(result.metrics.mean_iou, 0.7);
+  assert.equal(result.metrics.baseline_adjusted_score, undefined);
+  assert.equal(result.scoring?.eligible, false);
+});

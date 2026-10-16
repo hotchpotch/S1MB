@@ -1,5 +1,5 @@
 import type { TrainingExposure } from './training-exposure';
-export type Task = 'choice' | 'noul' | 'score';
+export type Task = 'choice' | 'noul' | 'score' | 'box';
 export type Benchmark = { id: string; task: Task; dataset: string; split: string; case_count: number; decision_count: number; primary_metric: string };
 export type Category = { id: string; name: string; description: string; benchmarks: string[] };
 export type ModelInfo = { training_exposure?: TrainingExposure[] | null; display_name?: string; short_name?: string; url?: string | null; hf_url?: string | null; id: string; adapter: string; settings: Record<string, unknown>; total_params?: number | null; active_params?: number | null; parameter_count_method?: "non_lookup_parameters_v1" | "embedding_excluded_parameters_v1" | null };
@@ -16,7 +16,14 @@ export type ResultSummary = {
 };
 export type Snapshot = { display?: { generatedAt: string; source: { repo: string; revision: string } | null; digest: string }; scoring?: Record<string, { eligible: boolean; reason: string | null }>; categories: Category[]; benchmarks: Benchmark[]; results: ResultSummary[]; issues: string[]; sources: { name: string; files: number }[] };
 export const TASKS: Task[] = ['choice', 'noul', 'score'];
+export const ALL_TASKS: Task[] = [...TASKS, 'box'];
+export const RANKING_TASKS: Task[] = ['choice', 'noul', 'score'];
+export function rankingCategory(snapshot: Snapshot, category: Category): Category {
+  const ids = new Set(snapshot.benchmarks.filter(b => b.task !== 'box').map(b => b.id));
+  return { ...category, benchmarks: category.benchmarks.filter(id => ids.has(id)) };
+}
 export const METRICS: Record<Task, { name: string; label: string; direction: 'up' | 'down'; description: string }> = {
+  box: { name: 'mean_iou', label: 'Mean IoU', direction: 'up', description: 'Mean full-image intersection over union. Optional; excluded from ranking.' },
   choice: { name: 'target_mass_at_prediction', label: 'Target mass at prediction', direction: 'up', description: 'Target probability assigned to the selected option. Equal to accuracy for hard labels.' },
   noul: { name: 'binary_brier', label: 'Binary Brier', direction: 'down', description: 'Mean squared error between predicted and target probability of true.' },
   score: { name: 'normalized_expected_score_mae', label: 'Normalized score MAE', direction: 'down', description: 'Expected-score absolute error, divided by the width of the original scale.' },
@@ -46,6 +53,7 @@ export function leaderboard(snapshot: Snapshot, category: Category, task: Task):
 }
 
 export const DIAGNOSTIC_COLUMNS: Record<Task, { name: string; label: string }[]> = {
+  box: [{ name: 'accuracy_at_iou_0_5', label: 'IoU ≥ 0.5' }],
   noul: [
     { name: 'accuracy', label: 'Accuracy' },
     { name: 'balanced_accuracy', label: 'Balanced acc.' },
@@ -63,6 +71,7 @@ export const DIAGNOSTIC_COLUMNS: Record<Task, { name: string; label: string }[]>
 export function diagnosticMean(snapshot: Snapshot, category: Category, task: Task, results: ResultSummary[], metric: string): number | null {
   const required = snapshot.benchmarks.filter(b => category.benchmarks.includes(b.id) && b.task === task);
   if (!required.length || required.some(b => !results.some(r => r.benchmark.id === b.id && r.status === 'complete' && r.provenance === 'measured'))) return null;
+  if (task === 'box' && metric === 'baseline_adjusted_score') metric = 'mean_iou';
   const eligible = metric === 'baseline_adjusted_score'
     ? required.filter(b => (results.find(r => r.benchmark.id === b.id)?.scoring ?? snapshot.scoring?.[b.id])?.eligible) : required;
   if (!eligible.length) return null;
@@ -73,7 +82,7 @@ export function diagnosticMean(snapshot: Snapshot, category: Category, task: Tas
 
 /** Task Avg: equal task weights after equal benchmark weights within each task. */
 export function overallIndex(snapshot: Snapshot, category: Category, results: ResultSummary[]): number | null {
-  const values = TASKS.map(task => diagnosticMean(snapshot, category, task, results, 'baseline_adjusted_score'));
+  const values = RANKING_TASKS.map(task => diagnosticMean(snapshot, category, task, results, 'baseline_adjusted_score'));
   return values.every(v => v !== null) ? values.reduce<number>((sum, v) => sum + v!, 0) / values.length : null;
 }
 

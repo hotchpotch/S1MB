@@ -1,0 +1,9 @@
+{
+  "id": "cvbench-depth-choice",
+  "task": "choice",
+  "dataset": "datasets/cvbench-depth-choice",
+  "split": "test",
+  "case_count": 300,
+  "decision_count": 300,
+  "primary_metric": "target_mass_at_prediction"
+}

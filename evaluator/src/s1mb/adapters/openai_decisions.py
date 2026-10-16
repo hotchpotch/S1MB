@@ -1,5 +1,6 @@
 """OpenAI Decisions API with anonymous transport IDs and native probabilities."""
 
+import base64
 import json
 import os
 import time
@@ -39,7 +40,7 @@ def request_question(question: Question) -> dict:
                 for i, description in enumerate(descriptions)
             ],
         )
-    else:
+    elif question.task == "score":
         result.update(
             type="score",
             levels=[
@@ -47,7 +48,36 @@ def request_question(question: Question) -> dict:
                 for option, description in zip(question.options, descriptions, strict=True)
             ],
         )
+    else:
+        raise ValueError("OpenAI Decisions does not support Box questions")
     return result
+
+
+def decision_input(case: InferenceCase) -> tuple[str | list[dict], list[dict]]:
+    """Send each image once with a neutral label; retain authored state verbatim."""
+    state = (
+        case.state_json
+        if case.state_json is not None
+        else json.dumps(case.state, ensure_ascii=False)
+    )
+    if not case.images:
+        return state, []
+    from s1mb.vision import prepare_image
+
+    content = [{"type": "input_text", "text": state}]
+    receipts = []
+    for name, asset in case.images.items():
+        payload, mime, receipt = prepare_image(asset)
+        content.append({"type": "input_text", "text": name})
+        content.append(
+            {
+                "type": "input_image",
+                "image_url": f"data:{mime};base64," + base64.b64encode(payload).decode("ascii"),
+                "detail": "high",
+            }
+        )
+        receipts.append(receipt)
+    return [{"role": "user", "content": content}], receipts
 
 
 def decode_answer(case: InferenceCase, question: Question, answer: dict) -> Prediction:
@@ -57,9 +87,7 @@ def decode_answer(case: InferenceCase, question: Question, answer: dict) -> Pred
     if answer.get("name") != "question":
         raise ValueError("Returned question name differs")
     if answer.get("type") == "refusal":
-        return Prediction(
-            case_id=case.case_id, question_id=question.id, abstention="refusal"
-        )
+        return Prediction(case_id=case.case_id, question_id=question.id, abstention="refusal")
     expected = "predicate" if question.task == "noul" else question.task
     if answer.get("type") != expected:
         raise ValueError("Returned task differs")
@@ -95,6 +123,8 @@ def decode_answer(case: InferenceCase, question: Question, answer: dict) -> Pred
 class OpenAIDecisionsAdapter:
     """Bounded HTTP inference against the fixed official endpoint."""
 
+    supports_images = True
+
     def __init__(self, model: str = "gpt-6-luna", case_batch_size: int = 4):
         key = os.environ.get("OPENAI_API_KEY")
         if not key:
@@ -104,6 +134,7 @@ class OpenAIDecisionsAdapter:
         self.model = model
         self.case_batch_size = case_batch_size
         self.resolved: str | None = None
+        self.image_receipts: dict[str, list[dict]] = {}
         self._lock = Lock()
         self.usage = {"input_tokens": 0, "output_tokens": 0, "requests": 0, "retries": 0}
         self.client = httpx.Client(
@@ -165,11 +196,10 @@ class OpenAIDecisionsAdapter:
         return payload
 
     def predict(self, case: InferenceCase) -> list[Prediction]:
-        state = (
-            case.state_json
-            if case.state_json is not None
-            else json.dumps(case.state, ensure_ascii=False)
-        )
+        state, receipts = decision_input(case)
+        if receipts:
+            with self._lock:
+                self.image_receipts[case.case_id] = receipts
         predictions = []
         for question in case.questions:
             try:
@@ -211,6 +241,10 @@ class OpenAIDecisionsAdapter:
                 "score_criteria_order": "declared-order-v1",
                 "probability_normalization": "none",
                 "public_beta": True,
+                "vision_transport": "named-input-image-data-url-v1",
+                "image_detail": "high",
+                "image_preprocessing": "shared-full-image-policy-v1",
+                "box_support": False,
             },
         )
 

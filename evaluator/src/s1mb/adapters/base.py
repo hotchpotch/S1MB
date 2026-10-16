@@ -3,7 +3,7 @@
 import json
 from typing import Protocol, cast
 
-from s1mb.data import InferenceCase, ModelInfo, Prediction, Question, check_probabilities
+from s1mb.data import Box, InferenceCase, ModelInfo, Prediction, Question, check_probabilities
 
 
 class ModelAdapter(Protocol):
@@ -41,7 +41,9 @@ def questions_for_api(
         )
         if anonymous_choice and q.task == "choice":
             criteria = {f"option_{i}": description(o) for i, o in enumerate(q.options)}
-        result[q.id] = {"type": q.task, "instructions": instructions, "criteria": criteria}
+        result[q.id] = {"type": q.task, "instructions": instructions}
+        if q.task != "box":
+            result[q.id]["criteria"] = criteria
     return result
 
 
@@ -70,6 +72,13 @@ def decode_answers(
         answer = answers[q.id]
         if answer["type"] != q.task:
             raise ValueError("Returned task differs from the request")
+        if q.task == "box":
+            result.append(
+                Prediction(
+                    case_id=case.case_id, question_id=q.id, box=Box.model_validate(answer["box"])
+                )
+            )
+            continue
         if q.task == "noul":
             value = float(answer["noul"])
             probabilities = {"false": 1 - value, "true": value}

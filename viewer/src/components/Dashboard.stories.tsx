@@ -606,3 +606,21 @@ export const UnknownTrainingComparison: Story = {
   args: { ...UnknownTrainingExposure.args, initialRun: undefined, initialView: 'compare', initialCompare: ['synthetic-demo'] },
   parameters: { docs: { description: { story: 'Synthetic comparison headers and benchmark cells use icon-only unknown training indicators.' } } },
 };
+
+// All measurements below are synthetic; one model supports optional Box.
+const visionBenchmarks = radarFixture.benchmarks.map(b => ({ ...b, id: `vision-${b.id}`, dataset: b.dataset.replace('s1mb-generalization-', 'generalization-vision-') }));
+const syntheticBoxes: Snapshot['benchmarks'] = ['vision-box', 'generalization-vision-box'].map(id => ({ id, task: 'box', dataset: `datasets/${id}`, split: 'test', case_count: 100, decision_count: 100, primary_metric: 'mean_iou' }));
+const visionResults = radarFixture.results.map(r => ({ ...r,
+  benchmark: visionBenchmarks.find(b => b.id === `vision-${r.benchmark.id}`)!,
+  model: { ...r.model, training_exposure: r.run_id === 'synthetic-radar-0' ? [disclosure(visionBenchmarks[0].id)] : null },
+}));
+const visionFixture: Snapshot = {
+  ...bilingualFixture,
+  benchmarks: [...bilingualFixture.benchmarks, ...visionBenchmarks, ...syntheticBoxes],
+  scoring: { ...bilingualFixture.scoring, ...Object.fromEntries(visionBenchmarks.map(b => [b.id, { eligible: true, reason: null }])) },
+  categories: [...bilingualFixture.categories, { id: 'vision-v1', name: 'Vision v1 · Synthetic', description: 'Synthetic optional Box fixture', benchmarks: [...visionBenchmarks, ...syntheticBoxes].map(b => b.id) }],
+  results: [...bilingualFixture.results, ...visionResults, ...syntheticBoxes.map(benchmark => ({ ...visionResults[0], benchmark, metrics: { mean_iou: 0.75, accuracy_at_iou_0_5: 0.8 } }))],
+};
+export const VisionScope: Story = { args: { snapshot: visionFixture, initialCategory: 'vision-v1' } };
+export const VisionComparison: Story = { args: { ...VisionScope.args, initialView: 'compare', initialCompare: ['synthetic-radar-0', 'synthetic-radar-1'] } };
+export const VisionKnownDomains: Story = { args: { ...VisionScope.args, initialRun: 'synthetic-radar-0' } };

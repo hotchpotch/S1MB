@@ -1,6 +1,7 @@
 """Export and synchronize model folders without rewriting measurement provenance."""
 
 import hashlib
+import json
 import re
 import shutil
 import tempfile
@@ -163,7 +164,18 @@ def result_data_root(root: Path, result: Result, *, download: bool = False) -> P
             e for e in all_entries if e["dataset"] == subset and e["split"] == benchmark.split
         )
         files = [str(checked(f)) for f in entry["data_files"]]
-        dataset = Dataset(pa.concat_tables([pq.read_table(f) for f in files]))
+        table = pa.concat_tables([pq.read_table(f) for f in files])
+        if entry.get("format") == "s1mb-vision-case-v1":
+            # Result scoring needs targets and image identities, not image pixels.
+            cases = [json.loads(row["case_json"]) for row in table.to_pylist()]
+            if len(cases) != entry["cases"]:
+                raise ValueError("Hub subset case count mismatch")
+            with tempfile.TemporaryDirectory(dir=target, prefix=".subset-") as temporary:
+                stage = Path(temporary) / subset
+                write_json(stage / "vision-cases.json", cases)
+                stage.rename(destination)
+            return target
+        dataset = Dataset(table)
         if len(dataset) != entry["cases"]:
             raise ValueError("Hub subset case count mismatch")
         with tempfile.TemporaryDirectory(dir=target, prefix=".subset-") as temporary:

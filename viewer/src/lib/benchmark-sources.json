@@ -391,5 +391,91 @@
   ],
   "datasets/sobaco-culture-choice": [
     "https://huggingface.co/datasets/Taise228/SOBACO/tree/77d8bb422d598d09f6b689cd09443c7027cdf11d"
+  ],
+  "datasets/cvbench-depth-choice": [
+    "https://huggingface.co/datasets/nyu-visionx/CV-Bench"
+  ],
+  "datasets/cvbench-distance-choice": [
+    "https://huggingface.co/datasets/nyu-visionx/CV-Bench"
+  ],
+  "datasets/cvbench-relation-choice": [
+    "https://huggingface.co/datasets/nyu-visionx/CV-Bench"
+  ],
+  "datasets/koniq-score": [
+    "https://doi.org/10.18419/darus-2435"
+  ],
+  "datasets/mvtec-ad-noul": [
+    "https://www.mvtec.com/research-teaching/datasets/mvtec-ad"
+  ],
+  "datasets/nights-choice": [
+    "https://github.com/ssundaram21/dreamsim/tree/main/dataset"
+  ],
+  "datasets/nlvr2-noul": [
+    "https://github.com/lil-lab/nlvr/tree/master/nlvr2"
+  ],
+  "datasets/pope-noul": [
+    "https://github.com/RUCAIBox/POPE"
+  ],
+  "datasets/rvlcdip-choice": [
+    "https://huggingface.co/datasets/aharley/rvl_cdip"
+  ],
+  "datasets/scienceqa-choice": [
+    "https://github.com/lupantech/ScienceQA"
+  ],
+  "datasets/screenspot-box": [
+    "https://github.com/njucckevin/SeeClick"
+  ],
+  "datasets/sugarcrepe-choice": [
+    "https://github.com/RAIVNLab/sugar-crepe"
+  ],
+  "datasets/tallyqa-score": [
+    "https://github.com/manoja328/tallyqa"
+  ],
+  "datasets/visa-noul": [
+    "https://github.com/amazon-science/spot-diff"
+  ],
+  "datasets/vsr-noul": [
+    "https://huggingface.co/datasets/cambridgeltl/vsr_zeroshot"
+  ],
+  "datasets/refcoco-box": [
+    "https://github.com/lichengunc/refer"
+  ],
+  "datasets/refcoco-plus-box": [
+    "https://github.com/lichengunc/refer"
+  ],
+  "datasets/refcocog-box": [
+    "https://github.com/lichengunc/refer"
+  ],
+  "datasets/generalization-vision-easy-noul": [
+    "https://huggingface.co/datasets/hotchpotch/S1MB-vision-v1",
+    "https://github.com/google-research-datasets/wit"
+  ],
+  "datasets/generalization-vision-easy-choice": [
+    "https://huggingface.co/datasets/hotchpotch/S1MB-vision-v1",
+    "https://github.com/google-research-datasets/wit"
+  ],
+  "datasets/generalization-vision-easy-score": [
+    "https://huggingface.co/datasets/hotchpotch/S1MB-vision-v1",
+    "https://github.com/google-research-datasets/wit"
+  ],
+  "datasets/generalization-vision-easy-box": [
+    "https://huggingface.co/datasets/hotchpotch/S1MB-vision-v1",
+    "https://github.com/google-research-datasets/wit"
+  ],
+  "datasets/generalization-vision-hard-noul": [
+    "https://huggingface.co/datasets/hotchpotch/S1MB-vision-v1",
+    "https://github.com/google-research-datasets/wit"
+  ],
+  "datasets/generalization-vision-hard-choice": [
+    "https://huggingface.co/datasets/hotchpotch/S1MB-vision-v1",
+    "https://github.com/google-research-datasets/wit"
+  ],
+  "datasets/generalization-vision-hard-score": [
+    "https://huggingface.co/datasets/hotchpotch/S1MB-vision-v1",
+    "https://github.com/google-research-datasets/wit"
+  ],
+  "datasets/generalization-vision-hard-box": [
+    "https://huggingface.co/datasets/hotchpotch/S1MB-vision-v1",
+    "https://github.com/google-research-datasets/wit"
   ]
 }
