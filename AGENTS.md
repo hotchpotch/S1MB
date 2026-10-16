@@ -12,6 +12,17 @@ that language before writing or publishing them. Wait for their confirmation; do
 instruction as confirmation. Once the human answers that confirmation question,
 do not ask again for the same artifacts.
 
+## Pull request readiness
+
+Submit completed GitHub and Hugging Face PRs in a reviewable state. A draft does
+not tell maintainers whether the author is ready for review and is not treated
+as a review request. When the changes, description and required checks are ready,
+the author must remove draft status: use **Ready for review** on GitHub, or
+**Publish** on Hugging Face to change the PR status to **Open**. Verify the final
+status before reporting the PR as submitted for review. If work is still in
+progress, keep it in draft and state what remains; do not present it as ready.
+Result submissions must still pass the mandatory completion check before upload.
+
 ## Structure and public source boundary
 
 - `docs/evaluation.md`: evaluation setup, smoke checks, full runs and validation.
