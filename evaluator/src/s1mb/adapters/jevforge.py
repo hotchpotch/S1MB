@@ -1,11 +1,43 @@
 """Bridge to JevForge's native predictor and checkpoint calibration."""
 
 import importlib
+import json
 
 from s1mb.data import Prediction
 
-from .base import questions_for_api
 from .upstream import UpstreamAdapter, candidate_batches, state_text
+
+
+def native_questions(questions):
+    """Match JevForge training serialization, retaining raw JSON key order.
+
+    hf_data's generic display text uses compact sorted JSON. JevForge's
+    training converter uses json.dumps(..., ensure_ascii=False), so recover
+    the original structured values before rendering the native prompt.
+    Plain source strings stay verbatim; candidate order/IDs remain unchanged.
+    """
+
+    def text(rendered, raw):
+        if raw is None:
+            return rendered
+        value = json.loads(raw)
+        return value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
+
+    result = {}
+    for q in questions:
+        instructions = text(q.instructions, q.instructions_json)
+        instructions = "\n\n".join(s for s in (q.system_prompt, instructions) if s)
+        descriptions = [text(o.description, o.description_json) for o in q.options]
+        if q.task == "choice":
+            criteria = {f"option_{i}": description for i, description in enumerate(descriptions)}
+        elif q.task == "score":
+            criteria = descriptions
+        else:
+            criteria = {
+                o.id: description for o, description in zip(q.options, descriptions, strict=True)
+            }
+        result[q.id] = {"type": q.task, "instructions": instructions, "criteria": criteria}
+    return result
 
 
 class JevForgeAdapter(UpstreamAdapter):
@@ -40,7 +72,8 @@ class JevForgeAdapter(UpstreamAdapter):
             "candidate_batch_size": 32,
             "candidate_batch_token_budget": 8192,
             "case_batch_size": self.case_batch_size,
-            "renderer": "native-anonymous-choice-batched-v2",
+            "renderer": "native-training-json-anonymous-choice-v3",
+            "structured_json_policy": "source key order and default separators; strings verbatim",
             "checkpoint_max_length": checkpoint_limit,
             "temperature": self.engine.temperature,
             "max_length": self.engine.max_length,
@@ -60,7 +93,7 @@ class JevForgeAdapter(UpstreamAdapter):
                 encode(
                     {
                         "state": state_text(case.state),
-                        "questions": questions_for_api(case.questions, anonymous_choice=True),
+                        "questions": native_questions(case.questions),
                     },
                     self.engine.tokenizer,
                     self.engine.max_length,
