@@ -10,6 +10,8 @@ understand the three decision types and what the scores can establish.
 | --- | --- |
 | Inspect published measurements | [Quick start](quickstart.md#open-published-results) → [Viewer guide](viewer.md) |
 | Evaluate and submit a model | [Evaluation](evaluation.md) → [Result submission](contributing_results.md) |
+| Evaluate a vision model | [Vision v1 workflow](vision-evaluation.md) → [Vision submission](contributing_results.md#vision-submissions-and-optional-box) |
+| Add a vision model interface | [Adapter contract](adapters.md) → [Vision adapter examples](vision-adapters.md) |
 | Add a model interface | [Adapter development](adapters.md) → [Runtime reference](../evaluator/README.md#real-adapters) → [Evaluation](evaluation.md) |
 | Interpret a leaderboard | [Benchmark scope](benchmark_scope.md) → [Scoring specification](../evaluator/SCORING.md) |
 | Change evaluator or viewer code | [Contributing](../CONTRIBUTING.md) → [Developer workflow](developer_workflow.md) |
@@ -31,6 +33,7 @@ and component READMEs instead of maintaining duplicate procedures.
 | Result layout, metadata, export, validation, Dataset PRs, and synchronization | [Result submission](contributing_results.md) |
 | Local viewer startup, source selection, Docker, and troubleshooting | [Viewer guide](viewer.md) |
 | Inference interface and integration requirements | [Adapter development](adapters.md) |
+| Vision installation, image policies, adapter examples and optional Box | [Vision evaluation](vision-evaluation.md) and [vision adapters](vision-adapters.md) |
 | Supported runtimes and model-specific settings | [Evaluator reference](../evaluator/README.md) and [external model notes](../evaluator/OPEN_MODELS.md) |
 | Metrics, baseline eligibility, Task Avg, and Borda | [Scoring specification](../evaluator/SCORING.md) |
 | Display generation, reduction review, and image bundling | [Prepared display data](../viewer/DISPLAY_DATA.md) |

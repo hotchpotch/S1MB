@@ -4,6 +4,9 @@ An adapter translates S1MB inference inputs into a model's native interface and
 returns typed probabilities. Start with [evaluation](evaluation.md) for runtime
 setup and [code contributions](../CONTRIBUTING.md) for source PR requirements.
 Existing runtime-specific instructions remain in [adapter notes](../evaluator/OPEN_MODELS.md).
+For image-bearing models, use the [vision adapter examples](vision-adapters.md)
+for ordered image transport, preprocessing receipts and Box coordinate decoding,
+then follow the [vision-v1 workflow](vision-evaluation.md).
 
 ## Interface and source map
 

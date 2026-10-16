@@ -52,3 +52,48 @@ def test_single_native_request_alignment_and_no_media():
 def test_invalid_budget_before_loading():
     with pytest.raises(ValueError, match="positive"):
         OneJevAdapter("unused", "main", "unused", "cuda:0", context_limit=0)
+
+
+@pytest.mark.parametrize("count", [2, 3])
+def test_ordered_images_and_neutral_references(tmp_path, count):
+    import hashlib
+
+    from PIL import Image
+
+    from s1mb.data import ImageAsset, InferenceCase
+
+    images = {}
+    colors = [(255, 0, 0), (0, 128, 0), (0, 0, 255)][:count]
+    for index, color in enumerate(colors):
+        path = tmp_path / f"private-source-{index}.png"
+        Image.new("RGB", (320, 320), color).save(path)
+        images[f"image_{index + 1}"] = ImageAsset(
+            path=str(path), sha256=hashlib.sha256(path.read_bytes()).hexdigest()
+        )
+    case = InferenceCase(
+        case_id="private-id", state={"context": "Inspect all images."},
+        questions=cases().questions[:1], images=images,
+    )
+    adapter = object.__new__(OneJevAdapter)
+    adapter.image_receipts = {}
+    adapter.schema = ModuleType("synthetic_image_schema")
+    adapter.schema.__dict__["SystemOneRequest"] = SimpleNamespace(model_validate=lambda r: r)
+
+    class Reached(Exception):
+        pass
+
+    def decide(request, *, debias, media):
+        assert [m["image"].getpixel((0, 0)) for m in media] == colors
+        assert request["state"]["context"] == case.state
+        assert request["state"]["visual_inputs"] == {
+            name: f"<image:{i}>" for i, name in enumerate(images, 1)
+        }
+        assert "private" not in str(request)
+        raise Reached
+
+    adapter.engine = SimpleNamespace(decide=decide)
+    with pytest.raises(Reached):
+        adapter.predict(case)
+    assert [r["original_sha256"] for r in adapter.image_receipts[case.case_id]] == [
+        a.sha256 for a in images.values()
+    ]

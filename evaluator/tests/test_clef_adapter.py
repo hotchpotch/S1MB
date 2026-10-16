@@ -179,3 +179,42 @@ def test_initialization_uses_native_language_model_and_pinned_code(monkeypatch, 
         (tmp_path, {"device": "cuda:0", "dtype": "bf16", "attn_implementation": "sdpa"})
     ]
     assert accelerated == [True]
+
+
+@pytest.mark.parametrize("count", [2, 3])
+def test_native_encoder_receives_all_images_and_processor(tmp_path, count):
+    import hashlib
+
+    from PIL import Image
+
+    from s1mb.data import ImageAsset
+
+    case = cases()
+    case.images = {}
+    colors = [(255, 0, 0), (0, 128, 0), (0, 0, 255)][:count]
+    for index, color in enumerate(colors):
+        path = tmp_path / f"private-{index}.png"
+        Image.new("RGB", (320, 320), color).save(path)
+        case.images[f"image_{index + 1}"] = ImageAsset(
+            path=str(path), sha256=hashlib.sha256(path.read_bytes()).hexdigest()
+        )
+    model = adapter()
+    model.image_receipts = {}
+
+    class Reached(Exception):
+        pass
+
+    def encode(tokenizer, record, *, max_length, processor):
+        assert processor is model.processor
+        assert [im.getpixel((0, 0)) for im in record["images"]] == colors
+        assert record["state"]["context"] == case.state
+        assert record["state"]["visual_inputs"] == {
+            name: f"<image:{i}>" for i, name in enumerate(case.images, 1)
+        }
+        assert "private-" not in str(record)
+        raise Reached
+
+    model.native.encode_record = encode
+    with pytest.raises(Reached):
+        model.predict(case)
+    assert len(model.image_receipts[case.case_id]) == count

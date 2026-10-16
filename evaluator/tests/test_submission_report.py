@@ -153,6 +153,9 @@ def test_pr_template_keeps_mixed_provenance_and_author_explanation(tmp_path):
             "environment": {
                 "dataset_source": {"revision": revision},
                 "input_hashes": {"private-id": "hash"},
+                "image_preprocessing": {"private-image-id": [{
+                    "policy": "detail-1568", "original_sha256": "private-image-hash",
+                }]},
             },
             "predictions": [],
         }
@@ -162,6 +165,8 @@ def test_pr_template_keeps_mixed_provenance_and_author_explanation(tmp_path):
     assert '"revision": "old"' in report and '"revision": "new"' in report
     assert "dataset_source" in report
     assert "private-id" not in report and "input_hashes" not in report
+    assert "private-image-id" not in report and "private-image-hash" not in report
+    assert '"image_preprocessing_policies"' in report and "detail-1568" in report
     assert "My assessment." in report
     assert "Replace this section" not in report
     assert "Replace this section" in render_template(tmp_path, "english-v1", None)

@@ -13,6 +13,12 @@ schema, active benchmark definitions, and dataset-default instructions.
 All commands in this guide run from `evaluator/`, except where a different working
 directory is stated. Replace example paths and run IDs with your own values.
 
+For image-bearing models, follow the [vision-v1 workflow](vision-evaluation.md)
+for private Hub installation, adapter selection, smoke/full runs and submission.
+Vision is a separate scope with 20 required Choice/Noul/Score benchmarks and six
+optional Box benchmarks. Select `--category vision-v1`; `--all` covers only the
+English/Japanese text scopes. New interfaces have [vision adapter examples](vision-adapters.md).
+
 The configured [evaluation dataset](https://huggingface.co/datasets/hotchpotch/S1MB-english-v1)
 contains the benchmark inputs and targets; published measurements belong in the
 separate [results dataset](https://huggingface.co/datasets/hotchpotch/s1mb-result).

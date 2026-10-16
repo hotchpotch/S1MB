@@ -686,7 +686,7 @@ rescoring and preserve original local measurements.
 ## Vision submissions and optional Box
 
 Vision submissions must complete all 20 Noul/Choice/Score benchmarks in
-`vision-v1` (6,000 judgments) with zero operational failures. The6 Box benchmarks
+`vision-v1` (6,000 judgments) with zero operational failures. The six Box benchmarks
 are optional: neither Task Avg nor Borda includes them. Box/gen-box columns show
 mean IoU ×100 only when their own required sets are complete. Do not fabricate
 zero predictions for unsupported Box, or require a fallback model/endpoint.
@@ -697,8 +697,16 @@ partial and cannot supply a complete Box summary.
 
 Use `hotchpotch/S1MB-vision-v1` with the exact immutable Dataset SHA in every
 measurement. The Dataset remains private; result publication must not expose
-images, state, labels, source-row identifiers, local paths or credentials. Disclose
+images, state, labels, source-provenance records, local paths or credentials.
+The standard result schema retains S1MB judgment IDs, input hashes and image
+preprocessing receipts for validation; it is not an anonymized release. Do not
+copy those per-example records into PR descriptions or viewer summaries. Disclose
 known visual training domains using the existing `training_exposure` schema and
 vision benchmark IDs. Preserve actual training snapshot/split evidence; unknown
 pretraining and unverified record-level overlap remain unknown. These annotations
 never change ranking or grant permission to train on evaluation targets.
+
+Use the [vision evaluation workflow](vision-evaluation.md) for acquisition,
+adapter selection, smoke/full invocations and the vision-specific export and
+completion-check commands. New implementations should include the
+[vision adapter checks](vision-adapters.md#integrate-and-verify) in their source PR.

@@ -95,6 +95,12 @@ def main() -> None:
             "lfm-rlcd",
             "decision2",
             "onejev",
+            "vev",
+            "jevvision",
+            "vision-jev",
+            "visual-jev",
+            "decider-vision",
+            "pplx-decider",
             "jev-style",
             "sifr",
             "jiwo",
@@ -166,7 +172,7 @@ def main() -> None:
     run.add_argument("--adapter-kwargs", help="JSON object of llama-cpp constructor keyword arguments")
     run.add_argument("--model")
     run.add_argument("--revision", default="main")
-    run.add_argument("--subfolder", help="Alex Openjev checkpoint subfolder")
+    run.add_argument("--subfolder", help="Alex Openjev or Vision-Jev checkpoint subfolder")
     run.add_argument("--device", default="cpu")
     run.add_argument(
         "--temperature",
@@ -293,6 +299,11 @@ def parse_adapter_kwargs(args, parser):
 
 def validate_run_arguments(args, parser):
     """Reject invalid runtime options before acquiring the installed dataset lock."""
+    if args.adapter in {"vev", "jevvision", "vision-jev", "visual-jev", "decider-vision", "pplx-decider"}:
+        if not args.device.startswith("cuda"):
+            parser.error("Local vision adapters require explicit CUDA; no CPU fallback")
+        if args.adapter == "vision-jev" and not args.subfolder:
+            parser.error("--subfolder is required for Vision-Jev")
     parse_adapter_kwargs(args, parser)
     if args.native_adaptive_budget and args.adapter not in {"julia", "lavoir", "jevk5-lite", "kodiak", "saihai-310m"}:
         parser.error("--native-adaptive-budget is supported by Julia, Lavoir, JevK5-Lite, Kodiak and Saihai 310M")
@@ -340,8 +351,8 @@ def validate_run_arguments(args, parser):
         parser.error("--disable-autocast-cache applies only to Laya")
     if args.adapter != "laya" and (args.max_len is not None or args.head_max_len is not None):
         parser.error("Token limit options apply only to the Laya adapter")
-    if args.subfolder is not None and args.adapter != "alex-openjev":
-        parser.error("--subfolder applies only to alex-openjev")
+    if args.subfolder is not None and args.adapter not in {"alex-openjev", "vision-jev"}:
+        parser.error("--subfolder applies only to alex-openjev or vision-jev")
     if args.dtype is not None and args.adapter != "minojev":
         parser.error("--dtype applies only to the Minojev adapter")
     if args.max_candidates is not None and (
@@ -424,6 +435,12 @@ def validate_run_arguments(args, parser):
             "lfm-rlcd",
             "decision2",
             "onejev",
+            "vev",
+            "jevvision",
+            "vision-jev",
+            "visual-jev",
+            "decider-vision",
+            "pplx-decider",
             "jev-style",
             "sifr",
             "jiwo",
@@ -473,10 +490,10 @@ def validate_run_arguments(args, parser):
         "meta-encoder-think",
     }:
         parser.error("--attention applies only to measured upstream adapters")
-    if args.base_revision is not None and args.adapter not in {"sieve", "lev", "pngwn", "ajev"}:
-        parser.error("--base-revision applies only to Sieve, Lev, Pngwn or AJev")
-    if args.adapter in {"sieve", "lev", "pngwn", "ajev"} and not args.base_revision:
-        parser.error("--base-revision is required for Sieve, Lev, Pngwn or AJev")
+    if args.base_revision is not None and args.adapter not in {"sieve", "lev", "pngwn", "ajev", "vision-jev", "visual-jev"}:
+        parser.error("--base-revision applies only to Sieve, Lev, Pngwn, AJev, Vision-Jev or Visual Jev")
+    if args.adapter in {"sieve", "lev", "pngwn", "ajev", "vision-jev", "visual-jev"} and not args.base_revision:
+        parser.error("--base-revision is required for Sieve, Lev, Pngwn, AJev, Vision-Jev or Visual Jev")
     if args.temperature is not None and args.adapter not in {
         "meta-encoder",
         "meta-encoder-think",
@@ -870,6 +887,33 @@ def execute(args, parser):
         adapter = JevStyleAdapter(
             args.model, args.revision, args.source, args.device, context_limit=args.context_limit
         )
+    elif args.adapter in {"vev", "jevvision", "vision-jev", "visual-jev", "decider-vision", "pplx-decider"}:
+        source = args.source
+        if not source and args.adapter in {"jevvision", "pplx-decider"}:
+            from .adapters.upstream import checkpoint_path
+
+            source = str(checkpoint_path(args.model, args.revision)[0])
+        if not source:
+            parser.error("--source is required for local vision adapters")
+        if args.adapter == "vision-jev" and not args.subfolder:
+            parser.error("--subfolder is required for Vision-Jev")
+        import importlib
+
+        module_name, class_name = {
+            "vev": ("vev", "VevAdapter"),
+            "jevvision": ("jevvision", "JEVisionAdapter"),
+            "vision-jev": ("vision_jev", "VisionJevAdapter"),
+            "visual-jev": ("visual_jev", "VisualJevAdapter"),
+            "decider-vision": ("decider_vision", "DeciderVisionAdapter"),
+            "pplx-decider": ("pplx_decider", "PplxDeciderAdapter"),
+        }[args.adapter]
+        constructor = getattr(importlib.import_module(f".adapters.{module_name}", __package__), class_name)
+        options = {"context_limit": args.context_limit or 32768}
+        if args.adapter in {"vision-jev", "visual-jev"}:
+            options["base_revision"] = args.base_revision
+        if args.adapter == "vision-jev":
+            options["subfolder"] = args.subfolder
+        adapter = constructor(args.model, args.revision, source, args.device, **options)
     elif args.adapter == "onejev":
         if not args.source:
             parser.error("--source is required for OneJev")

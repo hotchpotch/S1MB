@@ -21,6 +21,12 @@ adapter and separate per-subset provenance. Missing cases or failed decisions ma
 partial. Each run
 requires a fresh `--run-id`; saved runs are not overwritten.
 
+For visual models, select `--category vision-v1` explicitly. Follow the
+[vision workflow](../docs/vision-evaluation.md) to fetch the private release,
+choose an image-capable adapter, run smoke/full checks and prepare a submission.
+Its 20 non-Box benchmarks are required; six Box benchmarks are optional.
+See [vision adapter examples](../docs/vision-adapters.md) for new integrations.
+
 `data/results/<run-id>/` holds predictions, recomputed metrics, model configuration,
 timing, input hashes, and `environment.dataset_source` with the exact dataset
 repository and commit SHA. This standard output is ignored by Git, as is

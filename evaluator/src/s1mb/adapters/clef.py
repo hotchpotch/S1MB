@@ -11,6 +11,8 @@ from .upstream import UpstreamAdapter, checkpoint_path
 
 def clef_record(case):
     """Anonymize transport IDs while preserving authored values and option order."""
+    if any(q.task not in {"noul", "choice", "score"} for q in case.questions):
+        raise ValueError("Clef does not support Box")
     questions, mappings = {}, {}
     for index, question in enumerate(case.questions):
         key = f"field_{index:06d}"
@@ -37,6 +39,7 @@ def clef_record(case):
 
 class ClefAdapter(UpstreamAdapter):
     case_batch_size = 1
+    supports_images = True
 
     def __init__(self, model, revision, device, context_limit=None):
         if context_limit is not None and context_limit < 1:
@@ -59,6 +62,7 @@ class ClefAdapter(UpstreamAdapter):
         )
         self.attention_model = self.engine.language_model
         self.context_limit = context_limit or 16384
+        self.image_receipts = {}
         self.settings = {
             "dtype": "bfloat16",
             "attention_implementation": "sdpa",
@@ -68,15 +72,25 @@ class ClefAdapter(UpstreamAdapter):
             "questions_per_call": "all-case-questions",
             "renderer": "native-anonymous-ids-numeric-score-v1",
             "source_revision": resolved,
+            "media": "native-ordered-pil-images-v1",
+            "image_preprocessing": "shared-full-image-policy-v1-then-native-processor",
         }
         self.enable_kernels()
 
     def predict(self, case):
         record, mappings = clef_record(case)
+        media_options = {}
+        if case.images:
+            from .vision_native import ordered_images
+
+            images, state, receipts = ordered_images(case)
+            record.update(state=state, images=images)
+            self.image_receipts[case.case_id] = receipts
+            media_options["processor"] = self.processor
         # The native encoder slices state to max_length. Encode without a practical
         # cap first, then reject before transferring any inputs to the GPU.
         encoded = self.native.encode_record(
-            self.processor.tokenizer, record, max_length=sys.maxsize
+            self.processor.tokenizer, record, max_length=sys.maxsize, **media_options
         )
         if len(encoded.input_ids) > self.context_limit:
             raise ValueError(f"Clef input exceeds {self.context_limit} tokens; refusing truncation")
