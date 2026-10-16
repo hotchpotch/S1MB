@@ -4,7 +4,8 @@
 
 **[S1MB Leaderboard](https://huggingface.co/spaces/hotchpotch/S1MB-leaderboard)**
 ([en-v1](https://huggingface.co/spaces/hotchpotch/S1MB-leaderboard?category=english-v1) ·
-[ja-v1](https://huggingface.co/spaces/hotchpotch/S1MB-leaderboard?category=japanese-v1)) ·
+[ja-v1](https://huggingface.co/spaces/hotchpotch/S1MB-leaderboard?category=japanese-v1) ·
+[vision-v1](https://huggingface.co/spaces/hotchpotch/S1MB-leaderboard?category=vision-v1)) ·
 [Explainer article](https://huggingface.co/blog/hotchpotch/system-one-mosaic-benchmark/) ·
 [Quick start](docs/quickstart.md) ·
 [Results dataset](https://huggingface.co/datasets/hotchpotch/s1mb-result) ·
@@ -13,15 +14,26 @@
 [Submit results](docs/contributing_results.md)
 
 S1MB provides a practical reference point for comparing **System One Decision
-Models** on the same inputs and metrics. These models use text and instructions
+Models** on the same inputs and metrics. These models use text, images and instructions
 to select an option (**Choice**), make a yes/no judgment (**Noul**), or assign a
 numeric score using supplied criteria (**Score**). The leaderboard lets you
 compare overall results and inspect which tasks each model handles well or
 struggles with.
 
-S1MB supports model evaluation in **English (`english-v1`) and Japanese
-(`japanese-v1`)**. Evaluate either scope separately with `s1mb run --category`
-or both with `s1mb run --all`.
+S1MB supports **English text (`english-v1`), Japanese text (`japanese-v1`), and
+vision (`vision-v1`)** evaluation. Select a scope with `s1mb run --category`.
+Use `s1mb run --all` for the English/Japanese text union; select vision explicitly
+with `--category vision-v1`.
+
+**Vision v1** contains **26 image benchmarks / 7,800 judgments**, covering
+image-bearing Choice, Noul, Score and optional bounding-box localization (Box).
+Ranking requires all 20 non-Box benchmarks / 6,000 judgments; the six optional
+Box benchmarks are reported separately. Its
+[evaluation Dataset](https://huggingface.co/datasets/hotchpotch/S1MB-vision-v1)
+is private and requires authorized access. Supported image adapters include
+TypeSafe/Jev, OpenAI Decisions and Imajev; models without Box support use
+`--exclude-box`. Follow the [vision evaluation workflow](docs/vision-evaluation.md)
+for installation, adapter capabilities, smoke/full runs and submission.
 
 The **mosaic** combines tasks from existing public NLP datasets with synthetic
 tasks in a shared evaluation workflow. English v1 contains **137 benchmarks
@@ -46,6 +58,8 @@ results](docs/contributing_results.md) to extend the comparison.
 
 - **Three decision types, one workflow.** Evaluate Choice, Noul, and Score while
   preserving structured inputs, authored criteria, and soft targets.
+- **Text and vision evaluation.** Compare image-bearing decisions in a separate
+  Vision v1 scope, with optional Box localization reported independently.
 - **Comparable scores with visible detail.** Inspect raw task metrics alongside
   baseline-adjusted task scores and relative leaderboard rankings. Missing or
   failed measurements remain visibly incomplete.
@@ -76,6 +90,8 @@ uses an already installed dataset.
 Continue with the [quick start](docs/quickstart.md) to open published results or
 evaluate a real model. The [evaluation guide](docs/evaluation.md) covers runtime
 setup, GPU selection, smoke checks, full runs, and validation.
+For image-bearing models, start with the [vision workflow](docs/vision-evaluation.md)
+and [vision adapter examples](docs/vision-adapters.md).
 
 ## What is measured?
 
@@ -84,12 +100,14 @@ setup, GPU selection, smoke checks, full runs, and validation.
 | Choice | Probabilities over alternatives | Target mass at the selected alternative | Higher |
 | Noul | Probability of the authored true category | Brier score | Lower |
 | Score | Probabilities over numeric criteria | Normalized expected-value MAE | Lower |
+| Box (vision, optional) | Normalized full-image bounding box | Mean IoU | Higher |
 
 **Task Avg** combines baseline-adjusted task scores on a 0–100 scale. Adjustment
 and clipping happen per benchmark, benchmarks are averaged within each task, and
 the three tasks receive equal weight. Zero means at or below the reference
 baseline; 100 is a reference ceiling. Noul adjustment uses balanced accuracy,
 not Brier skill.
+Optional Box results do not contribute to Task Avg or Borda Score.
 
 The viewer sorts by **Borda Score** by default. This is a relative ranking across
 complete models, with equal weight per benchmark; it can change when the model
@@ -104,10 +122,12 @@ the selected scope. See [benchmark scope](docs/benchmark_scope.md) and the
 | Install, try a smoke run, or open results | [Quick start](docs/quickstart.md) |
 | Understand the tasks and evaluation boundaries | [Benchmark scope](docs/benchmark_scope.md) |
 | Evaluate a model reproducibly | [Evaluation guide](docs/evaluation.md) |
+| Evaluate a vision model | [Vision evaluation workflow](docs/vision-evaluation.md) |
 | Add a model to the leaderboard | [Result submission](docs/contributing_results.md) |
 | Evaluate models and submit results with an agent (explicit invocation) | [$s1mb-evaluate-and-submit](.agents/skills/s1mb-evaluate-and-submit/SKILL.md) |
 | Compare local and published results | [Viewer guide](docs/viewer.md) |
 | Integrate a model interface | [Adapter development](docs/adapters.md) |
+| Implement image input or Box support | [Vision adapter examples](docs/vision-adapters.md) |
 | Find technical references and maintainer guides | [Documentation map](docs/README.md) |
 
 To suggest a model, [open an evaluation request](https://github.com/hotchpotch/S1MB/issues/new?template=model_evaluation.yml).
@@ -184,11 +204,3 @@ model trained on these examples to S1MB, declare the applicable **Known domains*
 in `metadata.json` using `training_exposure` and `same_source_family`. Record the
 exact training revision and effective configurations, including any filtering.
 See [training disclosure requirements](docs/training_exposure.md#training-for-japanese-decisions).
-
-
-Vision v1 is available as a separate evaluation scope alongside English v1 and
-Japanese v1. Its [private Dataset](https://huggingface.co/datasets/hotchpotch/S1MB-vision-v1)
-contains 26 image benchmarks /7,800 judgments. Rankings use all 20 non-Box
-benchmarks; optional Box and gen-box remain separate columns. See
-[vision evaluation](docs/vision-evaluation.md) for installation, image policies,
-source licenses, synthetic teachers and supported adapters.
