@@ -697,7 +697,10 @@ partial and cannot supply a complete Box summary.
 
 Use `hotchpotch/S1MB-vision-v1` with the exact immutable Dataset SHA in every
 measurement. The Dataset remains private; result publication must not expose
-images, state, labels, source-row identifiers, local paths or credentials. Disclose
+images, state, labels, source-provenance records, local paths or credentials.
+The standard result schema retains S1MB judgment IDs, input hashes and image
+preprocessing receipts for validation; it is not an anonymized release. Do not
+copy those per-example records into PR descriptions or viewer summaries. Disclose
 known visual training domains using the existing `training_exposure` schema and
 vision benchmark IDs. Preserve actual training snapshot/split evidence; unknown
 pretraining and unverified record-level overlap remain unknown. These annotations

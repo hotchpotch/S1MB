@@ -57,13 +57,23 @@ def render_template(repository: Path, category: str, explanation: str | None) ->
                 if k in {"model", "evaluator_version", "environment", "run_id", "provenance"}
             }
             record["environment"] = {
-                k: v for k, v in result.environment.items() if k != "input_hashes"
+                k: v for k, v in result.environment.items() if k not in {"input_hashes", "image_preprocessing"}
             }
+            receipts = result.environment.get("image_preprocessing", {})
+            if isinstance(receipts, dict):
+                policies = {
+                    receipt["policy"] for group in receipts.values() if isinstance(group, list)
+                    for receipt in group if isinstance(receipt, dict)
+                    and isinstance(receipt.get("policy"), str)
+                }
+                if policies:
+                    record["environment"]["image_preprocessing_policies"] = sorted(policies)
             key = json.dumps(record, sort_keys=True)
             provenance[key] = record
         lines += [
             "",
             "Recorded provenance and effective settings (distinct configurations):",
+            "Per-example hashes and image receipts remain in the result files; this report summarizes image policies.",
             "",
             "```json",
             json.dumps(list(provenance.values()), indent=2, ensure_ascii=False),
