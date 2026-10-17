@@ -16,10 +16,11 @@ def test_unexpected_native_truncation_report_is_rejected(monkeypatch):
                                    {"id": "b", "description": "Second"}]}],
     })
     adapter = RSIAdapter.__new__(RSIAdapter)
+    adapter.image_receipts = {}
     monkeypatch.setattr(adapter, "wire",
                         SimpleNamespace(state_to_text=lambda state: state, RequestError=ValueError),
                         raising=False)
-    adapter.engine = SimpleNamespace(request=lambda *a: {"truncated": {"tokens": 1}})
+    adapter.engine = SimpleNamespace(request=lambda *a, **kw: {"truncated": {"tokens": 1}})
     with pytest.raises(ValueError, match="truncation"):
         adapter.predict(case)
 
@@ -37,7 +38,8 @@ def test_constructor_uses_native_server_default_before_applying_budget(monkeypat
         assert not os.environ.get("RSIJEV_MAX_LENGTH")
         assert not os.environ.get("RSIJEV_TRUNCATE")
         return SimpleNamespace(
-            served=SimpleNamespace(enc=Encoder(), meta={"spec": {}}), calibration="native",
+            served=SimpleNamespace(enc=Encoder(), venc=Encoder(truncate="left"),
+                                   meta={"spec": {}, "vision": {"image_token_budget": 1536}}), calibration="native",
         )
 
     def setup(self, *args):
@@ -52,5 +54,38 @@ def test_constructor_uses_native_server_default_before_applying_budget(monkeypat
     adapter = RSIAdapter("model", "revision", "source", "cuda:0", context_limit=8192)
     assert adapter.engine.served.enc.max_length == 8192
     assert adapter.engine.served.enc.truncate == "none"
+    assert adapter.engine.served.venc.max_length == 8192 + 1536
+    assert adapter.engine.served.venc.truncate == "none"
     assert os.environ["RSIJEV_MAX_LENGTH"] == "2048"
     assert os.environ["RSIJEV_TRUNCATE"] == "left"
+
+
+def test_ordered_images_and_authored_context_reach_native_request(monkeypatch):
+    from test_upstream_adapters import cases
+
+    case = cases()
+    images = [object(), object(), object()]
+    state = {"context": case.state, "visual_inputs": {"reference": "<image:1>"}}
+    monkeypatch.setattr("s1mb.adapters.vision_native.ordered_images",
+                        lambda c: (images, state, [{"prepared": True}]))
+    adapter = object.__new__(RSIAdapter)
+    adapter.image_receipts = {}
+    monkeypatch.setattr(adapter, "wire", SimpleNamespace(state_to_text=lambda value: value), raising=False)
+    seen = []
+
+    def request(value, questions, **kwargs):
+        seen.append(questions)
+        assert value == state
+        assert kwargs["images"] == images
+        question = questions["decision"]
+        assert question["type"] == "choice"
+        keys = list(question["criteria"])
+        return {"answers": {"decision": {"probabilities": dict(zip(keys, [0.2, 0.8], strict=True))}}}
+
+    adapter.engine = SimpleNamespace(request=request)
+    predictions = adapter.predict(case)
+    assert predictions[0].probabilities == {"x": 0.2, "y": 0.8}
+    assert predictions[1].probabilities == {"true": 0.2, "false": 0.8}
+    assert predictions[2].probabilities == {"low": 0.2, "high": 0.8}
+    assert seen[2]["decision"]["criteria"]["option_1"]["value"] == 30
+    assert "gold-must-not-be-sent" not in str(seen)

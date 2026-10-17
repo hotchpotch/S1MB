@@ -22,11 +22,13 @@ def rsi_state_text(state, wire):
 
 class RSIAdapter(UpstreamAdapter):
     case_batch_size = 1
+    supports_images = True
 
     def __init__(self, model, revision, source, device, context_limit=None):
         limit = 32768 if context_limit is None else context_limit
         if limit < 1:
             raise ValueError("RSI context_limit must be positive")
+        self.image_receipts = {}
         self.setup("rsi", model, revision, source, device)
         native = importlib.import_module("serve.decider")
         self.wire = importlib.import_module("serve.wire")
@@ -47,11 +49,20 @@ class RSIAdapter(UpstreamAdapter):
                                   "max_length": limit, "truncate": "none"}
         if served.enc.truncate != "none" or served.enc.max_length != limit:
             raise ValueError("RSI did not activate complete-input rejection")
+        vision_encoder = getattr(served, "venc", None)
+        vision_limit = None
+        if vision_encoder is not None:
+            vision_limit = limit + served.meta["vision"]["image_token_budget"]
+            served.venc = dataclasses.replace(vision_encoder, max_length=vision_limit, truncate="none")
         self.settings.update({
             "dtype": "bfloat16", "attention_implementation": "native-server",
+            "max_vision_input_tokens": vision_limit,
             "max_input_tokens": limit, "input_length_policy": "reject-overflow-native",
             "questions_per_call": 1, "case_batch_size": 1,
             "calibration": self.engine.calibration,
+            "media": "native-ordered-pil-images-v1",
+            "image_preprocessing": "shared-full-image-policy-v1-then-native-processor",
+            "effort_policy": "released-default;images-native-full-depth",
             "native_spec": served.meta["spec"],
             "runtime": "native-in-process-server-calibrated-option-readout",
             "renderer": "native-choice-authored-noul-numeric-score",
@@ -59,10 +70,15 @@ class RSIAdapter(UpstreamAdapter):
         })
 
     def predict(self, case):
+        from .vision_native import ordered_images
+
+        images, state, receipts = ordered_images(case)
+        self.image_receipts[case.case_id] = receipts
+        state = state if images else case.state
         predictions = []
         questions = sifr_questions(case)
         for question in case.questions:
-            response = self.engine.request(rsi_state_text(case.state, self.wire), {"decision": questions[question.id]})
+            response = self.engine.request(rsi_state_text(state, self.wire), {"decision": questions[question.id]}, images=images or None)
             if response.get("truncated") is not None:
                 raise ValueError("RSI reported unexpected input truncation")
             if set(response["answers"]) != {"decision"}:

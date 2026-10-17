@@ -216,3 +216,36 @@ image marker. Its answer-SFT readout remains limited to 2–16 native answer tok
 English questions with more candidates remain unsupported; do not split their
 candidate sets, invent predictions, or claim complete English coverage. Complete
 Japanese coverage can be submitted independently when all its benchmarks pass.
+
+## Additional released local runtimes
+
+`d3` runs the Decision 3.0 checkpoint's bundled `d3_runtime.D3` in-process on CUDA,
+with its released BF16 backbone, FP32 readout, calibration and full-input overflow
+rejection. Its native Choice/Noul/Score protocol retains authored binary criteria
+and numeric Score anchors. Use a full checkpoint SHA and `--context-limit 32768`.
+The checkpoint bundle is the default `--source`.
+
+`rsi` also accepts ordered images with a compatible RSI-Jev VL checkpoint. Pin
+both the model and the RSI-Jev Git checkout (`--source`). Image requests use the
+native full-depth vision path; text requests retain the released effort policy.
+The existing explicit Choice transport preserves authored Noul and numeric Score
+criteria. The published model card's Apache-2.0 weight declaration must be read
+alongside its separately disclosed non-commercial/research-only training sources.
+
+`image-hopper` uses the checkpoint's bundled Image Hopper predictor, pinned Qwen
+base, released LoRA routing and default serving options (including a 768-token
+image cap on its default route). It requires images and has no text-only fallback.
+Noul and Score use native Choice with all authored criteria and numeric anchors;
+this transport uses the release's route/option-count temperatures. The native limit is 26
+options and four images. The checkpoint bundle is the default `--source`.
+
+All three adapters apply the shared benchmark image policy first and retain
+receipts for the subsequent native preprocessing. Box is unsupported. Model
+cards and source-family training disclosures remain separate from exact-example
+contamination claims.
+
+```sh
+uv run s1mb run --category vision-v1 --exclude-box --adapter d3 \
+  --model vllm-sr/d3-mini --revision 97dd054df4b3e0b3beb6af23ab8c82b7c0052e0e \
+  --device cuda:0 --context-limit 32768 --limit 3
+```
