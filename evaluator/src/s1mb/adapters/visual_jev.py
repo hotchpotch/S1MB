@@ -44,7 +44,7 @@ class VisualJevAdapter(UpstreamAdapter):
         images, state, receipts = ordered_images(case)
         self.image_receipts[case.case_id] = receipts
         marker = "<|vision_start|><|image_pad|><|vision_end|>"
-        prefix = self.prompts.prefix_text(json.dumps(state, ensure_ascii=False))
+        prefix = self.prompts.prefix_text(json.dumps(state if images else case.state, ensure_ascii=False))
         prefix = prefix.replace(marker, "\n".join(f"{name}:\n{marker}" for name in case.images), 1)
         predictions = []
         for key, question in typed_questions(case).items():
@@ -53,7 +53,7 @@ class VisualJevAdapter(UpstreamAdapter):
                 raise ValueError("Visual Jev requires 2..16 candidates")
             text = prefix + self.prompts.suffix_text(question["instructions"], options)
             inputs = self.engine.processor(
-                text=[text], images=images, return_tensors="pt",
+                text=[text], images=images or None, return_tensors="pt",
                 images_kwargs={"max_pixels": 200704},
             ).to(self.device)
             if inputs["input_ids"].shape[1] > self.context_limit:

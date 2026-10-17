@@ -199,3 +199,20 @@ Review training exposure separately from accuracy. In particular, Vision-Jev's
 KonIQ normalizer independently re-splits the original dataset; its candidate train
 pool can overlap author-test images. A source-family disclosure does not certify
 that evaluation examples were excluded. Missing disclosure means unknown.
+
+### Text-only evaluation of visual checkpoints
+
+JEVision is a routed bundle: its declared default `text/jevvision-text` adapter
+handles text-only inputs, and its visual sidecar handles image-bearing inputs.
+The bridge follows this native routing, retaining the same pinned public bundle,
+strict authored criteria, numeric Score levels, and the text branch's 80,000-token
+ceiling. It never uses a fabricated image or substitutes the visual head for the
+released text branch. Metadata identifies the selected text component and native
+Kev settings. The image-bearing route remains unchanged.
+
+Visual Jev and Vision-Jev keep the original structured state for text-only
+requests. Visual Jev passes no media to the processor and removes the native
+image marker. Its answer-SFT readout remains limited to 2–16 native answer tokens.
+English questions with more candidates remain unsupported; do not split their
+candidate sets, invent predictions, or claim complete English coverage. Complete
+Japanese coverage can be submitted independently when all its benchmarks pass.

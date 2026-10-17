@@ -21,6 +21,8 @@ class JEVisionAdapter(UpstreamAdapter):
         self.engine = native.VisualDecisionModel.from_run(
             self.path, device=device, max_input_tokens=context_limit
         )
+        self.text_adapter = None
+        self.context_limit = context_limit
         self.attention_model = self.engine.model
         self.set_attention("sdpa")
         self.enable_kernels()
@@ -32,11 +34,29 @@ class JEVisionAdapter(UpstreamAdapter):
             "image_preprocessing": "shared-full-image-policy-v1-then-native-processor",
             "renderer": "native-pointer-authored-noul-numeric-score-v1",
             "base_model": report["model"], "base_revision": report["revision"],
-            "route": "released-visual-sidecar-only", "max_images": 4,
+            "route": "released-native-text-and-visual-routes-v1", "max_images": 4,
+            "text_checkpoint_subdirectory": "text/jevvision-text",
             "calibration_policy": "native-pointer-softmax",
         })
 
+    def text_backend(self):
+        """Load the bundle's declared default text adapter through its native backend."""
+        if self.text_adapter is None:
+            from .kev import KevAdapter
+
+            self.text_adapter = KevAdapter(
+                self.model_id, self.revision, str(self.path / "runtime"), self.device,
+                context_limit=min(self.context_limit, 80000), case_batch_size=1,
+                checkpoint_subdirectory="text/jevvision-text",
+                loader_options={},
+            )
+            self.settings["active_route"] = "jevvision-text"
+            self.settings["text_settings"] = self.text_adapter.settings
+        return self.text_adapter
+
     def predict(self, case):
+        if not case.images:
+            return self.text_backend().predict(case)
         images, state, receipts = ordered_images(case)
         self.image_receipts[case.case_id] = receipts
         predictions = []
