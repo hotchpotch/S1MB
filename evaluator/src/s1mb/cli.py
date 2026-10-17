@@ -103,6 +103,7 @@ def main() -> None:
             "pplx-decider",
             "d3",
             "image-hopper",
+            "amos",
             "jev-style",
             "sifr",
             "jiwo",
@@ -206,7 +207,7 @@ def main() -> None:
         choices=["sdpa", "flash_attention_2"],
         help="Explicit attention backend for measured upstream adapters",
     )
-    run.add_argument("--cuda-shards", type=int, default=1, help="D3 CUDA-only weight shards (1 or 2)")
+    run.add_argument("--cuda-shards", type=int, default=1, help="Native CUDA-only weight shards (1 or 2)")
     run.add_argument(
         "--context-limit",
         type=int,
@@ -302,7 +303,7 @@ def parse_adapter_kwargs(args, parser):
 
 def validate_run_arguments(args, parser):
     """Reject invalid runtime options before acquiring the installed dataset lock."""
-    if args.adapter in {"vev", "jevvision", "vision-jev", "visual-jev", "decider-vision", "pplx-decider", "d3", "image-hopper"}:
+    if args.adapter in {"vev", "jevvision", "vision-jev", "visual-jev", "decider-vision", "pplx-decider", "d3", "image-hopper", "amos"}:
         if not args.device.startswith("cuda"):
             parser.error("Local vision adapters require explicit CUDA; no CPU fallback")
         if args.adapter == "vision-jev" and not args.subfolder:
@@ -380,8 +381,10 @@ def validate_run_arguments(args, parser):
         or not 2 <= args.max_candidates <= 255
     ):
         parser.error("--max-candidates requires a supported adapter and a value in 2..255")
-    if args.cuda_shards not in {1, 2} or (args.cuda_shards != 1 and args.adapter != "d3"):
-        parser.error("--cuda-shards 2 requires the d3 adapter")
+    if args.cuda_shards not in {1, 2} or (
+        args.cuda_shards != 1 and args.adapter not in {"d3", "onejev", "pplx-decider", "amos"}
+    ):
+        parser.error("--cuda-shards 2 requires the d3, onejev, pplx-decider or amos adapter")
     if args.context_limit is not None and (
         args.context_limit < 1
         or args.adapter
@@ -448,6 +451,7 @@ def validate_run_arguments(args, parser):
             "pplx-decider",
             "d3",
             "image-hopper",
+            "amos",
             "jev-style",
             "sifr",
             "jiwo",
@@ -894,9 +898,9 @@ def execute(args, parser):
         adapter = JevStyleAdapter(
             args.model, args.revision, args.source, args.device, context_limit=args.context_limit
         )
-    elif args.adapter in {"vev", "jevvision", "vision-jev", "visual-jev", "decider-vision", "pplx-decider", "d3", "image-hopper"}:
+    elif args.adapter in {"vev", "jevvision", "vision-jev", "visual-jev", "decider-vision", "pplx-decider", "d3", "image-hopper", "amos"}:
         source = args.source
-        if not source and args.adapter in {"jevvision", "pplx-decider", "d3", "image-hopper"}:
+        if not source and args.adapter in {"jevvision", "pplx-decider", "d3", "image-hopper", "amos"}:
             from .adapters.upstream import checkpoint_path
 
             source = str(checkpoint_path(args.model, args.revision)[0])
@@ -915,10 +919,11 @@ def execute(args, parser):
             "pplx-decider": ("pplx_decider", "PplxDeciderAdapter"),
             "d3": ("d3", "D3Adapter"),
             "image-hopper": ("image_hopper", "ImageHopperAdapter"),
+            "amos": ("amos", "AmosAdapter"),
         }[args.adapter]
         constructor = getattr(importlib.import_module(f".adapters.{module_name}", __package__), class_name)
         options = {"context_limit": args.context_limit or 32768}
-        if args.adapter == "d3":
+        if args.adapter in {"d3", "pplx-decider", "amos"}:
             options["cuda_shards"] = args.cuda_shards
         if args.adapter in {"vision-jev", "visual-jev"}:
             options["base_revision"] = args.base_revision
@@ -931,7 +936,8 @@ def execute(args, parser):
         from .adapters.onejev import OneJevAdapter
 
         adapter = OneJevAdapter(
-            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit,
+            cuda_shards=args.cuda_shards,
         )
     elif args.adapter == "decision2":
         if not args.source:

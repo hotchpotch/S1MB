@@ -230,6 +230,14 @@ decoder layers across exactly two visible CUDA devices. Weights are staged on
 CPU during loading, then moved entirely to CUDA before inference. Placement
 reserves activation memory and rejects checkpoints that cannot fit; it does not
 offload inference to CPU. Record both device IDs through `CUDA_VISIBLE_DEVICES`.
+OneJev also accepts `--cuda-shards 2` for compatible Qwen vision checkpoints.
+Its native FP32 output head remains on GPU 0 and is included in the available
+memory calculation before balancing complete backbone layers. Native calibration,
+slot readout and sequential fork execution are preserved.
+`pplx-decider --cuda-shards 2` uses the same CUDA-only backbone placement.
+Its native CPU loader initially stages FP32 weights, so host memory requirements
+are higher than the BF16 checkpoint size. Before any inference, both backbone
+and readout are converted to the native CUDA BF16 dtype and moved to CUDA.
 
 `rsi` also accepts ordered images with a compatible RSI-Jev VL checkpoint. Pin
 both the model and the RSI-Jev Git checkout (`--source`). Image requests use the
@@ -257,6 +265,15 @@ processor. Paths and source metadata are excluded from model text. It preserves
 authored Noul definitions and transports Score anchors as numeric-keyed criteria.
 Its native limit is 62 candidates; larger questions are unsupported and cannot
 be reduced to claim complete scope coverage. Box is unsupported.
+
+`amos` loads a released Amos decoder bundle (`model/config.json` and `serve/amos`)
+and calls its native in-process engine. It preserves released per-type calibration,
+one option order, native image preprocessing and complete-input overflow rejection.
+Use `--cuda-shards 2` for large Qwen vision checkpoints. The output head remains on
+GPU 0 and complete backbone layers are balanced across both CUDA devices after
+CPU loading. Noul keeps authored criteria; Score retains numeric level descriptions
+and its full probability vector. Legacy Amos encoder checkpoints and Box are
+unsupported by this bridge. Run a fresh image smoke before full evaluation.
 
 ```sh
 uv run s1mb run --category vision-v1 --exclude-box --adapter d3 \

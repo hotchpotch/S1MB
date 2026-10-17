@@ -37,3 +37,9 @@ def test_native_typed_probabilities_and_original_numeric_anchors():
 def test_invalid_budget_before_loading():
     with pytest.raises(ValueError, match="positive"):
         PplxDeciderAdapter("unused", "main", "unused", "cuda:0", context_limit=0)
+
+
+@pytest.mark.parametrize("shards", [0, 3])
+def test_invalid_cuda_shards_before_loading(shards):
+    with pytest.raises(ValueError, match="cuda_shards"):
+        PplxDeciderAdapter("unused", "main", "unused", "cuda:0", cuda_shards=shards)

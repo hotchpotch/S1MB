@@ -8,6 +8,12 @@ from test_upstream_adapters import cases
 from s1mb.adapters.onejev import OneJevAdapter, onejev_questions
 
 
+@pytest.mark.parametrize("shards", [0, 3])
+def test_invalid_cuda_shards_before_loading(shards):
+    with pytest.raises(ValueError, match="cuda_shards"):
+        OneJevAdapter("unused", "main", "unused", "cuda:0", cuda_shards=shards)
+
+
 def test_structured_criteria_numeric_score_and_no_identifiers():
     case = cases()
     case.questions[0].options[0].description_json = '{"nested": true}'
