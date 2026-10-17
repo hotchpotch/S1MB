@@ -141,7 +141,7 @@ test('initial page renders a small loading shell without a display file or resul
 });
 
 test('compact API compresses negotiated responses and keeps representation ETags distinct', async () => {
-  const { gunzipSync } = await import('node:zlib');
+  const { gunzipSync, brotliDecompressSync } = await import('node:zlib');
   const root = await mkdtemp(path.join(tmpdir(), 's1mb-delivery-'));
   const file = path.join(root, 'display.json');
   const artifact = fixture();
@@ -150,11 +150,21 @@ test('compact API compresses negotiated responses and keeps representation ETags
   const store = createDisplayStore(file);
   try {
     const plain = await displayResponse(new Request('http://localhost/api/display/'), store);
-    const zipped = await displayResponse(new Request('http://localhost/api/display/', { headers: { 'accept-encoding': 'gzip, deflate, br' } }), store);
+    const zipped = await displayResponse(new Request('http://localhost/api/display/', { headers: { 'accept-encoding': 'gzip' } }), store);
     assert.equal(zipped.headers.get('content-encoding'), 'gzip');
     assert.equal(zipped.headers.get('vary'), 'Accept-Encoding');
     assert.notEqual(zipped.headers.get('etag'), plain.headers.get('etag'));
     assert.deepEqual(JSON.parse(gunzipSync(Buffer.from(await zipped.arrayBuffer())).toString()), artifact);
+    const brotli = await displayResponse(new Request('http://localhost/api/display/', { headers: { 'accept-encoding': 'gzip, deflate, br' } }), store);
+    assert.equal(brotli.headers.get('content-encoding'), 'br');
+    assert.notEqual(brotli.headers.get('etag'), zipped.headers.get('etag'));
+    const brotliBytes = Buffer.from(await brotli.arrayBuffer());
+    assert.equal(Number(brotli.headers.get('content-length')), brotliBytes.length);
+    assert.deepEqual(JSON.parse(brotliDecompressSync(brotliBytes).toString()), artifact);
+    const preferGzip = await displayResponse(new Request('http://localhost/api/display/', { headers: { 'accept-encoding': 'br;q=0.5, gzip' } }), store);
+    assert.equal(preferGzip.headers.get('content-encoding'), 'gzip');
+    const noBrotli = await displayResponse(new Request('http://localhost/api/display/', { headers: { 'accept-encoding': 'br;q=0, gzip' } }), store);
+    assert.equal(noBrotli.headers.get('content-encoding'), 'gzip');
     const disabled = await displayResponse(new Request('http://localhost/api/display/', { headers: { 'accept-encoding': 'gzip;q=0' } }), store);
     assert.equal(disabled.headers.get('content-encoding'), null);
     const cached = await displayResponse(new Request('http://localhost/api/display/', { headers: { 'accept-encoding': 'gzip', 'if-none-match': zipped.headers.get('etag')! } }), store);
@@ -223,4 +233,32 @@ test('display artifacts preserve and validate explicit abstention counts', () =>
   invalid.payload.results[0].counts.abstained = 2;
   invalid.digest = createHash('sha256').update(JSON.stringify(invalid.payload)).digest('hex');
   assert.throws(() => decodeDisplay(invalid), /counts/);
+});
+
+
+test('browser allows an active transfer beyond the idle timeout but bounds stalled and endless transfers', async () => {
+  const bytes = new TextEncoder().encode(JSON.stringify(fixture()));
+  const request = (stall: boolean): typeof fetch => async (_url, init) => {
+    const signal = init!.signal!;
+    let offset = 0;
+    let canceled = false;
+    return new Response(new ReadableStream({
+      start(controller) {
+        signal.addEventListener('abort', () => controller.error(signal.reason), { once: true });
+      },
+      async pull(controller) {
+        await new Promise(resolve => setTimeout(resolve, 20));
+        if (signal.aborted || canceled) return;
+        if (stall) return new Promise(() => {});
+        if (offset === bytes.length) { controller.close(); return; }
+        const end = Math.min(offset + Math.ceil(bytes.length / 10), bytes.length);
+        controller.enqueue(bytes.slice(offset, end));
+        offset = end;
+      },
+      cancel() { canceled = true; },
+    }));
+  };
+  assert.deepEqual(await createDisplayLoader(request(false), 100, 2_000)(), expandDisplay(fixture()));
+  await assert.rejects(createDisplayLoader(request(true), 50, 2_000)(), /stalled/);
+  await assert.rejects(createDisplayLoader(request(false), 100, 100)(), { name: 'TimeoutError' });
 });

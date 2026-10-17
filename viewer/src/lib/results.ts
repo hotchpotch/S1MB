@@ -17,17 +17,18 @@ async function boundedBytes(file: string, maximum: number) {
     return bytes;
   } finally { await handle.close(); }
 }
-type Delivery = { body: string; gzip: Uint8Array<ArrayBuffer>; etag: string };
+type Delivery = { body: string; gzip: Uint8Array<ArrayBuffer>; brotli: Uint8Array<ArrayBuffer>; etag: string };
 export function createDisplayStore(file: string): () => Promise<Delivery> {
   let pending: Promise<Delivery> | undefined;
   return () => pending ??= (async () => {
     const directory = `${file}.delivery`;
     const manifest = JSON.parse((await boundedBytes(path.join(directory, 'manifest.json'), 1024)).toString());
-    if (manifest.version !== 1 || typeof manifest.digest !== 'string' || !/^[a-f0-9]{64}$/.test(manifest.digest)) throw new Error('Invalid prepared delivery manifest');
+    if (manifest.version !== 2 || typeof manifest.digest !== 'string' || !/^[a-f0-9]{64}$/.test(manifest.digest)) throw new Error('Invalid prepared delivery manifest');
     const body = await boundedBytes(path.join(directory, `${manifest.digest}.json`), 32 * 1024 * 1024);
     const gzip = await boundedBytes(path.join(directory, `${manifest.digest}.gz`), 33 * 1024 * 1024);
-    if (body.length !== manifest.bytes || gzip.length !== manifest.gzipBytes) throw new Error('Incomplete prepared delivery');
-    return { body: body.toString(), gzip: new Uint8Array(gzip), etag: `"${manifest.digest}"` };
+    const brotli = await boundedBytes(path.join(directory, `${manifest.digest}.br`), 33 * 1024 * 1024);
+    if (body.length !== manifest.bytes || gzip.length !== manifest.gzipBytes || brotli.length !== manifest.brotliBytes) throw new Error('Incomplete prepared delivery');
+    return { body: body.toString(), gzip: new Uint8Array(gzip), brotli: new Uint8Array(brotli), etag: `"${manifest.digest}"` };
   })().catch(error => { pending = undefined; throw error; });
 }
 
@@ -45,16 +46,21 @@ function getDelivery() {
 export async function displayResponse(request: Request, load = getDelivery): Promise<Response> {
   try {
     const data = await load();
-    const compressed = request.headers.get('accept-encoding')?.split(',').some(value => {
+    const accepted = new Map((request.headers.get('accept-encoding') ?? '').split(',').map(value => {
       const [encoding, ...parameters] = value.trim().split(';');
-      return encoding.trim() === 'gzip' && !parameters.some(p => /^\s*q\s*=/.test(p) && Number(p.split('=')[1]) === 0);
-    });
-    const etag = compressed ? `${data.etag.slice(0, -1)}-gzip"` : data.etag;
+      const quality = parameters.find(p => /^\s*q\s*=/.test(p));
+      return [encoding.trim().toLowerCase(), quality ? Number(quality.split('=')[1]) : 1];
+    }));
+    const quality = (encoding: string) => accepted.get(encoding) ?? accepted.get('*') ?? 0;
+    const encoding = quality('br') > 0 && quality('br') >= quality('gzip') ? 'br' : quality('gzip') > 0 ? 'gzip' : undefined;
+    const body = encoding === 'br' ? data.brotli : encoding === 'gzip' ? data.gzip : data.body;
+    const etag = encoding ? `${data.etag.slice(0, -1)}-${encoding}"` : data.etag;
     const headers: Record<string, string> = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, no-cache', ETag: etag, Vary: 'Accept-Encoding' };
-    if (compressed) headers['Content-Encoding'] = 'gzip';
+    if (encoding) headers['Content-Encoding'] = encoding;
+    headers['Content-Length'] = String(typeof body === 'string' ? Buffer.byteLength(body) : body.byteLength);
     const tags = request.headers.get('if-none-match')?.split(',').map(tag => tag.trim().replace(/^W\//, ''));
     if (tags?.some(tag => tag === '*' || tag === etag)) return new Response(null, { status: 304, headers });
-    return new Response(compressed ? data.gzip : data.body, { headers });
+    return new Response(body, { headers });
   } catch {
     return Response.json({ error: 'Display data is unavailable. Please retry.' }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
   }
