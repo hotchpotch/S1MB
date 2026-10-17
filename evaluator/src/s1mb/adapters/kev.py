@@ -1,6 +1,7 @@
 """Kev checkpoint loader and native strict input encoding."""
 
 import importlib
+from pathlib import Path
 
 from s1mb.data import Prediction
 
@@ -11,7 +12,8 @@ from .upstream import UpstreamAdapter, candidate_batches
 class KevAdapter(UpstreamAdapter):
     case_batch_size = 16
 
-    def __init__(self, model, revision, source, device, context_limit=None, case_batch_size=16):
+    def __init__(self, model, revision, source, device, context_limit=None, case_batch_size=16,
+                 checkpoint_subdirectory=None, loader_options=None):
         if context_limit is not None and context_limit < 1:
             raise ValueError("Kev context_limit must be positive")
         if case_batch_size < 1:
@@ -20,15 +22,24 @@ class KevAdapter(UpstreamAdapter):
         self.setup("kev", model, revision, source, device)
         cp = importlib.import_module("kev.checkpoint")
         self.api = importlib.import_module("kev.api")
-        checkpoint = cp.Checkpoint(str(self.path))
+        checkpoint_path = self.path
+        if checkpoint_subdirectory is not None:
+            relative = Path(checkpoint_subdirectory)
+            if relative.is_absolute() or not relative.parts or ".." in relative.parts:
+                raise ValueError("Kev checkpoint subdirectory must stay within the pinned bundle")
+            checkpoint_path = (self.path / relative).resolve()
+            if not checkpoint_path.is_relative_to(self.path.resolve()):
+                raise ValueError("Kev checkpoint subdirectory escapes the pinned bundle")
+        checkpoint = cp.Checkpoint(str(checkpoint_path))
         if not checkpoint.meta.base_revision:
             hub = importlib.import_module("huggingface_hub")
             checkpoint.meta.base_revision = hub.model_info(checkpoint.meta.base).sha
             if not checkpoint.meta.base_revision:
                 raise ValueError("Hub did not resolve Kev's base checkpoint revision")
+        loader_options = {"cuda_graphs": False, "fused": False} if loader_options is None else loader_options
         self.tokenizer, self.engine = checkpoint.load(
             device,
-            cp.LoadOptions(dtype=self.torch.bfloat16, attn="sdpa", cuda_graphs=False, fused=False),
+            cp.LoadOptions(dtype=self.torch.bfloat16, attn="sdpa", **loader_options),
         )
         self.engine.eval()
         self.attention_model = self.engine.lm
@@ -37,6 +48,8 @@ class KevAdapter(UpstreamAdapter):
             raise ValueError("Kev context limit exceeds checkpoint capacity")
         self.settings = {
             "dtype": "bfloat16",
+            "checkpoint_subdirectory": checkpoint_subdirectory,
+            "native_loader_options": loader_options,
             "temperature": checkpoint.meta.temperature,
             "base_model": checkpoint.meta.base,
             "base_revision": checkpoint.meta.base_revision,

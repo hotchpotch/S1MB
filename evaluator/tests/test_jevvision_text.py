@@ -1,26 +1,24 @@
-"""Native pointer positions must preserve every text candidate and delimiter."""
+"""Text-only JEVision uses its published native text route without changing inputs."""
 
-import pytest
+from unittest.mock import Mock
 
-from s1mb.adapters.jevvision import pointer_positions
+from test_upstream_adapters import cases
 
-
-def test_complete_pointer_record_keeps_all_151_candidates():
-    ids = [10, 500, 11, 501]
-    ends = []
-    for i in range(151):
-        ids.extend([12, 600 + i, 13])
-        ends.append(len(ids) - 1)
-    ids.append(14)
-    assert pointer_positions(ids, [10, 11, 12, 13, 14], 151) == (len(ids) - 1, ends)
+from s1mb.adapters.jevvision import JEVisionAdapter
+from s1mb.adapters.kev import KevAdapter
 
 
-@pytest.mark.parametrize('ids', [
-    [10, 11, 12, 13, 14],  # Missing a declared candidate.
-    [10, 11, 12, 12, 13, 13, 14],  # Nested candidates.
-    [10, 11, 12, 13, 14, 12, 13],  # Candidate after the decision.
-    [11, 10, 12, 13, 12, 13, 14],  # State after the question.
-])
-def test_malformed_record_is_rejected(ids):
-    with pytest.raises(ValueError):
-        pointer_positions(ids, [10, 11, 12, 13, 14], 2)
+def test_text_request_reaches_native_text_branch_unchanged():
+    case = cases()
+    received = []
+    sentinel = object()
+
+    backend = Mock(spec=KevAdapter)
+    backend.predict.side_effect = lambda request: (received.append(request), sentinel)[1]
+
+    adapter = object.__new__(JEVisionAdapter)
+    adapter.text_adapter = backend
+    assert adapter.predict(case) is sentinel
+    assert received == [case]
+    assert not received[0].images
+    assert received[0].questions == case.questions

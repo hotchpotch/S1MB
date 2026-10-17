@@ -10044,6 +10044,54 @@
           "note": "Original source: VSR. The released research mixture reports positive training-record counts for this family; exact selected rows of the 100k sample are not established. No adopted evaluation-example use is asserted.",
           "registration_source": "contributor_review",
           "dataset_access": "unknown"
+        },
+        {
+          "benchmark_id": "laya--ag-news-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://github.com/Xiaooolong/vev/blob/2d8c403b1c8459d34be214d76c19e0b158a1979c/TRAINING.md",
+          "note": "Original source family: fancyzhx/ag_news. The released v1-research training build reports 17,703 training records from ag_news. The released models sample 100,000 of 716,789 build training records; exact consumed rows and training revisions are not established. This is source-family disclosure, not confirmed S1MB evaluation-example use.",
+          "registration_source": "contributor_review",
+          "dataset_access": "unknown"
+        },
+        {
+          "benchmark_id": "banking77-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://github.com/Xiaooolong/vev/blob/2d8c403b1c8459d34be214d76c19e0b158a1979c/TRAINING.md",
+          "note": "Original source family: PolyAI/banking77. The released v1-research training build reports 11,167 training records from banking77. The released models sample 100,000 of 716,789 build training records; exact consumed rows and training revisions are not established. This is source-family disclosure, not confirmed S1MB evaluation-example use.",
+          "registration_source": "contributor_review",
+          "dataset_access": "unknown"
+        },
+        {
+          "benchmark_id": "clinc-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://github.com/Xiaooolong/vev/blob/2d8c403b1c8459d34be214d76c19e0b158a1979c/TRAINING.md",
+          "note": "Original source family: clinc/clinc_oos. The released v1-research training build reports 17,015 training records from clinc150. The released models sample 100,000 of 716,789 build training records; exact consumed rows and training revisions are not established. This is source-family disclosure, not confirmed S1MB evaluation-example use.",
+          "registration_source": "contributor_review",
+          "dataset_access": "unknown"
+        },
+        {
+          "benchmark_id": "dbpedia-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://github.com/Xiaooolong/vev/blob/2d8c403b1c8459d34be214d76c19e0b158a1979c/TRAINING.md",
+          "note": "Original source family: fancyzhx/dbpedia_14. The released v1-research training build reports 33,117 training records from dbpedia14. The released models sample 100,000 of 716,789 build training records; exact consumed rows and training revisions are not established. This is source-family disclosure, not confirmed S1MB evaluation-example use.",
+          "registration_source": "contributor_review",
+          "dataset_access": "unknown"
         }
       ]
     },
@@ -10074,6 +10122,25 @@
           "split": "custom SHA-256 image-name split",
           "evidence_url": "https://github.com/LMDHQ-0420/Vision-Jev/blob/39b0e7ba798901ff4f948891972d4feca5aa159e/vision_jev/data/pipeline.py",
           "note": "Original source: KonIQ-10k. The SFT recipe allocates 6,000 KonIQ questions. Its normalizer independently re-splits all images: 239 of the 300 adopted author-test images fall in its candidate train pool (33 dev, 28 test). The final consumed 6,000-row manifest was not available for confirmation, so this is potential evaluation-image overlap, not confirmed consumed-example overlap.",
+          "registration_source": "contributor_review",
+          "dataset_access": "unknown"
+        }
+      ]
+    },
+    {
+      "model_ids": [
+        "guanxuyu__visual-jev-4b-answer-sft"
+      ],
+      "training_exposure": [
+        {
+          "benchmark_id": "snli-choice-test-v1",
+          "relationship": "related_domain",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://github.com/guanxuyu-sv/Visual-Jev/blob/a392eaedfa41adae348f9767b55c0f54b3a13b57/README.md",
+          "note": "The answer-SFT adapter is trained on GQA and SNLI-VE. SNLI-VE is a visual-entailment derivative of SNLI; the S1MB benchmark is text-only SNLI. Registered as a related domain rather than asserting identical evaluation records or identical task inputs. Exact consumed records are not established.",
           "registration_source": "contributor_review",
           "dataset_access": "unknown"
         }

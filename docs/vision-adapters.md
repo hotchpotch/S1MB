@@ -202,18 +202,17 @@ that evaluation examples were excluded. Missing disclosure means unknown.
 
 ### Text-only evaluation of visual checkpoints
 
-The same pinned visual checkpoints can also be evaluated on text categories when
-an intact request fits their native candidate and context capacities. JEVision's
-bridge retains its released visual LoRA and pointer head for text-only requests;
-it renders the native escaped state/question/option delimiters through the official
-chat template, without image tokens or fabricated images, and reads the same
-option-end and decision hidden states. This is an explicit serving extension to
-the image-required upstream visual scorer, not a switch to a separately trained
-text checkpoint. Metadata records this transport. Visual Jev and Vision-Jev keep
-the original structured state for text-only requests; Visual Jev passes no media
-to the processor and removes the native image marker.
+JEVision is a routed bundle: its declared default `text/jevvision-text` adapter
+handles text-only inputs, and its visual sidecar handles image-bearing inputs.
+The bridge follows this native routing, retaining the same pinned public bundle,
+strict authored criteria, numeric Score levels, and the text branch's 80,000-token
+ceiling. It never uses a fabricated image or substitutes the visual head for the
+released text branch. Metadata identifies the selected text component and native
+Kev settings. The image-bearing route remains unchanged.
 
-Visual Jev's answer-SFT readout remains limited to 2–16 native answer tokens.
+Visual Jev and Vision-Jev keep the original structured state for text-only
+requests. Visual Jev passes no media to the processor and removes the native
+image marker. Its answer-SFT readout remains limited to 2–16 native answer tokens.
 English questions with more candidates remain unsupported; do not split their
 candidate sets, invent predictions, or claim complete English coverage. Complete
 Japanese coverage can be submitted independently when all its benchmarks pass.
