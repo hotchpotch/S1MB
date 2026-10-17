@@ -634,7 +634,10 @@ GPU inference uses BF16 SDPA. Complete tokenization is checked against the
 default 32,768-token budget before native scoring; no truncation or CPU
 fallback is allowed. Role-bearing records with missing chat fields or extra
 metadata are serialized intact as JSON instead of losing fields in the native
-chat renderer. Text-only runs reject media. Validate native typed probabilities
+chat renderer. Vision checkpoints receive ordered images through native chat
+media parts. The shared image policy runs before the native image processor;
+the token budget is checked after multimodal token expansion and before GPU
+transfer. Text-only checkpoints reject media. Validate native typed probabilities
 and a fresh three-task smoke before running the full category.
 
 ### Intern-Decision native masked-symbol runtime
@@ -645,6 +648,11 @@ Use Python 3.12 or newer with `--adapter intern-decision` and
 logit readout, and uses the release's own temperature. GPU BF16 SDPA processes
 one anonymous typed question per call. Complete structured criteria, authored
 Noul definitions and numeric Score levels remain in declared order.
+
+Vision checkpoints accept ordered benchmark images through the native image
+processor using temporary lossless PNGs with neutral names. Source paths and
+provenance are excluded from model text. Score criteria use numeric keys so the
+native runtime retains the dataset's actual anchors, including non-unit spacing.
 
 The explicit default token budget is 32,768, validated against checkpoint
 capacity; native length checks reject overflow without truncation. The released

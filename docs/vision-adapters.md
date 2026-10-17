@@ -225,6 +225,12 @@ rejection. Its native Choice/Noul/Score protocol retains authored binary criteri
 and numeric Score anchors. Use a full checkpoint SHA and `--context-limit 32768`.
 The checkpoint bundle is the default `--source`.
 
+For larger D3 checkpoints, `--cuda-shards 2 --device cuda:0` places complete
+decoder layers across exactly two visible CUDA devices. Weights are staged on
+CPU during loading, then moved entirely to CUDA before inference. Placement
+reserves activation memory and rejects checkpoints that cannot fit; it does not
+offload inference to CPU. Record both device IDs through `CUDA_VISIBLE_DEVICES`.
+
 `rsi` also accepts ordered images with a compatible RSI-Jev VL checkpoint. Pin
 both the model and the RSI-Jev Git checkout (`--source`). Image requests use the
 native full-depth vision path; text requests retain the released effort policy.
@@ -243,6 +249,14 @@ All three adapters apply the shared benchmark image policy first and retain
 receipts for the subsequent native preprocessing. Box is unsupported. Model
 cards and source-family training disclosures remain separate from exact-example
 contamination claims.
+
+`intern-decision` also accepts ordered images with a compatible native checkpoint
+and Python 3.12 or newer. The bridge applies the benchmark image policy, then
+passes lossless temporary PNGs with neutral numbered names to the native image
+processor. Paths and source metadata are excluded from model text. It preserves
+authored Noul definitions and transports Score anchors as numeric-keyed criteria.
+Its native limit is 62 candidates; larger questions are unsupported and cannot
+be reduced to claim complete scope coverage. Box is unsupported.
 
 ```sh
 uv run s1mb run --category vision-v1 --exclude-box --adapter d3 \

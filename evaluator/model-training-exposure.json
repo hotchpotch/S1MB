@@ -10337,6 +10337,24 @@
           "registration_source": "contributor_review"
         }
       ]
+    },
+    {
+      "model_ids": [
+        "e12ex2__jev-vision-27b"
+      ],
+      "training_exposure": [
+        {
+          "benchmark_id": "scienceqa-choice",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/e12ex2/jev-vision-27b/blob/483df76c76a96b1cc5f76e66140da925b346cef2/README.md",
+          "note": "The pinned model card names ScienceQA among its vision training sources and reports train splits only. It also reports image pHash filtering against its evaluation images; this is an author claim, not an independent audit against adopted S1MB examples. Exact source revision and configuration are not disclosed.",
+          "registration_source": "contributor_review"
+        }
+      ]
     }
   ]
 }

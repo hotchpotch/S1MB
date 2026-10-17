@@ -206,6 +206,7 @@ def main() -> None:
         choices=["sdpa", "flash_attention_2"],
         help="Explicit attention backend for measured upstream adapters",
     )
+    run.add_argument("--cuda-shards", type=int, default=1, help="D3 CUDA-only weight shards (1 or 2)")
     run.add_argument(
         "--context-limit",
         type=int,
@@ -379,6 +380,8 @@ def validate_run_arguments(args, parser):
         or not 2 <= args.max_candidates <= 255
     ):
         parser.error("--max-candidates requires a supported adapter and a value in 2..255")
+    if args.cuda_shards not in {1, 2} or (args.cuda_shards != 1 and args.adapter != "d3"):
+        parser.error("--cuda-shards 2 requires the d3 adapter")
     if args.context_limit is not None and (
         args.context_limit < 1
         or args.adapter
@@ -915,6 +918,8 @@ def execute(args, parser):
         }[args.adapter]
         constructor = getattr(importlib.import_module(f".adapters.{module_name}", __package__), class_name)
         options = {"context_limit": args.context_limit or 32768}
+        if args.adapter == "d3":
+            options["cuda_shards"] = args.cuda_shards
         if args.adapter in {"vision-jev", "visual-jev"}:
             options["base_revision"] = args.base_revision
         if args.adapter == "vision-jev":
