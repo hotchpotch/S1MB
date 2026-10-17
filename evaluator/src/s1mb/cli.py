@@ -101,6 +101,8 @@ def main() -> None:
             "visual-jev",
             "decider-vision",
             "pplx-decider",
+            "d3",
+            "image-hopper",
             "jev-style",
             "sifr",
             "jiwo",
@@ -299,7 +301,7 @@ def parse_adapter_kwargs(args, parser):
 
 def validate_run_arguments(args, parser):
     """Reject invalid runtime options before acquiring the installed dataset lock."""
-    if args.adapter in {"vev", "jevvision", "vision-jev", "visual-jev", "decider-vision", "pplx-decider"}:
+    if args.adapter in {"vev", "jevvision", "vision-jev", "visual-jev", "decider-vision", "pplx-decider", "d3", "image-hopper"}:
         if not args.device.startswith("cuda"):
             parser.error("Local vision adapters require explicit CUDA; no CPU fallback")
         if args.adapter == "vision-jev" and not args.subfolder:
@@ -441,6 +443,8 @@ def validate_run_arguments(args, parser):
             "visual-jev",
             "decider-vision",
             "pplx-decider",
+            "d3",
+            "image-hopper",
             "jev-style",
             "sifr",
             "jiwo",
@@ -887,9 +891,9 @@ def execute(args, parser):
         adapter = JevStyleAdapter(
             args.model, args.revision, args.source, args.device, context_limit=args.context_limit
         )
-    elif args.adapter in {"vev", "jevvision", "vision-jev", "visual-jev", "decider-vision", "pplx-decider"}:
+    elif args.adapter in {"vev", "jevvision", "vision-jev", "visual-jev", "decider-vision", "pplx-decider", "d3", "image-hopper"}:
         source = args.source
-        if not source and args.adapter in {"jevvision", "pplx-decider"}:
+        if not source and args.adapter in {"jevvision", "pplx-decider", "d3", "image-hopper"}:
             from .adapters.upstream import checkpoint_path
 
             source = str(checkpoint_path(args.model, args.revision)[0])
@@ -906,6 +910,8 @@ def execute(args, parser):
             "visual-jev": ("visual_jev", "VisualJevAdapter"),
             "decider-vision": ("decider_vision", "DeciderVisionAdapter"),
             "pplx-decider": ("pplx_decider", "PplxDeciderAdapter"),
+            "d3": ("d3", "D3Adapter"),
+            "image-hopper": ("image_hopper", "ImageHopperAdapter"),
         }[args.adapter]
         constructor = getattr(importlib.import_module(f".adapters.{module_name}", __package__), class_name)
         options = {"context_limit": args.context_limit or 32768}

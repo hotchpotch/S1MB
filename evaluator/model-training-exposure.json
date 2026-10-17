@@ -9943,7 +9943,9 @@
     },
     {
       "model_ids": [
-        "mohit67890__imajev-4b"
+        "mohit67890__imajev-4b",
+        "mohit67890__imajev-2b",
+        "mohit67890__imajev-9b"
       ],
       "training_exposure": [
         {
@@ -10143,6 +10145,75 @@
           "note": "The answer-SFT adapter is trained on GQA and SNLI-VE. SNLI-VE is a visual-entailment derivative of SNLI; the S1MB benchmark is text-only SNLI. Registered as a related domain rather than asserting identical evaluation records or identical task inputs. Exact consumed records are not established.",
           "registration_source": "contributor_review",
           "dataset_access": "unknown"
+        }
+      ]
+    },
+    {
+      "model_ids": [
+        "shgao__rsi-jev-v6.1-vl-4b"
+      ],
+      "training_exposure": [
+        {
+          "benchmark_id": "tallyqa-score",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-4b/blob/7f93b1926dc23c62635538f5d40f1dabbddee5b6/README.md",
+          "note": "TallyQA: The pinned v6.1-VL card explicitly reports this dataset family in the image corpus used by both members. Exact consumed source revisions/splits and adopted evaluation-example overlap are not established; this is a family-level disclosure.",
+          "registration_source": "contributor_review"
+        },
+        {
+          "benchmark_id": "nlvr2-noul",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-4b/blob/7f93b1926dc23c62635538f5d40f1dabbddee5b6/README.md",
+          "note": "NLVR2: The pinned v6.1-VL card explicitly reports this dataset family in the image corpus used by both members. Exact consumed source revisions/splits and adopted evaluation-example overlap are not established; this is a family-level disclosure.",
+          "registration_source": "contributor_review"
+        },
+        {
+          "benchmark_id": "scienceqa-choice",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-4b/blob/7f93b1926dc23c62635538f5d40f1dabbddee5b6/README.md",
+          "note": "ScienceQA: The pinned v6.1-VL card explicitly reports this dataset family in the image corpus used by both members. Exact consumed source revisions/splits and adopted evaluation-example overlap are not established; this is a family-level disclosure.",
+          "registration_source": "contributor_review"
+        },
+        {
+          "benchmark_id": "rvlcdip-choice",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-4b/blob/7f93b1926dc23c62635538f5d40f1dabbddee5b6/README.md",
+          "note": "RVL-CDIP: The pinned v6.1-VL card explicitly reports this dataset family in the image corpus used by both members. Exact consumed source revisions/splits and adopted evaluation-example overlap are not established; this is a family-level disclosure.",
+          "registration_source": "contributor_review"
+        }
+      ]
+    },
+    {
+      "model_ids": [
+        "HopitAI__image-hopper"
+      ],
+      "training_exposure": [
+        {
+          "benchmark_id": "visa-noul",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/HopitAI/image-hopper/blob/9a826874374961c4a950bc87969f5aac2ca6ac79/README.md",
+          "note": "VisA: The pinned model card reports VisA industrial-defect photos in LoRA training. It claims no benchmark items and checks near duplicates against its benchmark reference images; separation from the adopted S1MB cases is not independently established. Exact consumed source split/revision is unknown.",
+          "registration_source": "contributor_review"
         }
       ]
     }
