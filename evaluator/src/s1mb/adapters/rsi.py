@@ -49,8 +49,14 @@ class RSIAdapter(UpstreamAdapter):
                                   "max_length": limit, "truncate": "none"}
         if served.enc.truncate != "none" or served.enc.max_length != limit:
             raise ValueError("RSI did not activate complete-input rejection")
+        vision_encoder = getattr(served, "venc", None)
+        vision_limit = None
+        if vision_encoder is not None:
+            vision_limit = limit + served.meta["vision"]["image_token_budget"]
+            served.venc = dataclasses.replace(vision_encoder, max_length=vision_limit, truncate="none")
         self.settings.update({
             "dtype": "bfloat16", "attention_implementation": "native-server",
+            "max_vision_input_tokens": vision_limit,
             "max_input_tokens": limit, "input_length_policy": "reject-overflow-native",
             "questions_per_call": 1, "case_batch_size": 1,
             "calibration": self.engine.calibration,

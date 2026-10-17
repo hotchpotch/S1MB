@@ -38,7 +38,8 @@ def test_constructor_uses_native_server_default_before_applying_budget(monkeypat
         assert not os.environ.get("RSIJEV_MAX_LENGTH")
         assert not os.environ.get("RSIJEV_TRUNCATE")
         return SimpleNamespace(
-            served=SimpleNamespace(enc=Encoder(), meta={"spec": {}}), calibration="native",
+            served=SimpleNamespace(enc=Encoder(), venc=Encoder(truncate="left"),
+                                   meta={"spec": {}, "vision": {"image_token_budget": 1536}}), calibration="native",
         )
 
     def setup(self, *args):
@@ -53,6 +54,8 @@ def test_constructor_uses_native_server_default_before_applying_budget(monkeypat
     adapter = RSIAdapter("model", "revision", "source", "cuda:0", context_limit=8192)
     assert adapter.engine.served.enc.max_length == 8192
     assert adapter.engine.served.enc.truncate == "none"
+    assert adapter.engine.served.venc.max_length == 8192 + 1536
+    assert adapter.engine.served.venc.truncate == "none"
     assert os.environ["RSIJEV_MAX_LENGTH"] == "2048"
     assert os.environ["RSIJEV_TRUNCATE"] == "left"
 
