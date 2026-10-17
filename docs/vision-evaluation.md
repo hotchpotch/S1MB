@@ -2,6 +2,15 @@
 
 The evaluator supports image-bearing Choice, Noul, Score, and Box judgments through the TypeSafe adapter. OpenAI Decisions supports the same image-bearing Choice/Noul/Score tasks, using native predicate for Noul; it does not support Box. Vision is a separate category from the English/Japanese text leaderboards. Box uses normalized full-image left/top/right/bottom coordinates, mean IoU (higher is better), and accuracy at IoU >= 0.5. ScreenSpot converted to Box is not the original point-click protocol.
 
+We gratefully acknowledge [MTEB](https://github.com/embeddings-benchmark/mteb),
+[MIEB](https://arxiv.org/abs/2504.10471), and
+[MMEB / VLM2Vec](https://github.com/TIGER-AI-Lab/VLM2Vec)
+([evaluation dataset](https://huggingface.co/datasets/TIGER-Lab/MMEB-eval)) as
+references for candidate discovery and coverage. The original image benchmarks
+and image contributors are credited in the [source checklist](evaluation_sources.md#vision-sources)
+and [license inventory](vision-source-licenses.md). S1MB's typed adaptations do
+not reproduce embedding evaluation protocols or directly comparable scores.
+
 ## Choose the measurement scope
 
 `vision-v1` is an independent evaluation scope: 26 benchmarks / 7,800 judgments.

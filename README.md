@@ -159,6 +159,32 @@ or GPU. Start with [Contributing](CONTRIBUTING.md) and the
 [developer workflow](docs/developer_workflow.md). Keep downloaded datasets,
 checkpoints, credentials, generated results, and reports out of source commits.
 
+## Acknowledgments
+
+As its name, **System One Mosaic Benchmark**, suggests, S1MB brings together
+many existing benchmarks. We thank the researchers, annotators, dataset creators
+and maintainers whose work makes this mosaic possible. The individual evaluation
+Dataset cards link to their upstream datasets, source projects and attribution
+notices: [English v1](https://huggingface.co/datasets/hotchpotch/S1MB-english-v1#sources),
+[Japanese v1](https://huggingface.co/datasets/hotchpotch/S1MB-japanese-v1#sources-and-licenses)
+and [Vision v1](https://huggingface.co/datasets/hotchpotch/S1MB-vision-v1#sources-and-licenses).
+The [source checklist](docs/evaluation_sources.md) provides another route to those
+works. Please credit and cite the original research alongside S1MB when using
+its derived evaluations.
+
+### Vision
+
+We thank the teams behind [MTEB](https://github.com/embeddings-benchmark/mteb),
+[MIEB](https://arxiv.org/abs/2504.10471), and
+[MMEB / VLM2Vec](https://github.com/TIGER-AI-Lab/VLM2Vec)
+([MMEB evaluation dataset](https://huggingface.co/datasets/TIGER-Lab/MMEB-eval)).
+Their work helped us discover candidate tasks and consider broad coverage of
+visual capabilities. Vision v1 adapts original image benchmarks to typed
+decisions and adds authored synthetic tasks; its protocols and scores differ
+from embedding evaluation. We also thank the original benchmark authors and
+image contributors, linked in the [vision source checklist](docs/evaluation_sources.md#vision-sources)
+and [source attribution and license inventory](docs/vision-source-licenses.md).
+
 ## Citation
 
 If you use S1MB in your research, please cite:

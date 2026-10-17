@@ -1,8 +1,13 @@
 # Evaluation source checklist
 
 Use this checklist before training-data disclosure and before an S1MB submission.
-The tables map every active English/Japanese benchmark to its public source repository
-or named source family. They contain no evaluation rows or targets.
+The tables map every active English/Japanese/vision benchmark to its public source
+repository or named source family. They contain no evaluation rows or targets.
+
+S1MB is a mosaic of existing research. We thank the authors, annotators and
+maintainers of the linked datasets and evaluation projects. The individual
+Dataset cards also retain source links and attribution notices; citing S1MB
+does not replace crediting those original works.
 
 **Not using Bekko System One or Saihai does not establish separation from S1MB.**
 Those are collections, not the complete set of possible training sources. Training
@@ -146,6 +151,40 @@ GitHub links identify sources distributed outside HF.
 
 Original partitions are not uniformly held out by their original authors. See
 [language scopes and source partitions](language_scopes.md#scores-and-source-partitions).
+
+## Vision sources
+
+We thank [MTEB](https://github.com/embeddings-benchmark/mteb),
+[MIEB](https://arxiv.org/abs/2504.10471), and
+[MMEB / VLM2Vec](https://github.com/TIGER-AI-Lab/VLM2Vec)
+([MMEB-eval](https://huggingface.co/datasets/TIGER-Lab/MMEB-eval)) for helping
+guide candidate discovery and coverage. These references are distinct from the
+original datasets below. S1MB uses typed decision adaptations, not the original
+embedding evaluation protocols or directly comparable scores.
+
+| Original dataset / project | S1MB benchmark IDs |
+| --- | --- |
+| [CV-Bench](https://huggingface.co/datasets/nyu-visionx/CV-Bench) | `cvbench-depth-choice`, `cvbench-distance-choice`, `cvbench-relation-choice` |
+| [KonIQ-10k](https://doi.org/10.18419/darus-2435) | `koniq-score` |
+| [MVTec AD](https://www.mvtec.com/research-teaching/datasets/mvtec-ad) | `mvtec-ad-noul` |
+| [NIGHTS / DreamSim](https://github.com/ssundaram21/dreamsim/tree/main/dataset) | `nights-choice` |
+| [NLVR2](https://github.com/lil-lab/nlvr/tree/master/nlvr2) | `nlvr2-noul` |
+| [POPE](https://github.com/RUCAIBox/POPE) | `pope-noul` |
+| [RefCOCO / RefCOCO+ / RefCOCOg (REFER)](https://github.com/lichengunc/refer) | `refcoco-box`, `refcoco-plus-box`, `refcocog-box` |
+| [RVL-CDIP](https://huggingface.co/datasets/aharley/rvl_cdip) | `rvlcdip-choice` |
+| [ScienceQA](https://github.com/lupantech/ScienceQA) | `scienceqa-choice` |
+| [ScreenSpot / SeeClick](https://github.com/njucckevin/SeeClick) | `screenspot-box` |
+| [SugarCrepe](https://github.com/RAIVNLab/sugar-crepe) | `sugarcrepe-choice` |
+| [TallyQA](https://github.com/manoja328/tallyqa) | `tallyqa-score` |
+| [VisA](https://github.com/amazon-science/spot-diff) | `visa-noul` |
+| [VSR](https://huggingface.co/datasets/cambridgeltl/vsr_zeroshot) | `vsr-noul` |
+| S1MB-authored synthetic tasks using [WIT](https://github.com/google-research-datasets/wit) and the [generalization image sources](vision-source-licenses.md#generalization-image-sources) | `generalization-vision-easy-noul`, `generalization-vision-easy-choice`, `generalization-vision-easy-score`, `generalization-vision-easy-box`, `generalization-vision-hard-noul`, `generalization-vision-hard-choice`, `generalization-vision-hard-score`, `generalization-vision-hard-box` |
+
+See the [Vision Dataset card](https://huggingface.co/datasets/hotchpotch/S1MB-vision-v1#sources-and-licenses)
+and [license inventory](vision-source-licenses.md) for source-specific terms and
+image attribution. The eight authored sets use synthetic teachers, not human
+gold. Shared source images, original split lineage and record-level training
+exposure remain separate considerations.
 
 ## Disclosure to include in a submission
 
