@@ -746,6 +746,30 @@ renderer/tokenizer, and remove the benchmark/limit flags for a complete Japanese
 run with a fresh ID. No CPU fallback or input truncation is permitted.
 
 
+## Sqwish kettei (hosted API)
+
+Use `--adapter kettei` for Sqwish's hosted decision models, for example `--model kettei-fat` or `--model kettei-chub`.
+The service at `https://api.sqwish.ai/v1/systemone` accepts the TypeSafe v1 typed-question request, so the adapter
+reuses the TypeSafe request mapping: one case per request with all of its questions, structured instructions and
+criteria, authored Noul definitions, Score levels in ascending numeric order, and the complete input without local
+truncation. An input the service rejects is recorded as a failed case; only status codes are kept, never response
+bodies. The API returns unrounded probabilities, which are normalized only within four-decimal rounding tolerance.
+The service reads the questions of one request together, so the adapter never splits a case.
+
+Set `SQWISH_API_KEY` as listed in `.env.sample`; the adapter never reads `TYPESAFE_API_KEY`. `--case-batch-size`
+(1 to 32, default 1) sets how many cases are sent concurrently. Results record the requested model, the model the API
+returns and the endpoint. The API returns a model name, not an immutable weight revision. Calls are billed to the key's
+account.
+
+```sh
+# from evaluator/
+uv run --env-file ../.env s1mb run --adapter kettei --model kettei-fat \
+  --category smoke-v1 --limit 2 --run-id kettei-fat-smoke-001
+uv run s1mb validate data/results/kettei-fat-smoke-001
+```
+
+After validating the smoke results, run `--category english-v1` without `--limit` under a fresh run ID.
+
 ## JevK5-Lite
 
 `jevk5-lite` is separate from the autoregressive `jevk5` adapter. Pass a
