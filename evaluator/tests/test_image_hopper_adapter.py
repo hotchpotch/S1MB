@@ -45,3 +45,14 @@ def test_text_scope_rejected_without_synthetic_image():
     adapter.engine = SimpleNamespace()
     with pytest.raises(ValueError, match="requires at least one image"):
         adapter.predict(cases())
+
+
+def test_native_receipts_keep_digests_without_local_paths():
+    from s1mb.adapters.image_hopper import public_hopper_provenance
+
+    native = {"adapter": {"path": "/private/adapter", "sha256": "a" * 64},
+              "base_revision": "b" * 40, "routes": [{"path": "/private/route", "cap": 768}]}
+    public = public_hopper_provenance(native)
+    assert public == {"adapter": {"sha256": "a" * 64}, "base_revision": "b" * 40,
+                      "routes": [{"cap": 768}]}
+    assert native["adapter"]["path"] == "/private/adapter"

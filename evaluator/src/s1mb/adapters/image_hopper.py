@@ -7,6 +7,15 @@ from .upstream import UpstreamAdapter
 from .vision_native import choice_transport, ordered_images, typed_questions
 
 
+def public_hopper_provenance(value):
+    """Retain native hashes and settings while omitting machine-local paths."""
+    if isinstance(value, dict):
+        return {key: public_hopper_provenance(item) for key, item in value.items() if key != "path"}
+    if isinstance(value, list):
+        return [public_hopper_provenance(item) for item in value]
+    return value
+
+
 class ImageHopperAdapter(UpstreamAdapter):
     supports_images = True
     case_batch_size = 1
@@ -32,7 +41,7 @@ class ImageHopperAdapter(UpstreamAdapter):
         self.attention_model = self.engine.model
         self.image_receipts = {}
         self.settings.update({
-            "dtype": "bfloat16", "native_provenance": provenance,
+            "dtype": "bfloat16", "native_provenance": public_hopper_provenance(provenance),
             "max_input_tokens": context_limit, "input_length_policy": "reject-overflow-native",
             "max_images": 4, "max_candidates": 26,
             "renderer": "native-choice-authored-noul-numeric-score-v1",
