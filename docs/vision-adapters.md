@@ -236,7 +236,7 @@ alongside its separately disclosed non-commercial/research-only training sources
 base, released LoRA routing and default serving options (including a 768-token
 image cap on its default route). It requires images and has no text-only fallback.
 Noul and Score use native Choice with all authored criteria and numeric anchors;
-this transport uses the release's Choice calibration. The native limit is 26
+this transport uses the release's route/option-count temperatures. The native limit is 26
 options and four images. The checkpoint bundle is the default `--source`.
 
 All three adapters apply the shared benchmark image policy first and retain
