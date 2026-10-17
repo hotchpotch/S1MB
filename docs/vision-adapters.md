@@ -199,3 +199,21 @@ Review training exposure separately from accuracy. In particular, Vision-Jev's
 KonIQ normalizer independently re-splits the original dataset; its candidate train
 pool can overlap author-test images. A source-family disclosure does not certify
 that evaluation examples were excluded. Missing disclosure means unknown.
+
+### Text-only evaluation of visual checkpoints
+
+The same pinned visual checkpoints can also be evaluated on text categories when
+an intact request fits their native candidate and context capacities. JEVision's
+bridge retains its released visual LoRA and pointer head for text-only requests;
+it renders the native escaped state/question/option delimiters through the official
+chat template, without image tokens or fabricated images, and reads the same
+option-end and decision hidden states. This is an explicit serving extension to
+the image-required upstream visual scorer, not a switch to a separately trained
+text checkpoint. Metadata records this transport. Visual Jev and Vision-Jev keep
+the original structured state for text-only requests; Visual Jev passes no media
+to the processor and removes the native image marker.
+
+Visual Jev's answer-SFT readout remains limited to 2–16 native answer tokens.
+English questions with more candidates remain unsupported; do not split their
+candidate sets, invent predictions, or claim complete English coverage. Complete
+Japanese coverage can be submitted independently when all its benchmarks pass.

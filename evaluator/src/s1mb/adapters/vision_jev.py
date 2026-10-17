@@ -67,7 +67,7 @@ class VisionJevAdapter(UpstreamAdapter):
             sample = {"task_type": question["type"], "options": [
                 {"id": f"option_{i}", "text": text} for i, text in enumerate(options)
             ]}
-            text = "Visible state: " + json.dumps(state, ensure_ascii=False)
+            text = "Visible state: " + json.dumps(state if images else case.state, ensure_ascii=False)
             text += "\n\nQuestion: " + question["instructions"]
             text += "\n\nCandidates:\n" + "\n".join(
                 f"option_{i}: {value}" for i, value in enumerate(options)
