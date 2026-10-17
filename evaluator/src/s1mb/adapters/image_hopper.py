@@ -22,6 +22,13 @@ class ImageHopperAdapter(UpstreamAdapter):
             device=device, max_input_tokens=context_limit, allow_slow_path=True,
             serving_options="lean_lora,uint8_pixels,device_readout,image_token_cap_default=768",
         )
+        # The exact lean-LoRA serving path holds trained factors as buffers.
+        # Count storage-sharing parameter views without changing native inference.
+        factors = [value for name, value in self.engine.model.named_buffers()
+                   if name.rsplit(".", 1)[-1] in {"lora_a", "lora_b"}]
+        self.engine.lora_parameters = self.torch.nn.ParameterList([
+            self.torch.nn.Parameter(value, requires_grad=False) for value in factors
+        ])
         self.attention_model = self.engine.model
         self.image_receipts = {}
         self.settings.update({
