@@ -243,6 +243,11 @@ vision modules, scoring heads, calibration buffers and the final norm stay on
 GPU 0, while complete text decoder layers are split between both GPUs. Adaptive
 policy calibrators are recreated on CUDA from the same release files after
 loading; the released default effort policy is retained.
+For inference-only final-layer heads, the two-GPU adapter retains only the final
+and declared auxiliary-exit hidden states. Long eager requests therefore release
+unused intermediate activations instead of retaining every decoder layer. Native
+readout indices, final normalization, calibration and inputs remain unchanged;
+other readout configurations are rejected. Results record this retention policy.
 
 `rsi` also accepts ordered images with a compatible RSI-Jev VL checkpoint. Pin
 both the model and the RSI-Jev Git checkout (`--source`). Image requests use the
