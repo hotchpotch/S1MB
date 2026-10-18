@@ -56,7 +56,20 @@ def dispatch_decision_tower(model, torch):
     layers = [sizes[name] for name in names]
     free = [torch.cuda.mem_get_info(i)[0] for i in range(2)]
     cut = two_gpu_cut(layers, sizes[""] - sum(layers), free)
-    placement = {"": 0, **{name: int(i >= cut) for i, name in enumerate(names)}}
+    # An ancestor entry makes Accelerate move its entire subtree before child
+    # hooks are installed. Never map the root or tower to one GPU: doing so
+    # transiently loads every decoder layer there, even with layer overrides.
+    placement = {
+        **{name: 0 for name, _ in model.named_children() if name != "tower"},
+        **{f"tower.{name}": 0 for name, _ in tower.named_children() if name != "layers"},
+        **{name: int(i >= cut) for i, name in enumerate(names)},
+    }
+    # Calibration buffers and layer-mixing parameters belong to the root itself.
+    # Move only those direct tensors; a recursive model.to() would defeat sharding.
+    direct = [*model.named_parameters(recurse=False), *model.named_buffers(recurse=False)]
+    for name, _ in direct:
+        placement[name] = 0
+        accelerate.utils.set_module_tensor_to_device(model, name, "cuda:0")
     accelerate.dispatch_model(model, device_map=placement, main_device=0, force_hooks=True)
     if any(parameter.device.type != "cuda" for parameter in model.parameters()):
         raise RuntimeError("Native decision model contains non-CUDA weights after dispatch")
