@@ -7267,7 +7267,7 @@
           "config": null,
           "split": null,
           "evidence_url": "https://huggingface.co/kirp/jpt-9b/blob/9fda2c7f123d36c4789c46c93737e80fc3a6c9fe/README.md",
-          "note": "The pinned release card explicitly names this source family in the model’s training data. The exact training Dataset snapshot and configuration are not disclosed. This is author-reported source-family exposure; it does not establish use of the adopted S1MB evaluation examples.",
+          "note": "The pinned JPT-9B card says it uses the JPT-4B recipe and data. The referenced JPT-4B card explicitly lists ContractNLI among training sources: https://huggingface.co/kirp/jpt-4b/blob/78312f855b8bebf83ae7e9e8f05b5a0f73f519a9/README.md . This is author-reported recipe lineage; the historical JPT-4B card snapshot used during training and the exact training Dataset snapshot, split and configuration are not disclosed. It does not establish use of the adopted S1MB evaluation examples.",
           "registration_source": "contributor_review"
         },
         {
