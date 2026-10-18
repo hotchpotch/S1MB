@@ -11,14 +11,27 @@ class D3Adapter(UpstreamAdapter):
     supports_images = True
     case_batch_size = 1
 
-    def __init__(self, model, revision, source, device, context_limit=32768):
+    def __init__(self, model, revision, source, device, context_limit=32768, cuda_shards=1):
         if context_limit < 1:
             raise ValueError("D3 context_limit must be positive")
+        if cuda_shards not in {1, 2}:
+            raise ValueError("D3 cuda_shards must be 1 or 2")
         self.setup("d3", model, revision, source, device)
+        if cuda_shards == 2 and (device != "cuda:0" or self.torch.cuda.device_count() != 2):
+            raise ValueError("D3 sharding requires cuda:0 and exactly two visible GPUs")
         native = importlib.import_module("d3_runtime")
         self.engine = native.D3.from_pretrained(
-            self.path, device=device, batch_size=1, max_length=context_limit, verify="full"
+            self.path, device="cpu" if cuda_shards == 2 else device,
+            batch_size=1, max_length=context_limit, verify="full"
         )
+        if cuda_shards == 2:
+            from .cuda_sharding import dispatch_vision_decoder
+
+            self.settings["cuda_device_map"] = dispatch_vision_decoder(self.engine.backbone, self.torch)
+            self.engine.device = self.torch.device(device)
+            self.engine.readout = self.engine.readout.to(device)
+            self.settings["weight_loading"] = "cpu-staging-then-cuda-only-inference"
+        self.settings["cuda_shards"] = cuda_shards
         # The released runtime stores its trained readout as a plain tensor.
         # Expose a storage-sharing parameter view for complete static counts;
         # inference continues to use the untouched native readout tensor.
@@ -26,6 +39,7 @@ class D3Adapter(UpstreamAdapter):
             self.torch.nn.Parameter(self.engine.readout, requires_grad=False)
         ])
         self.attention_model = self.engine.backbone
+        self.enable_kernels()
         self.image_receipts = {}
         self.settings.update({
             "dtype": "bfloat16-float32-readout", "batch_size": 1,

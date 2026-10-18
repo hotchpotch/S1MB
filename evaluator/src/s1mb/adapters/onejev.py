@@ -25,10 +25,14 @@ class OneJevAdapter(UpstreamAdapter):
     case_batch_size = 1
     supports_images = True
 
-    def __init__(self, model, revision, source, device, context_limit=None):
+    def __init__(self, model, revision, source, device, context_limit=None, cuda_shards=1):
         if context_limit is not None and context_limit < 1:
             raise ValueError("OneJev context_limit must be positive")
+        if cuda_shards not in {1, 2}:
+            raise ValueError("OneJev cuda_shards must be 1 or 2")
         self.setup("onejev", model, revision, source, device)
+        if cuda_shards == 2 and (device != "cuda:0" or self.torch.cuda.device_count() != 2):
+            raise ValueError("OneJev sharding requires cuda:0 and exactly two visible GPUs")
         self.image_receipts = {}
         native = importlib.import_module("qev.mm_engine")
         self.schema = importlib.import_module("qev.schema")
@@ -41,7 +45,7 @@ class OneJevAdapter(UpstreamAdapter):
         )
         self.engine = native.MMDecisionEngine(
             str(self.path),
-            device=device,
+            device="cpu" if cuda_shards == 2 else device,
             dtype="bfloat16",
             head_dtype="float32",
             calibration=calibration,
@@ -52,6 +56,20 @@ class OneJevAdapter(UpstreamAdapter):
             gpu_preprocess=False,
             allow_local_paths=False,
         )
+        if cuda_shards == 2:
+            from .cuda_sharding import dispatch_vision_decoder
+
+            # Charge the native FP32 output head to GPU 0 before balancing the backbone.
+            self.engine.model.get_output_embeddings().to(device)
+            self.engine._slot_w = self.engine._slot_w.to(device)
+            if self.engine._slot_b is not None:
+                self.engine._slot_b = self.engine._slot_b.to(device)
+            self.settings["cuda_device_map"] = dispatch_vision_decoder(self.engine.model.model, self.torch)
+            self.engine.device = self.torch.device(device)
+            if any(p.device.type != "cuda" for p in self.engine.model.parameters()):
+                raise RuntimeError("OneJev contains non-CUDA weights after dispatch")
+            self.settings["weight_loading"] = "cpu-staging-then-cuda-only-inference"
+        self.settings["cuda_shards"] = cuda_shards
         self.attention_model = self.engine.model
         self.set_attention("sdpa")
         self.enable_kernels()

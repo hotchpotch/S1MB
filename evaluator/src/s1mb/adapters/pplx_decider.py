@@ -13,15 +13,30 @@ class PplxDeciderAdapter(UpstreamAdapter):
     supports_images = True
     case_batch_size = 1
 
-    def __init__(self, model, revision, source, device, context_limit=32768):
+    def __init__(self, model, revision, source, device, context_limit=32768, cuda_shards=1):
         if context_limit < 1:
             raise ValueError("Perplexity Decider context_limit must be positive")
+        if cuda_shards not in {1, 2}:
+            raise ValueError("Perplexity Decider cuda_shards must be 1 or 2")
         self.setup("pplx-decider", model, revision, source, device)
+        if cuda_shards == 2 and (device != "cuda:0" or self.torch.cuda.device_count() != 2):
+            raise ValueError("Perplexity Decider sharding requires cuda:0 and exactly two visible GPUs")
         sys.path.insert(0, str(self.path / "source" / "src"))
         native = importlib.import_module("pplx_decider")
         self.engine = native.Decider.from_pretrained(
-            self.path, device=device, fast=False, max_length=context_limit
+            self.path, device="cpu" if cuda_shards == 2 else device,
+            fast=False, max_length=context_limit
         )
+        if cuda_shards == 2:
+            from .cuda_sharding import dispatch_vision_decoder
+
+            # Native CPU loading uses FP32; restore the native CUDA BF16 dtype before dispatch.
+            self.engine.backbone.to(dtype=self.torch.bfloat16)
+            self.settings["cuda_device_map"] = dispatch_vision_decoder(self.engine.backbone, self.torch)
+            self.engine.readout.to(device=device, dtype=self.torch.bfloat16)
+            self.engine.device = self.torch.device(device)
+            self.settings["weight_loading"] = "cpu-float32-staging-then-cuda-bfloat16-only-inference"
+        self.settings["cuda_shards"] = cuda_shards
         self.attention_model = self.engine.backbone
         self.enable_kernels()
         self.image_receipts = {}

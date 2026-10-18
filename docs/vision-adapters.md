@@ -225,6 +225,25 @@ rejection. Its native Choice/Noul/Score protocol retains authored binary criteri
 and numeric Score anchors. Use a full checkpoint SHA and `--context-limit 32768`.
 The checkpoint bundle is the default `--source`.
 
+For larger D3 checkpoints, `--cuda-shards 2 --device cuda:0` places complete
+decoder layers across exactly two visible CUDA devices. Weights are staged on
+CPU during loading, then moved entirely to CUDA before inference. Placement
+reserves activation memory and rejects checkpoints that cannot fit; it does not
+offload inference to CPU. Record both device IDs through `CUDA_VISIBLE_DEVICES`.
+OneJev also accepts `--cuda-shards 2` for compatible Qwen vision checkpoints.
+Its native FP32 output head remains on GPU 0 and is included in the available
+memory calculation before balancing complete backbone layers. Native calibration,
+slot readout and sequential fork execution are preserved.
+`pplx-decider --cuda-shards 2` uses the same CUDA-only backbone placement.
+Its native CPU loader initially stages FP32 weights, so host memory requirements
+are higher than the BF16 checkpoint size. Before any inference, both backbone
+and readout are converted to the native CUDA BF16 dtype and moved to CUDA.
+`rsi --cuda-shards 2` supports the native separate vision/scoring architecture:
+vision modules, scoring heads, calibration buffers and the final norm stay on
+GPU 0, while complete text decoder layers are split between both GPUs. Adaptive
+policy calibrators are recreated on CUDA from the same release files after
+loading; the released default effort policy is retained.
+
 `rsi` also accepts ordered images with a compatible RSI-Jev VL checkpoint. Pin
 both the model and the RSI-Jev Git checkout (`--source`). Image requests use the
 native full-depth vision path; text requests retain the released effort policy.
@@ -243,6 +262,34 @@ All three adapters apply the shared benchmark image policy first and retain
 receipts for the subsequent native preprocessing. Box is unsupported. Model
 cards and source-family training disclosures remain separate from exact-example
 contamination claims.
+
+`intern-decision` also accepts ordered images with a compatible native checkpoint
+and Python 3.12 or newer. The bridge applies the benchmark image policy, then
+passes lossless temporary PNGs with neutral numbered names to the native image
+processor. Paths and source metadata are excluded from model text. It preserves
+authored Noul definitions and transports Score anchors as numeric-keyed criteria.
+Its native limit is 62 candidates; larger questions are unsupported and cannot
+be reduced to claim complete scope coverage. Box is unsupported.
+
+`amos` loads a released Amos decoder bundle (`model/config.json` and `serve/amos`)
+and calls its native in-process engine. It preserves released per-type calibration,
+one option order, native image preprocessing and complete-input overflow rejection.
+Use `--cuda-shards 2` for large Qwen vision checkpoints. The output head remains on
+GPU 0 and complete backbone layers are balanced across both CUDA devices after
+CPU loading. Noul keeps authored criteria; Score retains numeric level descriptions
+and its full probability vector. Legacy Amos encoder checkpoints and Box are
+unsupported by this bridge. Run a fresh image smoke before full evaluation.
+
+`e12ex-vision` loads the released e12ex2 vision LoRA and its explicitly pinned
+Qwen base. Supply `--source` as a pinned Decision Index kit checkout,
+`--base-revision` and `--cuda-shards 2`. The checkpoint supplies the native
+`code/serve/engine.py` runtime. Weights are staged on CPU, positioned entirely on
+CUDA, then merged on CUDA before the native option-logit readout runs. One option
+order and the release's identity temperature are retained. All typed questions
+use explicit native Choice criteria because the native binary shortcut ignores
+authored definitions; numeric Score anchors remain in their descriptions.
+The released label table supports 624 candidates, with the first 62 corresponding
+to the training format. Inputs are rejected on overflow, and Box is unsupported.
 
 ```sh
 uv run s1mb run --category vision-v1 --exclude-box --adapter d3 \

@@ -8,6 +8,7 @@ from test_upstream_adapters import cases
 
 from s1mb.adapters.llm2jev import (
     BoundedHF,
+    BoundedProcessor,
     LLM2JevAdapter,
     llm2jev_questions,
     llm2jev_state,
@@ -60,6 +61,7 @@ def test_overflow_precedes_gpu_scoring_and_boundary_is_accepted():
 
 def test_native_single_question_alignment():
     adapter = LLM2JevAdapter.__new__(LLM2JevAdapter)
+    adapter.image_receipts = {}
 
     def engine(state, questions):
         assert state == cases().state
@@ -78,6 +80,50 @@ def test_native_single_question_alignment():
     assert result[0].probabilities == {"x": 0.2, "y": 0.8}
     assert result[1].probabilities["true"] == 0.7
     assert result[2].probabilities == {"low": 0.2, "high": 0.8}
+
+
+def test_expanded_image_token_budget_precedes_gpu_transfer():
+    class Processor:
+        def __call__(self, **kwargs):
+            assert kwargs == {"images": ["pixels"]}
+            return {"input_ids": SimpleNamespace(shape=(1, 7))}
+
+    bounded = BoundedProcessor(Processor(), 7)
+    assert bounded(images=["pixels"])["input_ids"].shape == (1, 7)
+    with pytest.raises(ValueError, match="image input.*truncation"):
+        BoundedProcessor(Processor(), 6)(images=["pixels"])
+
+
+def test_image_state_preserves_context_and_pixel_order(monkeypatch):
+    import base64
+    import io
+
+    from PIL import Image
+
+    from s1mb.adapters import llm2jev
+
+    case = cases()
+    images = [Image.new("RGB", (2, 3), color) for color in ["red", "blue"]]
+    context = {"context": case.state, "visual_inputs": {"left": "<image:1>", "right": "<image:2>"}}
+    monkeypatch.setattr(llm2jev, "ordered_images", lambda _: (images, context, [1, 2]))
+    adapter = LLM2JevAdapter.__new__(LLM2JevAdapter)
+    adapter.image_receipts = {}
+
+    def engine(state, questions):
+        content = state[0]["content"]
+        assert json.loads(content[0]["text"]) == context
+        assert len(content) == 3
+        for part, image in zip(content[1:], images, strict=True):
+            assert part["type"] == "image"
+            payload = base64.b64decode(part["image"].split(",", 1)[1])
+            with Image.open(io.BytesIO(payload)) as decoded:
+                assert decoded.tobytes() == image.tobytes()
+        return {"decision": {"type": "noul", "noul": 0.7}}
+
+    adapter.engine = engine
+    case.questions = [case.questions[1]]
+    assert adapter.predict(case)[0].probabilities["true"] == 0.7
+    assert adapter.image_receipts[case.case_id] == [1, 2]
 
 
 @pytest.mark.parametrize("temperature", [0, -1, float("nan"), float("inf")])
