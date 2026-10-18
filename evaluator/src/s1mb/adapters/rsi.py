@@ -62,6 +62,10 @@ class RSIAdapter(UpstreamAdapter):
             )
             self.settings["weight_loading"] = "cpu-staging-then-cuda-only-inference"
             self.settings["decoder_output_device_policy"] = "native-exits-return-to-cuda:0"
+            # CPU staging makes the native loader select reference recurrence.
+            # Restore CUDA recurrence after dispatch, retaining transfer hooks.
+            self.attention_model = served.model.tower
+            self.enable_kernels()
         self.settings["cuda_shards"] = cuda_shards
         served.enc = dataclasses.replace(served.enc, max_length=limit, truncate="none")
         served.meta["serving"] = {**served.meta.get("serving", {}),
@@ -86,6 +90,7 @@ class RSIAdapter(UpstreamAdapter):
             "runtime": "native-in-process-server-calibrated-option-readout",
             "renderer": "native-choice-authored-noul-numeric-score",
             "structured_state_policy": "native-text;unsupported-chat-roles-as-complete-json-data",
+            "cuda_graphs_requested": os.environ.get("RSIJEV_CUDA_GRAPHS", "1"),
         })
 
     def predict(self, case):
