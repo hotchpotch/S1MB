@@ -61,6 +61,7 @@ class RSIAdapter(UpstreamAdapter):
                 served.meta, self.path, served.model, device
             )
             self.settings["weight_loading"] = "cpu-staging-then-cuda-only-inference"
+            self.settings["decoder_output_device_policy"] = "native-exits-return-to-cuda:0"
         self.settings["cuda_shards"] = cuda_shards
         served.enc = dataclasses.replace(served.enc, max_length=limit, truncate="none")
         served.meta["serving"] = {**served.meta.get("serving", {}),

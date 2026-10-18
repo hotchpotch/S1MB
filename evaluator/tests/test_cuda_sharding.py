@@ -29,9 +29,10 @@ def test_rejects_unknown_native_decision_tower_before_dispatch():
 
 def test_decision_dispatch_never_preloads_all_layers_on_one_gpu(monkeypatch):
     """Model Accelerate's recursive placement, including direct calibration tensors."""
+    output_hooks = []
     tower = SimpleNamespace(named_children=lambda: [
         (name, object()) for name in ["embed_tokens", "layers", "norm", "rotary_emb"]
-    ], layers=list(range(6)))
+    ], layers=[SimpleNamespace(register_forward_hook=output_hooks.append) for _ in range(6)])
     direct = {"mix_logits": "cpu", "cal_logT": "cpu"}
     model = SimpleNamespace(
         tower=tower,
@@ -39,6 +40,7 @@ def test_decision_dispatch_never_preloads_all_layers_on_one_gpu(monkeypatch):
         named_parameters=lambda recurse: [("mix_logits", object())],
         named_buffers=lambda recurse: [("cal_logT", object())],
         parameters=lambda: [SimpleNamespace(device=SimpleNamespace(type="cuda"))],
+        exit_indices=lambda: [3],
     )
     sizes = {"": 80, "tower": 70, "tower.layers": 60,
              **{f"tower.layers.{i}": 10 for i in range(6)}}
@@ -60,7 +62,8 @@ def test_decision_dispatch_never_preloads_all_layers_on_one_gpu(monkeypatch):
 
     accelerate = SimpleNamespace(
         utils=SimpleNamespace(compute_module_sizes=lambda module: sizes,
-                              set_module_tensor_to_device=move),
+                              set_module_tensor_to_device=move,
+                              send_to_device=lambda output, device: (output, device)),
         dispatch_model=dispatch,
     )
     monkeypatch.setattr("s1mb.adapters.cuda_sharding.importlib.import_module", lambda _: accelerate)
@@ -70,3 +73,5 @@ def test_decision_dispatch_never_preloads_all_layers_on_one_gpu(monkeypatch):
     assert moved == ["mix_logits", "cal_logT"]
     assert placement["tower.layers.0"] == 0 and placement["tower.layers.5"] == 1
     assert placement["visual"] == placement["scorer"] == placement["cal_logT"] == 0
+    assert len(output_hooks) == 2
+    assert output_hooks[0](tower.layers[-1], (), "activations") == ("activations", "cuda:0")

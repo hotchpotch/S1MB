@@ -3,6 +3,12 @@
 import importlib
 
 
+def _decision_output_to_primary(module, inputs, output):
+    """Return final decoder activations to the native pooling/calibration device."""
+    accelerate = importlib.import_module("accelerate")
+    return accelerate.utils.send_to_device(output, "cuda:0")
+
+
 def two_gpu_cut(layer_bytes, fixed_bytes, free_bytes):
     """Reserve activation space and balance a contiguous split across two GPUs."""
     if len(free_bytes) != 2 or len(layer_bytes) < 2:
@@ -71,6 +77,14 @@ def dispatch_decision_tower(model, torch):
         placement[name] = 0
         accelerate.utils.set_module_tensor_to_device(model, name, "cuda:0")
     accelerate.dispatch_model(model, device_map=placement, main_device=0, force_hooks=True)
+    # Some native text runners pool using the final decoder output's device
+    # before invoking the separately hooked norm/head. Their span tensors and
+    # calibration live on GPU 0, so the decoder boundary must return there too.
+    exits = getattr(model, "exit_indices", list)()
+    for depth in sorted({len(tower.layers), *exits}):
+        if not isinstance(depth, int) or not 1 <= depth <= len(tower.layers):
+            raise ValueError("Invalid native decision exit depth")
+        tower.layers[depth - 1].register_forward_hook(_decision_output_to_primary)
     if any(parameter.device.type != "cuda" for parameter in model.parameters()):
         raise RuntimeError("Native decision model contains non-CUDA weights after dispatch")
     return placement
