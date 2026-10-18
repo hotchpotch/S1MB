@@ -7269,6 +7269,28 @@
           "evidence_url": "https://huggingface.co/kirp/jpt-9b/blob/9fda2c7f123d36c4789c46c93737e80fc3a6c9fe/README.md",
           "note": "The pinned release card explicitly names this source family in the model’s training data. The exact training Dataset snapshot and configuration are not disclosed. This is author-reported source-family exposure; it does not establish use of the adopted S1MB evaluation examples.",
           "registration_source": "contributor_review"
+        },
+        {
+          "benchmark_id": "laya--ag-news-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "fancyzhx/ag_news",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/kirp/jpt-9b/blob/9fda2c7f123d36c4789c46c93737e80fc3a6c9fe/README.md",
+          "note": "The pinned JPT-9B card explicitly identifies this source among its in-distribution rows and states that the training splits are in the mix while test items are not. This is author-reported source-family exposure, not an independent overlap audit or proof about the adopted S1MB evaluation examples. The exact training snapshot and configuration are not disclosed.",
+          "registration_source": "contributor_review"
+        },
+        {
+          "benchmark_id": "massive-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "AmazonScience/massive",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/kirp/jpt-9b/blob/9fda2c7f123d36c4789c46c93737e80fc3a6c9fe/README.md",
+          "note": "The pinned JPT-9B card explicitly identifies this source among its in-distribution rows and states that the training splits are in the mix while test items are not. This is author-reported source-family exposure, not an independent overlap audit or proof about the adopted S1MB evaluation examples. The exact training snapshot and configuration are not disclosed.",
+          "registration_source": "contributor_review"
         }
       ]
     },
