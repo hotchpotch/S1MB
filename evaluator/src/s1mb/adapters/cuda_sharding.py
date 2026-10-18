@@ -41,3 +41,23 @@ def dispatch_vision_decoder(backbone, torch):
     if any(parameter.device.type != "cuda" for parameter in backbone.parameters()):
         raise RuntimeError("Native backbone contains non-CUDA weights after dispatch")
     return placement
+
+
+def dispatch_decision_tower(model, torch):
+    """Place a native text tower plus separate vision/scoring modules on CUDA."""
+    if torch.cuda.device_count() != 2:
+        raise ValueError("CUDA sharding requires exactly two visible GPUs")
+    tower = getattr(model, "tower", None)
+    if tower is None or set(dict(tower.named_children())) != {"embed_tokens", "layers", "norm", "rotary_emb"}:
+        raise ValueError("Unsupported native decision tower structure")
+    accelerate = importlib.import_module("accelerate")
+    sizes = accelerate.utils.compute_module_sizes(model)
+    names = [f"tower.layers.{i}" for i in range(len(tower.layers))]
+    layers = [sizes[name] for name in names]
+    free = [torch.cuda.mem_get_info(i)[0] for i in range(2)]
+    cut = two_gpu_cut(layers, sizes[""] - sum(layers), free)
+    placement = {"": 0, **{name: int(i >= cut) for i, name in enumerate(names)}}
+    accelerate.dispatch_model(model, device_map=placement, main_device=0, force_hooks=True)
+    if any(parameter.device.type != "cuda" for parameter in model.parameters()):
+        raise RuntimeError("Native decision model contains non-CUDA weights after dispatch")
+    return placement

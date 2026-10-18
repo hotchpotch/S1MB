@@ -382,9 +382,9 @@ def validate_run_arguments(args, parser):
     ):
         parser.error("--max-candidates requires a supported adapter and a value in 2..255")
     if args.cuda_shards not in {1, 2} or (
-        args.cuda_shards != 1 and args.adapter not in {"d3", "onejev", "pplx-decider", "amos"}
+        args.cuda_shards != 1 and args.adapter not in {"d3", "onejev", "pplx-decider", "amos", "rsi"}
     ):
-        parser.error("--cuda-shards 2 requires the d3, onejev, pplx-decider or amos adapter")
+        parser.error("--cuda-shards 2 requires the d3, onejev, pplx-decider, amos or rsi adapter")
     if args.context_limit is not None and (
         args.context_limit < 1
         or args.adapter
@@ -776,7 +776,8 @@ def execute(args, parser):
         from .adapters.rsi import RSIAdapter
 
         adapter = RSIAdapter(
-            args.model, args.revision, args.source, args.device, context_limit=args.context_limit
+            args.model, args.revision, args.source, args.device, context_limit=args.context_limit,
+            cuda_shards=args.cuda_shards,
         )
     elif args.adapter == "jet":
         if not args.source:

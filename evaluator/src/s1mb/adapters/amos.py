@@ -32,6 +32,7 @@ class AmosAdapter(UpstreamAdapter):
             str(self.path), "cpu" if cuda_shards == 2 else "cuda",
             max_len=context_limit, rotations=1,
         )
+        self.engine.think_url = None
         capacity = self.engine.model.config.get_text_config().max_position_embeddings
         if context_limit > capacity:
             raise ValueError("Amos context limit exceeds checkpoint capacity")
@@ -56,6 +57,8 @@ class AmosAdapter(UpstreamAdapter):
             "max_input_tokens": context_limit, "input_length_policy": "reject-overflow-native",
             "rotations": 1, "calibration_temperatures": self.engine.temperature,
             "cudnn_sdpa": False,
+            "thinking_policy": "disabled-native-direct-decisions",
+            "native_image_pixels": importlib.import_module("amos.decoder").IMAGE_PIXELS,
             "calibration_policy": "released-runtime", "candidate_slots": len(self.engine.codec.codes),
             "renderer": "native-structured-anonymous-numeric-score-v1",
             "media": "native-ordered-lossless-png-v1",

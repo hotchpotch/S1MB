@@ -24,19 +24,25 @@ class RSIAdapter(UpstreamAdapter):
     case_batch_size = 1
     supports_images = True
 
-    def __init__(self, model, revision, source, device, context_limit=None):
+    def __init__(self, model, revision, source, device, context_limit=None, cuda_shards=1):
         limit = 32768 if context_limit is None else context_limit
         if limit < 1:
             raise ValueError("RSI context_limit must be positive")
+        if cuda_shards not in {1, 2}:
+            raise ValueError("RSI cuda_shards must be 1 or 2")
         self.image_receipts = {}
         self.setup("rsi", model, revision, source, device)
+        if cuda_shards == 2 and (device != "cuda:0" or self.torch.cuda.device_count() != 2):
+            raise ValueError("RSI sharding requires cuda:0 and exactly two visible GPUs")
         native = importlib.import_module("serve.decider")
         self.wire = importlib.import_module("serve.wire")
         overrides = {"RSIJEV_MAX_LENGTH": "", "RSIJEV_TRUNCATE": ""}
         previous = {key: os.environ.get(key) for key in overrides}
         try:
             os.environ.update(overrides)
-            self.engine = native.Decider(str(self.path), device=device, dtype="bf16", batch_size=1)
+            self.engine = native.Decider(
+                str(self.path), device="cpu" if cuda_shards == 2 else device, dtype="bf16", batch_size=1
+            )
         finally:
             for key, value in previous.items():
                 if value is None:
@@ -44,6 +50,18 @@ class RSIAdapter(UpstreamAdapter):
                 else:
                     os.environ[key] = value
         served = self.engine.served
+        if cuda_shards == 2:
+            from .cuda_sharding import dispatch_decision_tower
+
+            self.settings["cuda_device_map"] = dispatch_decision_tower(served.model, self.torch)
+            served.device = self.engine.device = device
+            # Adaptive policy calibrators are native plain tensor dictionaries, not module buffers.
+            release = importlib.import_module("serve.release")
+            served.model.adaptive_policy, _ = release.adaptive_policy(
+                served.meta, self.path, served.model, device
+            )
+            self.settings["weight_loading"] = "cpu-staging-then-cuda-only-inference"
+        self.settings["cuda_shards"] = cuda_shards
         served.enc = dataclasses.replace(served.enc, max_length=limit, truncate="none")
         served.meta["serving"] = {**served.meta.get("serving", {}),
                                   "max_length": limit, "truncate": "none"}

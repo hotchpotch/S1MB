@@ -8,6 +8,12 @@ from s1mb.adapters.rsi import RSIAdapter
 from s1mb.data import InferenceCase
 
 
+@pytest.mark.parametrize("shards", [0, 3])
+def test_invalid_cuda_shards_before_loading(shards):
+    with pytest.raises(ValueError, match="cuda_shards"):
+        RSIAdapter("unused", "main", "unused", "cuda:0", cuda_shards=shards)
+
+
 def test_unexpected_native_truncation_report_is_rejected(monkeypatch):
     case = InferenceCase.model_validate({
         "case_id": "sample", "state": "state",

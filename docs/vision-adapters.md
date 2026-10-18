@@ -238,6 +238,11 @@ slot readout and sequential fork execution are preserved.
 Its native CPU loader initially stages FP32 weights, so host memory requirements
 are higher than the BF16 checkpoint size. Before any inference, both backbone
 and readout are converted to the native CUDA BF16 dtype and moved to CUDA.
+`rsi --cuda-shards 2` supports the native separate vision/scoring architecture:
+vision modules, scoring heads, calibration buffers and the final norm stay on
+GPU 0, while complete text decoder layers are split between both GPUs. Adaptive
+policy calibrators are recreated on CUDA from the same release files after
+loading; the released default effort policy is retained.
 
 `rsi` also accepts ordered images with a compatible RSI-Jev VL checkpoint. Pin
 both the model and the RSI-Jev Git checkout (`--source`). Image requests use the
