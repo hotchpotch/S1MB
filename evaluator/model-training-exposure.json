@@ -10377,6 +10377,109 @@
           "registration_source": "contributor_review"
         }
       ]
+    },
+    {
+      "model_ids": [
+        "shgao__rsi-jev-v6.1-vl-27b"
+      ],
+      "training_exposure": [
+        {
+          "benchmark_id": "aegis2-noul-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "nvidia/Aegis-AI-Content-Safety-Dataset-2.0",
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/meta.json",
+          "note": "This 27B release itself records st_aegis2 in meta.json spec.sources. Its pinned card describes text training and replay followed by averaging two fine-tunes, and says the training corpora are not public. The source-family mapping does not establish original source snapshot/config/split, consumed rows or S1MB evaluation-example overlap. This declaration uses the 27B record; no 4B image-training claim is inherited. Card: https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/README.md",
+          "registration_source": "contributor_review",
+          "dataset_access": "private"
+        },
+        {
+          "benchmark_id": "civil-comments-noul-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "google/civil_comments",
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/meta.json",
+          "note": "This 27B release itself records st_civil_comments in meta.json spec.sources. Its pinned card describes text training and replay followed by averaging two fine-tunes, and says the training corpora are not public. The source-family mapping does not establish original source snapshot/config/split, consumed rows or S1MB evaluation-example overlap. This declaration uses the 27B record; no 4B image-training claim is inherited. Card: https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/README.md",
+          "registration_source": "contributor_review",
+          "dataset_access": "private"
+        },
+        {
+          "benchmark_id": "gsm8k-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "openai/gsm8k",
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/meta.json",
+          "note": "This 27B release itself records cov_gsm8k in meta.json spec.sources. Its pinned card describes text training and replay followed by averaging two fine-tunes, and says the training corpora are not public. The source-family mapping does not establish original source snapshot/config/split, consumed rows or S1MB evaluation-example overlap. This declaration uses the 27B record; no 4B image-training claim is inherited. Card: https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/README.md",
+          "registration_source": "contributor_review",
+          "dataset_access": "private"
+        },
+        {
+          "benchmark_id": "laya--typed-decisions-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "LocalLLaMA/typed-decisions",
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/meta.json",
+          "note": "This 27B release itself records td_train in meta.json spec.sources. Its pinned card describes text training and replay followed by averaging two fine-tunes, and says the training corpora are not public. The source-family mapping does not establish original source snapshot/config/split, consumed rows or S1MB evaluation-example overlap. This declaration uses the 27B record; no 4B image-training claim is inherited. Card: https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/README.md",
+          "registration_source": "contributor_review",
+          "dataset_access": "private"
+        },
+        {
+          "benchmark_id": "laya--typed-decisions-noul-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "LocalLLaMA/typed-decisions",
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/meta.json",
+          "note": "This 27B release itself records td_train in meta.json spec.sources. Its pinned card describes text training and replay followed by averaging two fine-tunes, and says the training corpora are not public. The source-family mapping does not establish original source snapshot/config/split, consumed rows or S1MB evaluation-example overlap. This declaration uses the 27B record; no 4B image-training claim is inherited. Card: https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/README.md",
+          "registration_source": "contributor_review",
+          "dataset_access": "private"
+        },
+        {
+          "benchmark_id": "laya--typed-decisions-score-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "LocalLLaMA/typed-decisions",
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/meta.json",
+          "note": "This 27B release itself records td_train in meta.json spec.sources. Its pinned card describes text training and replay followed by averaging two fine-tunes, and says the training corpora are not public. The source-family mapping does not establish original source snapshot/config/split, consumed rows or S1MB evaluation-example overlap. This declaration uses the 27B record; no 4B image-training claim is inherited. Card: https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/README.md",
+          "registration_source": "contributor_review",
+          "dataset_access": "private"
+        },
+        {
+          "benchmark_id": "massive-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "AmazonScience/massive",
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/meta.json",
+          "note": "This 27B release itself records st_massive-en-US in meta.json spec.sources. Its pinned card describes text training and replay followed by averaging two fine-tunes, and says the training corpora are not public. The source-family mapping does not establish original source snapshot/config/split, consumed rows or S1MB evaluation-example overlap. This declaration uses the 27B record; no 4B image-training claim is inherited. Card: https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/README.md",
+          "registration_source": "contributor_review",
+          "dataset_access": "private"
+        },
+        {
+          "benchmark_id": "paws-noul-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "google-research-datasets/paws",
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/meta.json",
+          "note": "This 27B release itself records st_paws in meta.json spec.sources. Its pinned card describes text training and replay followed by averaging two fine-tunes, and says the training corpora are not public. The source-family mapping does not establish original source snapshot/config/split, consumed rows or S1MB evaluation-example overlap. This declaration uses the 27B record; no 4B image-training claim is inherited. Card: https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/README.md",
+          "registration_source": "contributor_review",
+          "dataset_access": "private"
+        }
+      ]
     }
   ]
 }

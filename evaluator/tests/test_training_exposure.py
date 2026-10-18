@@ -119,6 +119,17 @@ def test_authored_registry_records_contributor_registration_without_inventing_da
             if entry.dataset_access == "unknown":
                 assert entry.dataset is None and entry.revision is None
                 continue
+            if entry.dataset_access == "private":
+                # This release explicitly says its retained training corpora are
+                # not public, even though the original source families are.
+                assert group.model_ids == ["shgao__rsi-jev-v6.1-vl-27b"]
+                assert entry.revision is None
+                assert "training corpora are not public" in entry.note
+                assert entry.evidence_url == (
+                    "https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/"
+                    "d0dccc052ee844ab7481ddfacad1b7335ab394e0/meta.json"
+                )
+                continue
             if entry.dataset_access is not None:
                 assert entry.dataset_access == "public"
                 assert entry.dataset == "hotchpotch/bekko-system-one-dataset-v0"
