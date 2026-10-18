@@ -2,7 +2,7 @@
 
 The viewer reads one immutable `viewer-summary.json` from local disk. It never
 scans result folders, decompresses XZ, contacts the Hub, starts a refresh worker,
-or reads a persistent Bucket at runtime. Build-time preparation validates the JSON and generates plain and gzip responses
+or reads a persistent Bucket at runtime. Build-time preparation validates the JSON and generates plain, gzip and Brotli responses
 with a content-addressed manifest. Each server process caches those prepared bytes
 once, without parsing the artifact, calculating hashes or compressing responses.
 Updating the file requires a restart; updating a Space requires a new image.
@@ -70,15 +70,19 @@ See [local viewer instructions](../docs/viewer.md).
 
 The initial page is a statically rendered loading shell. It contains no result
 snapshot, so its response size is independent of the number of measurements.
-After hydration, the browser requests `/api/display/` from the same viewer. The
-server reads the prepared plain/gzip bytes once and negotiates gzip with
-`Accept-Encoding`. Responses
+The shell preloads `/api/display/` from the same viewer, so the display transfer
+can overlap with JavaScript loading. After hydration, the browser fetch uses
+matching credentials so supporting browsers can reuse the preload. The
+server reads the prepared plain/gzip/Brotli bytes once and negotiates compression with
+`Accept-Encoding`, preferring Brotli when its accepted quality is at least gzip's. Responses
 include `Vary: Accept-Encoding`, a representation-specific content ETag and
 `Cache-Control: public, no-cache`. Browser HTTP caches revalidate across reloads and deployments; a matching ETag returns 304.
 The browser also shares the in-flight request and retains the decoded snapshot
 for the page lifetime. Failed requests are not cached and the Retry button
 requests the data again. Response decoding is bounded to 32 MiB with a 30-second
-request timeout. Missing or malformed delivery files return a generic 503 and are logged on the
+inactivity timeout, reset whenever another chunk arrives, and a five-minute total
+transfer limit. Active downloads can therefore finish on slower connections without
+allowing stalled or endless responses. Missing or malformed delivery files return a generic 503 and are logged on the
 server; raw file paths and validation details are not sent to the browser.
 
 Both build-time validation and browser reconstruction retain shared dictionary

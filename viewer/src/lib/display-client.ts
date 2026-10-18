@@ -23,29 +23,40 @@ export function expandDisplay(artifact: DisplayData): Snapshot {
 }
 
 /** One request per page lifetime; rejected requests are retryable. */
-export function createDisplayLoader(request: typeof fetch = fetch): () => Promise<Snapshot> {
+export function createDisplayLoader(request: typeof fetch = fetch, idleTimeoutMs = 30_000, totalTimeoutMs = 300_000): () => Promise<Snapshot> {
   let pending: Promise<Snapshot> | undefined;
   return () => pending ??= (async () => {
-    const response = await request('/api/display/', { signal: AbortSignal.timeout(30_000) });
-    if (!response.ok) { await response.body?.cancel(); throw new Error(`Display request failed: ${response.status}`); }
-    if (Number(response.headers.get('content-length')) > MAX_BYTES) { await response.body?.cancel(); throw new Error('Display size limit exceeded'); }
-    if (!response.body) throw new Error('Missing display data');
-    const reader = response.body.getReader();
-    const chunks: Uint8Array[] = [];
-    let size = 0;
+    const idle = new AbortController();
+    const signal = AbortSignal.any([idle.signal, AbortSignal.timeout(totalTimeoutMs)]);
+    let timer: ReturnType<typeof setTimeout>;
+    const progress = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => idle.abort(new DOMException('Display transfer stalled', 'TimeoutError')), idleTimeoutMs);
+    };
+    progress();
     try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        size += value.byteLength;
-        if (size > MAX_BYTES) throw new Error('Display size limit exceeded');
-        chunks.push(value);
-      }
-    } finally { await reader.cancel(); }
-    const bytes = new Uint8Array(size);
-    let offset = 0;
-    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
-    return expandDisplay(JSON.parse(new TextDecoder().decode(bytes)));
+      const response = await request('/api/display/', { signal });
+      if (!response.ok) { await response.body?.cancel(); throw new Error(`Display request failed: ${response.status}`); }
+      if (Number(response.headers.get('content-length')) > MAX_BYTES) { await response.body?.cancel(); throw new Error('Display size limit exceeded'); }
+      if (!response.body) throw new Error('Missing display data');
+      const reader = response.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let size = 0;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          progress();
+          size += value.byteLength;
+          if (size > MAX_BYTES) throw new Error('Display size limit exceeded');
+          chunks.push(value);
+        }
+      } finally { await reader.cancel(); }
+      const bytes = new Uint8Array(size);
+      let offset = 0;
+      for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
+      return expandDisplay(JSON.parse(new TextDecoder().decode(bytes)));
+    } finally { clearTimeout(timer!); }
   })().catch(error => { pending = undefined; throw error; });
 }
 
