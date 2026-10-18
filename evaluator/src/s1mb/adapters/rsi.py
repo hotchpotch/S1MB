@@ -66,6 +66,9 @@ class RSIAdapter(UpstreamAdapter):
             # Restore CUDA recurrence after dispatch, retaining transfer hooks.
             self.attention_model = served.model.tower
             self.enable_kernels()
+            from .rsi_execution import retain_rsi_exit_states
+
+            self.settings["hidden_state_retention"] = retain_rsi_exit_states(served.model)
         self.settings["cuda_shards"] = cuda_shards
         served.enc = dataclasses.replace(served.enc, max_length=limit, truncate="none")
         served.meta["serving"] = {**served.meta.get("serving", {}),
