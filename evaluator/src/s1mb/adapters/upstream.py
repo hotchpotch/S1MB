@@ -141,8 +141,21 @@ class UpstreamAdapter:
             "causal_conv1d_update": {},
             "rotary_pos_emb": {},
         }
-        with kernels.use_kernel_mapping(mapping, inherit_mapping=False):
-            kernels.kernelize(model, device="cuda", mode=kernels.Mode.INFERENCE)
+        # Kernelization can replace forward methods, bypassing Accelerate's
+        # device-transfer wrappers. Reinstall those wrappers around the final
+        # kernel forwards so sharded layers still receive tensors on their GPU.
+        hooked = [(module, module._hf_hook) for module in model.modules() if hasattr(module, "_hf_hook")]
+        hooks = importlib.import_module("accelerate.hooks") if hooked else None
+        if hooks is not None:
+            for module, _ in hooked:
+                hooks.remove_hook_from_module(module)
+        try:
+            with kernels.use_kernel_mapping(mapping, inherit_mapping=False):
+                kernels.kernelize(model, device="cuda", mode=kernels.Mode.INFERENCE)
+        finally:
+            if hooks is not None:
+                for module, hook in hooked:
+                    hooks.add_hook_to_module(module, hook)
         self.settings["hub_kernels"] = True
         self.settings["convolution_backend"] = "torch-gpu"
         self.settings["rotary_backend"] = "torch-gpu"
