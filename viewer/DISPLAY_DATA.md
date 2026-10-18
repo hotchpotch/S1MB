@@ -70,7 +70,9 @@ See [local viewer instructions](../docs/viewer.md).
 
 The initial page is a statically rendered loading shell. It contains no result
 snapshot, so its response size is independent of the number of measurements.
-After hydration, the browser requests `/api/display/` from the same viewer. The
+The shell preloads `/api/display/` from the same viewer, so the display transfer
+can overlap with JavaScript loading. After hydration, the browser fetch uses
+matching credentials so supporting browsers can reuse the preload. The
 server reads the prepared plain/gzip/Brotli bytes once and negotiates compression with
 `Accept-Encoding`, preferring Brotli when its accepted quality is at least gzip's. Responses
 include `Vary: Accept-Encoding`, a representation-specific content ETag and
