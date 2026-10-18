@@ -104,6 +104,7 @@ def main() -> None:
             "d3",
             "image-hopper",
             "amos",
+            "e12ex-vision",
             "jev-style",
             "sifr",
             "jiwo",
@@ -303,7 +304,7 @@ def parse_adapter_kwargs(args, parser):
 
 def validate_run_arguments(args, parser):
     """Reject invalid runtime options before acquiring the installed dataset lock."""
-    if args.adapter in {"vev", "jevvision", "vision-jev", "visual-jev", "decider-vision", "pplx-decider", "d3", "image-hopper", "amos"}:
+    if args.adapter in {"vev", "jevvision", "vision-jev", "visual-jev", "decider-vision", "pplx-decider", "d3", "image-hopper", "amos", "e12ex-vision"}:
         if not args.device.startswith("cuda"):
             parser.error("Local vision adapters require explicit CUDA; no CPU fallback")
         if args.adapter == "vision-jev" and not args.subfolder:
@@ -382,9 +383,11 @@ def validate_run_arguments(args, parser):
     ):
         parser.error("--max-candidates requires a supported adapter and a value in 2..255")
     if args.cuda_shards not in {1, 2} or (
-        args.cuda_shards != 1 and args.adapter not in {"d3", "onejev", "pplx-decider", "amos", "rsi"}
+        args.cuda_shards != 1 and args.adapter not in {"d3", "onejev", "pplx-decider", "amos", "rsi", "e12ex-vision"}
     ):
-        parser.error("--cuda-shards 2 requires the d3, onejev, pplx-decider, amos or rsi adapter")
+        parser.error("--cuda-shards 2 requires the d3, onejev, pplx-decider, amos, rsi or e12ex-vision adapter")
+    if args.adapter == "e12ex-vision" and args.cuda_shards != 2:
+        parser.error("e12ex-vision requires --cuda-shards 2")
     if args.context_limit is not None and (
         args.context_limit < 1
         or args.adapter
@@ -452,6 +455,7 @@ def validate_run_arguments(args, parser):
             "d3",
             "image-hopper",
             "amos",
+            "e12ex-vision",
             "jev-style",
             "sifr",
             "jiwo",
@@ -501,10 +505,10 @@ def validate_run_arguments(args, parser):
         "meta-encoder-think",
     }:
         parser.error("--attention applies only to measured upstream adapters")
-    if args.base_revision is not None and args.adapter not in {"sieve", "lev", "pngwn", "ajev", "vision-jev", "visual-jev"}:
-        parser.error("--base-revision applies only to Sieve, Lev, Pngwn, AJev, Vision-Jev or Visual Jev")
-    if args.adapter in {"sieve", "lev", "pngwn", "ajev", "vision-jev", "visual-jev"} and not args.base_revision:
-        parser.error("--base-revision is required for Sieve, Lev, Pngwn, AJev, Vision-Jev or Visual Jev")
+    if args.base_revision is not None and args.adapter not in {"sieve", "lev", "pngwn", "ajev", "vision-jev", "visual-jev", "e12ex-vision"}:
+        parser.error("--base-revision applies only to Sieve, Lev, Pngwn, AJev, Vision-Jev, Visual Jev or e12ex-vision")
+    if args.adapter in {"sieve", "lev", "pngwn", "ajev", "vision-jev", "visual-jev", "e12ex-vision"} and not args.base_revision:
+        parser.error("--base-revision is required for Sieve, Lev, Pngwn, AJev, Vision-Jev, Visual Jev or e12ex-vision")
     if args.temperature is not None and args.adapter not in {
         "meta-encoder",
         "meta-encoder-think",
@@ -899,7 +903,7 @@ def execute(args, parser):
         adapter = JevStyleAdapter(
             args.model, args.revision, args.source, args.device, context_limit=args.context_limit
         )
-    elif args.adapter in {"vev", "jevvision", "vision-jev", "visual-jev", "decider-vision", "pplx-decider", "d3", "image-hopper", "amos"}:
+    elif args.adapter in {"vev", "jevvision", "vision-jev", "visual-jev", "decider-vision", "pplx-decider", "d3", "image-hopper", "amos", "e12ex-vision"}:
         source = args.source
         if not source and args.adapter in {"jevvision", "pplx-decider", "d3", "image-hopper", "amos"}:
             from .adapters.upstream import checkpoint_path
@@ -921,12 +925,13 @@ def execute(args, parser):
             "d3": ("d3", "D3Adapter"),
             "image-hopper": ("image_hopper", "ImageHopperAdapter"),
             "amos": ("amos", "AmosAdapter"),
+            "e12ex-vision": ("e12ex_vision", "E12exVisionAdapter"),
         }[args.adapter]
         constructor = getattr(importlib.import_module(f".adapters.{module_name}", __package__), class_name)
         options = {"context_limit": args.context_limit or 32768}
-        if args.adapter in {"d3", "pplx-decider", "amos"}:
+        if args.adapter in {"d3", "pplx-decider", "amos", "e12ex-vision"}:
             options["cuda_shards"] = args.cuda_shards
-        if args.adapter in {"vision-jev", "visual-jev"}:
+        if args.adapter in {"vision-jev", "visual-jev", "e12ex-vision"}:
             options["base_revision"] = args.base_revision
         if args.adapter == "vision-jev":
             options["subfolder"] = args.subfolder

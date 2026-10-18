@@ -280,6 +280,17 @@ CPU loading. Noul keeps authored criteria; Score retains numeric level descripti
 and its full probability vector. Legacy Amos encoder checkpoints and Box are
 unsupported by this bridge. Run a fresh image smoke before full evaluation.
 
+`e12ex-vision` loads the released e12ex2 vision LoRA and its explicitly pinned
+Qwen base. Supply `--source` as a pinned Decision Index kit checkout,
+`--base-revision` and `--cuda-shards 2`. The checkpoint supplies the native
+`code/serve/engine.py` runtime. Weights are staged on CPU, positioned entirely on
+CUDA, then merged on CUDA before the native option-logit readout runs. One option
+order and the release's identity temperature are retained. All typed questions
+use explicit native Choice criteria because the native binary shortcut ignores
+authored definitions; numeric Score anchors remain in their descriptions.
+The released label table supports 624 candidates, with the first 62 corresponding
+to the training format. Inputs are rejected on overflow, and Box is unsupported.
+
 ```sh
 uv run s1mb run --category vision-v1 --exclude-box --adapter d3 \
   --model vllm-sr/d3-mini --revision 97dd054df4b3e0b3beb6af23ab8c82b7c0052e0e \
