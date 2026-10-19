@@ -76,7 +76,11 @@ class WinnowAdapter:
         server_port=8091,
         max_candidates=None,
         vision=False,
+        microbatch_size=None,
     ):
+        microbatch_size = (4096 if vision else 1024) if microbatch_size is None else microbatch_size
+        if not isinstance(microbatch_size, int) or isinstance(microbatch_size, bool) or microbatch_size < 1:
+            raise ValueError("Winnow microbatch size must be a positive integer")
         capacity = 64 if max_candidates is None else max_candidates
         if not 2 <= capacity <= 255:
             raise ValueError("Winnow candidate capacity must be within 2..255")
@@ -164,6 +168,7 @@ class WinnowAdapter:
                 "checkpoint_max_candidates": 64,
                 "case_batch_size": 1,
                 "questions_per_call": 1,
+                "microbatch_size": microbatch_size,
                 "renderer": "native-systemone-structured-anonymous-choice-v1",
                 "temperature": temperature,
                 "calibration_source": ("verified-E4B-Q8-release-direct-text"
@@ -207,6 +212,10 @@ class WinnowAdapter:
                 "1",
                 "--cache",
                 "q8_0",
+                "--batch",
+                str(max(2048, microbatch_size)),
+                "--ubatch",
+                str(microbatch_size),
                 "--memory",
                 "exclusive",
             ],
