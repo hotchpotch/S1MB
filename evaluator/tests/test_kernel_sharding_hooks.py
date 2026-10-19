@@ -10,7 +10,8 @@ from s1mb.adapters.upstream import UpstreamAdapter
 
 
 @pytest.mark.parametrize("fail", [False, True])
-def test_kernel_replacement_restores_transfer_wrapper(monkeypatch, fail):
+@pytest.mark.parametrize("module_registry", [False, True])
+def test_kernel_replacement_restores_transfer_wrapper(monkeypatch, fail, module_registry):
     hook = object()
     layer = SimpleNamespace(_hf_hook=hook, forward=lambda: "old-wrapped")
     events = []
@@ -38,13 +39,22 @@ def test_kernel_replacement_restores_transfer_wrapper(monkeypatch, fail):
     monkeypatch.setitem(sys.modules, "accelerate.hooks", SimpleNamespace(
         remove_hook_from_module=remove, add_hook_to_module=add,
     ))
+    registry = {"RMSNorm": {"cuda": "native"}, "causal_conv1d_fn": {"cuda": "newer-torch"}}
+
+    def use_mapping(mapping, *, inherit_mapping):
+        assert inherit_mapping is False
+        assert mapping["RMSNorm"] == registry["RMSNorm"]
+        assert mapping["causal_conv1d_fn"] == {}
+        assert registry["causal_conv1d_fn"] == {"cuda": "newer-torch"}
+        return nullcontext()
+
     monkeypatch.setitem(sys.modules, "kernels", SimpleNamespace(
-        use_kernel_mapping=lambda *args, **kwargs: nullcontext(),
+        use_kernel_mapping=use_mapping,
         kernelize=kernelize, Mode=SimpleNamespace(INFERENCE="inference"),
     ))
-    monkeypatch.setitem(sys.modules, "transformers.integrations.hub_kernels", SimpleNamespace(
-        get_kernel_mapping_transformers=dict,
-    ))
+    hub = SimpleNamespace(_KERNEL_MAPPING=registry) if module_registry else SimpleNamespace(
+        get_kernel_mapping_transformers=lambda: registry)
+    monkeypatch.setitem(sys.modules, "transformers.integrations.hub_kernels", hub)
     monkeypatch.setattr("importlib.metadata.version", lambda name: "test")
     adapter = UpstreamAdapter.__new__(UpstreamAdapter)
     adapter.attention_model = SimpleNamespace(modules=lambda: [layer])
