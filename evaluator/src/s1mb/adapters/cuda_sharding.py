@@ -97,7 +97,9 @@ def cuda_only_device_map(model_class, config, torch, activation_reserve=2 * 1024
     accelerate = importlib.import_module("accelerate")
     with accelerate.init_empty_weights():
         skeleton = model_class(config)
-        skeleton.tie_weights()
+    # Meta initialization wraps parameter assignment and can break aliases.
+    # Tie after leaving that context so placement recognizes shared embeddings.
+    skeleton.tie_weights()
     memory = {i: max(0, torch.cuda.mem_get_info(i)[0] - activation_reserve) for i in range(2)}
     placement = accelerate.infer_auto_device_map(
         skeleton, max_memory=memory, dtype=torch.bfloat16,

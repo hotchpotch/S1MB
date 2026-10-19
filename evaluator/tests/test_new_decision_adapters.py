@@ -416,7 +416,7 @@ def test_shisa_choice_transport_retains_noul_definitions_and_numeric_levels(monk
     image = object()
     adapter.settings = {}
     monkeypatch.setattr(module, "ordered_images", lambda case: ([image] if with_image else [], {"context": case.state}, []))
-    adapter.schema = SimpleNamespace(Choice=lambda **kwargs: SimpleNamespace(**kwargs))
+    monkeypatch.setattr(adapter, "schema", SimpleNamespace(Choice=lambda **kwargs: SimpleNamespace(**kwargs)), raising=False)
     observed = []
 
     def payload(state, item):
@@ -474,7 +474,7 @@ def test_shisa_choice_transport_retains_noul_definitions_and_numeric_levels(monk
         adapter.native.code_slots = adapter.native.slots
         adapter.tokenizer = tokenize
     adapter.engine = lambda **kwargs: SimpleNamespace(logits=FakeTensor())
-    adapter.torch = SimpleNamespace(inference_mode=nullcontext)
+    monkeypatch.setattr(adapter, "torch", SimpleNamespace(inference_mode=nullcontext), raising=False)
     case = cases().model_copy(update={"images": {"image": ImageAsset(path="missing.png", sha256="0" * 64)} if with_image else {}})
     result = adapter.predict(case)
     assert observed[1] == {"true": "Yes", "false": "No"}
@@ -511,5 +511,5 @@ def test_span_assets_are_named_objects_with_matching_state_references(monkeypatc
         key = next(iter(payload["questions"]))
         return {"answers": {key: {"type": "choice", "probabilities": {"option_0": 0.3, "option_1": 0.7}}}}
 
-    adapter.request = request
+    monkeypatch.setattr(adapter, "request", request)
     assert adapter.predict(case)[0].probabilities == {"x": 0.3, "y": 0.7}

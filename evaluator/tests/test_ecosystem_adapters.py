@@ -323,7 +323,7 @@ def test_winnow_transports_pixels_with_numeric_rubrics(monkeypatch):
             assert [value["value"] for value in payload["criteria"].values()] == [10.0, 30.0]
         return {"answers": {"decision": {"type": "choice", "probabilities": dict(zip(payload["criteria"], [0.3, 0.7]))}}}
 
-    adapter.request = request
+    monkeypatch.setattr(adapter, "request", request)
     result = adapter.predict(cases())
     assert result[2].probabilities == {"low": 0.3, "high": 0.7}
     assert "gold-must-not-be-sent" not in str(requests)

@@ -99,3 +99,37 @@ def test_meta_planning_never_accepts_cpu_or_disk(monkeypatch, placement, rejecte
             cuda_only_device_map(lambda config: model, object(), torch, activation_reserve=10)
     else:
         assert cuda_only_device_map(lambda config: model, object(), torch, activation_reserve=10) == placement
+
+
+def test_tied_parameters_are_restored_after_meta_assignment_hooks(monkeypatch):
+    from contextlib import contextmanager
+
+    from s1mb.adapters.cuda_sharding import cuda_only_device_map
+
+    state = {"initializing": False, "tied": False}
+
+    @contextmanager
+    def initialize():
+        state["initializing"] = True
+        yield
+        state["initializing"] = False
+
+    def tie():
+        assert not state["initializing"]
+        state["tied"] = True
+
+    model = SimpleNamespace(tie_weights=tie, _no_split_modules=[])
+
+    def construct(config):
+        assert state["initializing"]
+        return model
+
+    def infer(module, **kwargs):
+        assert state["tied"]
+        return {"": 0}
+
+    accelerate = SimpleNamespace(init_empty_weights=initialize, infer_auto_device_map=infer)
+    monkeypatch.setattr("s1mb.adapters.cuda_sharding.importlib.import_module", lambda name: accelerate)
+    torch = SimpleNamespace(bfloat16="bf16", cuda=SimpleNamespace(
+        device_count=lambda: 2, mem_get_info=lambda i: (100, 100)))
+    assert cuda_only_device_map(construct, object(), torch, activation_reserve=10) == {"": 0}

@@ -49,7 +49,7 @@ def test_images_keep_order_and_are_available_until_native_scoring_finishes(tmp_p
         assert [Image.open(p).getpixel((0, 0)) for p in seen_paths] == [(255, 0, 0), (0, 0, 255)]
         return ["native-result"]
 
-    adapter._predict_parts = score
+    monkeypatch.setattr(adapter, "_predict_parts", score)
     try:
         assert adapter.predict(case) == ["native-result"]
         assert all(not p.exists() for p in seen_paths)
