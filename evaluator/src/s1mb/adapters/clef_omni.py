@@ -5,6 +5,7 @@ import importlib.util
 import sys
 
 from .clef import ClefAdapter
+from .cuda_sharding import two_gpu_cut
 from .upstream import checkpoint_path
 
 
@@ -28,12 +29,24 @@ class ClefOmniAdapter(ClefAdapter):
         self.engine.head.to(device)
         self.engine.output_embeddings.to(device)
         accelerate = importlib.import_module("accelerate")
-        memory = {i: max(0, self.torch.cuda.mem_get_info(i)[0] - 2 * 1024**3) for i in range(2)}
-        placement = accelerate.infer_auto_device_map(
-            self.engine.thinker, max_memory=memory, dtype=self.torch.bfloat16,
-            no_split_module_classes=self.engine.thinker._no_split_modules)
-        if any(value not in {0, 1, "cuda:0", "cuda:1"} for value in placement.values()):
-            raise ValueError("Clef-Omni weights exceed reserved CUDA memory; CPU/disk offload is disabled")
+        thinker = self.engine.thinker
+        if set(dict(thinker.named_children())) != {"audio_tower", "visual", "model", "lm_head"} or set(
+            dict(thinker.model.named_children())
+        ) != {"embed_tokens", "layers", "norm", "rotary_emb"}:
+            raise ValueError("Unsupported native Clef-Omni thinker structure")
+        sizes = accelerate.utils.compute_module_sizes(thinker)
+        names = [f"model.layers.{i}" for i in range(len(thinker.model.layers))]
+        layers = [sizes[name] for name in names]
+        reserve = 3 * 1024**3 // 2
+        free = [self.torch.cuda.mem_get_info(i)[0] for i in range(2)]
+        cut = two_gpu_cut(layers, sizes[""] - sum(layers), free, activation_reserve=reserve)
+        # Explicit complete layers avoid automatic placement's extra swap reserve.
+        # Never map an ancestor: dispatch would transiently preload its subtree.
+        placement = {
+            "audio_tower": 0, "visual": 0, "lm_head": 0,
+            "model.embed_tokens": 0, "model.norm": 0, "model.rotary_emb": 0,
+            **{name: int(i >= cut) for i, name in enumerate(names)},
+        }
         accelerate.dispatch_model(self.engine.thinker, device_map=placement, main_device=0, force_hooks=True)
         self.engine.thinker.register_forward_hook(
             lambda module, inputs, output: accelerate.utils.send_to_device(output, device))
@@ -44,6 +57,7 @@ class ClefOmniAdapter(ClefAdapter):
         self.image_receipts = {}
         self.settings = {"dtype": "bfloat16", "attention_implementation": "sdpa",
                          "cuda_shards": 2, "cuda_device_map": placement,
+                         "activation_reserve_bytes_per_device": reserve,
                          "max_input_tokens": context_limit, "input_length_policy": "reject-overflow",
                          "case_batch_size": 1, "questions_per_call": "all-case-questions",
                          "renderer": "native-clef-omni-anonymous-numeric-score-v1",

@@ -133,3 +133,12 @@ def test_tied_parameters_are_restored_after_meta_assignment_hooks(monkeypatch):
     torch = SimpleNamespace(bfloat16="bf16", cuda=SimpleNamespace(
         device_count=lambda: 2, mem_get_info=lambda i: (100, 100)))
     assert cuda_only_device_map(construct, object(), torch, activation_reserve=10) == {"": 0}
+
+
+def test_explicit_activation_reserve_balances_tightly_fitting_layers():
+    # A contiguous CUDA-only split can fit without a swap/offload reserve.
+    assert two_gpu_cut([116] * 48, 280, [3070, 3180], activation_reserve=150) == 22
+    with pytest.raises(ValueError, match="CPU offload"):
+        two_gpu_cut([116] * 48, 280, [3070, 3180], activation_reserve=200)
+    with pytest.raises(ValueError, match="positive"):
+        two_gpu_cut([10, 10], 0, [100, 100], activation_reserve=0)

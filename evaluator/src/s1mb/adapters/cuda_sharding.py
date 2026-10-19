@@ -9,11 +9,14 @@ def _decision_output_to_primary(module, inputs, output):
     return accelerate.utils.send_to_device(output, "cuda:0")
 
 
-def two_gpu_cut(layer_bytes, fixed_bytes, free_bytes):
+def two_gpu_cut(layer_bytes, fixed_bytes, free_bytes, activation_reserve=None):
     """Reserve activation space and balance a contiguous split across two GPUs."""
     if len(free_bytes) != 2 or len(layer_bytes) < 2:
         raise ValueError("Two CUDA devices and at least two layers are required")
-    budgets = [int(free * 0.88) for free in free_bytes]
+    if activation_reserve is not None and activation_reserve <= 0:
+        raise ValueError("Activation reserve must be positive")
+    budgets = [int(free * 0.88) if activation_reserve is None else free - activation_reserve
+               for free in free_bytes]
     candidates = []
     for cut in range(1, len(layer_bytes)):
         used = [fixed_bytes + sum(layer_bytes[:cut]), sum(layer_bytes[cut:])]
