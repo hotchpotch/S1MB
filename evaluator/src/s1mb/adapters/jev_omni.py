@@ -2,11 +2,14 @@
 
 import importlib
 import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from s1mb.data import Prediction, check_probabilities
 
 from .base import questions_for_api
 from .upstream import UpstreamAdapter, state_text
+from .vision_native import ordered_images
 
 
 def omni_inputs(state, question):
@@ -29,6 +32,7 @@ def omni_inputs(state, question):
 
 class JevOmniAdapter(UpstreamAdapter):
     case_batch_size = 1
+    supports_images = True
 
     def __init__(self, model, revision, source, device, context_limit=None):
         self.setup("jev-omni", model, revision, source, device)
@@ -58,6 +62,7 @@ class JevOmniAdapter(UpstreamAdapter):
         processor = transformers.AutoProcessor.from_pretrained(str(self.path))
         self.engine = self.native.JevOmni(backbone, head, processor, decoder, device)
         self.attention_model = backbone
+        self.image_receipts = {}
         self.context_limit = context_limit or 8192
         self.settings = {
             "dtype": "bfloat16-backbone-float32-head",
@@ -70,14 +75,25 @@ class JevOmniAdapter(UpstreamAdapter):
         }
 
     def predict(self, case):
+        if len(case.images) > 1:
+            raise ValueError("Jev-Omni's native image runtime supports exactly one image")
+        images, state, receipts = ordered_images(case)
+        if images:
+            self.image_receipts[case.case_id] = receipts
+            self.settings.update({
+                "media": "native-single-image-file-v1", "max_images": 1,
+                "image_preprocessing": "shared-full-image-policy-v1-then-native-processor",
+            })
         predictions = []
         for q in case.questions:
             if len(q.options) > 256:
                 raise ValueError("Jev-Omni exceeds its 256-option head capacity")
-            state, instructions, options = omni_inputs(case.state, q)
-            text = self.native._prompt(state, instructions, options)
+            rendered_state, instructions, options = omni_inputs(state if images else case.state, q)
+            text = self.native._prompt(rendered_state, instructions, options)
+            content = [{"type": "image", "image": image} for image in images]
+            content.append({"type": "text", "text": text})
             inputs = self.engine.processor.apply_chat_template(
-                [{"role": "user", "content": [{"type": "text", "text": text}]}],
+                [{"role": "user", "content": content}],
                 add_generation_prompt=True,
                 tokenize=True,
                 return_dict=True,
@@ -86,7 +102,15 @@ class JevOmniAdapter(UpstreamAdapter):
             )
             if inputs["input_ids"].shape[1] > self.context_limit:
                 raise ValueError("Jev-Omni input exceeds context limit; refusing truncation")
-            result = self.engine.predict(state=state, question=instructions, options=options)
+            with TemporaryDirectory(prefix="s1mb-omni-image-") as temporary:
+                media = {}
+                if images:
+                    path = Path(temporary) / "image.png"
+                    images[0].save(path, format="PNG")
+                    media = {"media": str(path), "modality": "image"}
+                result = self.engine.predict(
+                    state=rendered_state, question=instructions, options=options, **media,
+                )
             if set(result["probabilities"]) != set(options):
                 raise ValueError("Jev-Omni returned unexpected option keys")
             probabilities = {

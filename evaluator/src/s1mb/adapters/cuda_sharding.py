@@ -88,3 +88,21 @@ def dispatch_decision_tower(model, torch):
     if any(parameter.device.type != "cuda" for parameter in model.parameters()):
         raise RuntimeError("Native decision model contains non-CUDA weights after dispatch")
     return placement
+
+
+def cuda_only_device_map(model_class, config, torch, activation_reserve=2 * 1024**3):
+    """Plan complete decoder modules on two GPUs, rejecting CPU/disk placement."""
+    if torch.cuda.device_count() != 2:
+        raise ValueError("CUDA sharding requires exactly two visible GPUs")
+    accelerate = importlib.import_module("accelerate")
+    with accelerate.init_empty_weights():
+        skeleton = model_class(config)
+        skeleton.tie_weights()
+    memory = {i: max(0, torch.cuda.mem_get_info(i)[0] - activation_reserve) for i in range(2)}
+    placement = accelerate.infer_auto_device_map(
+        skeleton, max_memory=memory, dtype=torch.bfloat16,
+        no_split_module_classes=skeleton._no_split_modules,
+    )
+    if any(device not in {0, 1, "cuda:0", "cuda:1"} for device in placement.values()):
+        raise ValueError("Native weights exceed reserved CUDA memory; CPU/disk offload is disabled")
+    return placement

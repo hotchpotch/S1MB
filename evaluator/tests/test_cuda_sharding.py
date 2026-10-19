@@ -75,3 +75,27 @@ def test_decision_dispatch_never_preloads_all_layers_on_one_gpu(monkeypatch):
     assert placement["visual"] == placement["scorer"] == placement["cal_logT"] == 0
     assert len(output_hooks) == 2
     assert output_hooks[0](tower.layers[-1], (), "activations") == ("activations", "cuda:0")
+
+
+@pytest.mark.parametrize("placement, rejected", [({"layers": 0}, False), ({"layers": "cpu"}, True), ({"layers": "disk"}, True)])
+def test_meta_planning_never_accepts_cpu_or_disk(monkeypatch, placement, rejected):
+    from contextlib import nullcontext
+
+    from s1mb.adapters.cuda_sharding import cuda_only_device_map
+
+    model = SimpleNamespace(tie_weights=lambda: None, _no_split_modules=["Decoder"])
+
+    def infer(module, **kwargs):
+        assert module is model
+        assert kwargs["max_memory"] == {0: 60, 1: 60}
+        assert kwargs["no_split_module_classes"] == ["Decoder"]
+        return placement
+
+    accelerate = SimpleNamespace(init_empty_weights=nullcontext, infer_auto_device_map=infer)
+    monkeypatch.setattr("s1mb.adapters.cuda_sharding.importlib.import_module", lambda name: accelerate)
+    torch = SimpleNamespace(bfloat16="bf16", cuda=SimpleNamespace(device_count=lambda: 2, mem_get_info=lambda i: (70, 70)))
+    if rejected:
+        with pytest.raises(ValueError, match="CPU/disk offload"):
+            cuda_only_device_map(lambda config: model, object(), torch, activation_reserve=10)
+    else:
+        assert cuda_only_device_map(lambda config: model, object(), torch, activation_reserve=10) == placement

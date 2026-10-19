@@ -137,6 +137,13 @@ def main() -> None:
             "jevlite",
             "certo",
             "jev-omni",
+            "matilda",
+            "startlux",
+            "clef-omni",
+            "autotrust-vision",
+            "shisa-vision",
+            "xor-vision",
+            "span",
             "autojev",
             "flymy",
             "lev",
@@ -208,6 +215,7 @@ def main() -> None:
         choices=["sdpa", "flash_attention_2"],
         help="Explicit attention backend for measured upstream adapters",
     )
+    run.add_argument("--winnow-vision", action="store_true", help="Load Winnow's matching image projector")
     run.add_argument("--cuda-shards", type=int, default=1, help="Native CUDA-only weight shards (1 or 2)")
     run.add_argument(
         "--context-limit",
@@ -382,10 +390,12 @@ def validate_run_arguments(args, parser):
         or not 2 <= args.max_candidates <= 255
     ):
         parser.error("--max-candidates requires a supported adapter and a value in 2..255")
+    if args.winnow_vision and args.adapter != "winnow":
+        parser.error("--winnow-vision applies only to the winnow adapter")
     if args.cuda_shards not in {1, 2} or (
-        args.cuda_shards != 1 and args.adapter not in {"d3", "onejev", "pplx-decider", "amos", "rsi", "e12ex-vision"}
+        args.cuda_shards != 1 and args.adapter not in {"d3", "onejev", "pplx-decider", "amos", "rsi", "e12ex-vision", "matilda", "startlux", "rune", "xor-vision", "shisa-vision", "autotrust-vision", "clef-omni"}
     ):
-        parser.error("--cuda-shards 2 requires the d3, onejev, pplx-decider, amos, rsi or e12ex-vision adapter")
+        parser.error("--cuda-shards 2 requires an adapter with explicit CUDA sharding support")
     if args.adapter == "e12ex-vision" and args.cuda_shards != 2:
         parser.error("e12ex-vision requires --cuda-shards 2")
     if args.context_limit is not None and (
@@ -414,6 +424,13 @@ def validate_run_arguments(args, parser):
             "jevlite",
             "certo",
             "jev-omni",
+            "matilda",
+            "startlux",
+            "clef-omni",
+            "autotrust-vision",
+            "shisa-vision",
+            "xor-vision",
+            "span",
             "autojev",
             "flymy",
             "lev",
@@ -505,10 +522,10 @@ def validate_run_arguments(args, parser):
         "meta-encoder-think",
     }:
         parser.error("--attention applies only to measured upstream adapters")
-    if args.base_revision is not None and args.adapter not in {"sieve", "lev", "pngwn", "ajev", "vision-jev", "visual-jev", "e12ex-vision"}:
-        parser.error("--base-revision applies only to Sieve, Lev, Pngwn, AJev, Vision-Jev, Visual Jev or e12ex-vision")
-    if args.adapter in {"sieve", "lev", "pngwn", "ajev", "vision-jev", "visual-jev", "e12ex-vision"} and not args.base_revision:
-        parser.error("--base-revision is required for Sieve, Lev, Pngwn, AJev, Vision-Jev, Visual Jev or e12ex-vision")
+    if args.base_revision is not None and args.adapter not in {"sieve", "lev", "pngwn", "ajev", "vision-jev", "visual-jev", "e12ex-vision", "span"}:
+        parser.error("--base-revision applies only to Sieve, Lev, Pngwn, AJev, Vision-Jev, Visual Jev, e12ex-vision or span")
+    if args.adapter in {"sieve", "lev", "pngwn", "ajev", "vision-jev", "visual-jev", "e12ex-vision", "span"} and not args.base_revision:
+        parser.error("--base-revision is required for Sieve, Lev, Pngwn, AJev, Vision-Jev, Visual Jev, e12ex-vision or span")
     if args.temperature is not None and args.adapter not in {
         "meta-encoder",
         "meta-encoder-think",
@@ -1085,6 +1102,13 @@ def execute(args, parser):
         "jevlite",
         "certo",
         "jev-omni",
+        "matilda",
+        "startlux",
+        "xor-vision",
+        "shisa-vision",
+        "autotrust-vision",
+        "clef-omni",
+        "span",
         "autojev",
         "flymy",
         "lev",
@@ -1151,6 +1175,13 @@ def execute(args, parser):
             "jevlite": "JevLiteAdapter",
             "certo": "CertoAdapter",
             "jev-omni": "JevOmniAdapter",
+            "matilda": "MatildaAdapter",
+            "startlux": "StartLuxAdapter",
+            "clef-omni": "ClefOmniAdapter",
+            "autotrust-vision": "AutoTrustVisionAdapter",
+            "shisa-vision": "ShisaVisionAdapter",
+            "xor-vision": "XorVisionAdapter",
+            "span": "SpanAdapter",
             "autojev": "AutoJevAdapter",
             "flymy": "FlymyAdapter",
             "lev": "LevAdapter",
@@ -1223,8 +1254,12 @@ def execute(args, parser):
             options["base_revision"] = args.base_revision
         if args.adapter == "saihai-310m":
             options["native_adaptive_budget"] = args.native_adaptive_budget
+        if args.adapter == "span":
+            options.update(base_revision=args.base_revision, server_host=args.server_host, server_port=args.server_port)
         if args.adapter == "winnow":
-            options.update(server_host=args.server_host, server_port=args.server_port)
+            options.update(server_host=args.server_host, server_port=args.server_port, vision=args.winnow_vision)
+        if args.adapter in {"matilda", "startlux", "rune", "xor-vision", "shisa-vision", "autotrust-vision", "clef-omni"}:
+            options["cuda_shards"] = args.cuda_shards
         adapter = getattr(module, classes[args.adapter])(
             args.model, args.revision, args.source, args.device, **options
         )

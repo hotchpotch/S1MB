@@ -1,7 +1,9 @@
 """Pinned Winnow GGUF inference through its independently built CUDA server."""
 
+import base64
 import hashlib
 import importlib
+import io
 import ipaddress
 import json
 import math
@@ -20,6 +22,7 @@ from s1mb.parameters import METHOD
 
 from .sifr import sifr_questions
 from .upstream import source_path
+from .vision_native import ordered_images
 
 
 def winnow_parameter_metadata(path):
@@ -61,6 +64,7 @@ def check_port_available(host, port):
 
 class WinnowAdapter:
     case_batch_size = 1
+    supports_images = True
 
     def __init__(
         self,
@@ -71,6 +75,7 @@ class WinnowAdapter:
         server_host="127.0.0.1",
         server_port=8091,
         max_candidates=None,
+        vision=False,
     ):
         capacity = 64 if max_candidates is None else max_candidates
         if not 2 <= capacity <= 255:
@@ -110,6 +115,27 @@ class WinnowAdapter:
                 sha.update(chunk)
         if sha.hexdigest() != artifact["sha256"] or path.stat().st_size != artifact["bytes"]:
             raise ValueError("Winnow GGUF differs from the runtime's verified release manifest")
+        projector = None
+        projector_artifact = None
+        parameter_counts = winnow_parameter_metadata(path)
+        if vision:
+            assets = json.loads((root / "manifests/release-assets-v1.json").read_text())
+            projector_artifact = assets["models"]["e4b-q8" if model == "EldanRing/Winnow-E4B" else "12b-q8"]["projector"]
+            filename = projector_artifact["url"].split("/resolve/main/", 1)[1]
+            projector = Path(hub.hf_hub_download(model, filename, revision=resolved))
+            with projector.open("rb") as stream:
+                digest = hashlib.file_digest(stream, "sha256").hexdigest()
+            if digest != projector_artifact["sha256"] or projector.stat().st_size != projector_artifact["bytes"]:
+                raise ValueError("Winnow projector differs from its verified release manifest")
+            projector_reader = importlib.import_module("gguf").GGUFReader(projector)
+            projector_sizes = {t.name: math.prod(int(d) for d in t.shape) for t in projector_reader.tensors
+                               if t.name.endswith((".weight", ".bias"))}
+            visual_params = sum(projector_sizes.values())
+            lookup_params = projector_sizes.get("v.position_embd.weight", 0)
+            parameter_counts["total_params"] += visual_params
+            parameter_counts["active_params"] += visual_params - lookup_params
+        self.vision = vision
+        self.image_receipts = {}
         reader = importlib.import_module("gguf").GGUFReader(path)
         field = reader.fields.get("winnow.temperature")
         # The verified E4B Q8 release card supplies its direct-text calibration.
@@ -121,7 +147,7 @@ class WinnowAdapter:
             id=model,
             adapter="winnow",
             revision=resolved,
-            **winnow_parameter_metadata(path),
+            **parameter_counts,
             settings={
                 "device": device,
                 "cuda_visible_devices": gpu,
@@ -148,6 +174,15 @@ class WinnowAdapter:
                 "prefix_reuse": True,
             },
         )
+        if vision:
+            assert projector_artifact is not None
+            self.info.settings.update({
+                "media": "native-winnow-images-data-uri-v1", "max_images": 16,
+                "projector_sha256": projector_artifact["sha256"],
+                "image_preprocessing": "shared-full-image-policy-v1-then-native-projector",
+                "vision_calibration_condition": "released-direct-temperature-no-task-specific-refit",
+                "projector_parameter_count_condition": "all-projector-modalities-weight-and-bias-only-excluding-range-buffers",
+            })
         check_port_available(server_host, server_port)
         self.url = f"http://{server_host}:{server_port}"
         self.log = tempfile.TemporaryFile(mode="w+b")  # noqa: SIM115 -- closed with the server
@@ -157,7 +192,7 @@ class WinnowAdapter:
                 str(root / "scripts/serve.py"),
                 "--model",
                 str(path),
-                "--text-only",
+                *(["--mmproj", str(projector)] if vision else ["--text-only"]),
                 "--gpu",
                 gpu,
                 "--host",
@@ -208,6 +243,16 @@ class WinnowAdapter:
         return self.info
 
     def predict(self, case):
+        if case.images and not self.vision:
+            raise ValueError("Winnow images require the vision projector at initialization")
+        images, state, receipts = ordered_images(case)
+        encoded = []
+        for image in images:
+            buffer = io.BytesIO()
+            image.save(buffer, format="PNG")
+            encoded.append("data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("ascii"))
+        if images:
+            self.image_receipts[case.case_id] = receipts
         predictions = []
         wire = sifr_questions(case)
         for question in case.questions:
@@ -216,8 +261,8 @@ class WinnowAdapter:
                 raise ValueError("Winnow candidate capacity exceeded; refusing truncation")
             result = self.request(
                 "/v1/systemone",
-                {"state": case.state, "questions": {"decision": payload},
-                 "winnow": {"temperature": self.info.settings["temperature"]}},
+                {"state": state if images else case.state, "questions": {"decision": payload},
+                 "winnow": {"temperature": self.info.settings["temperature"], **({"images": encoded} if images else {})}},
             )
             answer = result["answers"]["decision"]
             if answer["type"] != "choice":
