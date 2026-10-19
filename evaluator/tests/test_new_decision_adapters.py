@@ -404,14 +404,18 @@ def test_autotrust_raw_prompt_keeps_score_values_without_private_ids():
     assert "gold-must-not-be-sent" not in rendered
 
 
-def test_shisa_choice_transport_retains_noul_definitions_and_numeric_levels(monkeypatch):
+@pytest.mark.parametrize("with_image", [True, False])
+def test_shisa_choice_transport_retains_noul_definitions_and_numeric_levels(monkeypatch, with_image):
+    import sys
+
     import s1mb.adapters.shisa_vision as module
     from s1mb.data import ImageAsset
 
     adapter = module.ShisaVisionAdapter.__new__(module.ShisaVisionAdapter)
     adapter.context_limit, adapter.device, adapter.image_receipts = 100, "cuda:0", {}
     image = object()
-    monkeypatch.setattr(module, "ordered_images", lambda case: ([image], {"context": case.state}, []))
+    adapter.settings = {}
+    monkeypatch.setattr(module, "ordered_images", lambda case: ([image] if with_image else [], {"context": case.state}, []))
     adapter.schema = SimpleNamespace(Choice=lambda **kwargs: SimpleNamespace(**kwargs))
     observed = []
 
@@ -454,9 +458,24 @@ def test_shisa_choice_transport_retains_noul_definitions_and_numeric_levels(monk
         return {"input_ids": FakeTensor()}
 
     adapter.processor = SimpleNamespace(apply_chat_template=processor)
+    if not with_image:
+        monkeypatch.setitem(sys.modules, "shisa_de.readout", SimpleNamespace(MAX_CODES=256))
+
+        def render(state, item, max_options):
+            assert max_options == 256
+            return str(payload(state, item)[0])
+
+        def tokenize(prompt, **kwargs):
+            assert "gold-must-not-be-sent" not in prompt
+            assert kwargs["add_special_tokens"] is False
+            return {"input_ids": FakeTensor()}
+
+        adapter.native.render = render
+        adapter.native.code_slots = adapter.native.slots
+        adapter.tokenizer = tokenize
     adapter.engine = lambda **kwargs: SimpleNamespace(logits=FakeTensor())
     adapter.torch = SimpleNamespace(inference_mode=nullcontext)
-    case = cases().model_copy(update={"images": {"image": ImageAsset(path="missing.png", sha256="0" * 64)}})
+    case = cases().model_copy(update={"images": {"image": ImageAsset(path="missing.png", sha256="0" * 64)} if with_image else {}})
     result = adapter.predict(case)
     assert observed[1] == {"true": "Yes", "false": "No"}
     assert [v["value"] for v in observed[2].values()] == [10.0, 30.0]

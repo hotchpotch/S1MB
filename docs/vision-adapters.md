@@ -329,6 +329,10 @@ which differs from the Decision Index's repeated-input policy. The Transformers
 protocol bridges differ from their authors' SGLang/vLLM serving backends; retain
 these distinctions when reporting measurements.
 
+Without images, `shisa-vision` uses the SDK's direct DE-2 text scaffold and full
+256-slot codebook. This permits wide text choices without dropping candidates;
+the SDK's single-image path retains its separate 26-option limit.
+
 Single-image runtimes cannot complete NIGHTS or NLVR2. Keep those tasks marked
 unsupported, retain all original images, and report supported-task measurements
 as partial coverage. They do not qualify for the complete-suite ranking.
