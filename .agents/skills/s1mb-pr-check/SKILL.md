@@ -18,8 +18,12 @@ Distinguish review, public comments, merge, summary publication, and deployment.
 Invoking this skill alone authorizes none of the external writes. Honor existing
 user authorization without asking again. Review-only requests end with a report;
 approval of specific acceptable PRs excludes held PRs and unrelated new PRs.
-Comments require authorization to post. Follow the project language rules and
-thank contributors respectfully; mention the actual author when requested.
+Comments require authorization to post. Follow the project language rules.
+Unless the user instructs otherwise, mention the actual PR author by their
+platform username and thank them for their contribution in PR comments and
+merge messages. When the merge action has no public message field, post an
+accompanying thank-you comment with the author's mention as part of the
+authorized merge.
 
 Keep a resumable record under ignored `tmp/`: requested scope, PR URLs/authors,
 reviewed head/base SHAs, checks and limitations, decisions and authorization,
