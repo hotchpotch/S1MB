@@ -343,3 +343,16 @@ is distinct from CPU inference. Span's 9 GB KV pool is smaller than the author's
 large-GPU submission pool; its deterministic policy is retained, and capacity
 failures remain failures. Keep native binary hashes, source revisions, model
 revisions and the assistant revision in run settings.
+
+Install each pinned upstream runtime's dependencies in an isolated environment.
+`--source` selects importable upstream code; it does not install that runtime's
+dependencies. StartLux Instant's native bidirectional implementation requires
+Transformers 5.8.x; the 5.8.1 environment is separate from the newer Transformers
+environment used by other bridges. Successful imports or weight placement alone
+do not establish successful GPU inference.
+
+Winnow's native output capacity is 64 candidates. Keep larger authored choices
+unsupported rather than dropping options or evaluating separate candidate groups.
+Rune's two-GPU activation reserve changes weight placement, not its input limit,
+candidate logits or probability readout. A device that cannot hold the complete
+native weights with that reserve is rejected rather than using CPU/disk offload.
