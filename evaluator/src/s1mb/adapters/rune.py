@@ -62,11 +62,13 @@ class RuneAdapter(UpstreamAdapter):
         if cuda_shards not in {1, 2}:
             raise ValueError("Rune requires one or two CUDA shards")
         placement = {"": device}
+        activation_reserve = 5 * 1024**3 if cuda_shards == 2 else 0
         if cuda_shards == 2:
             from .cuda_sharding import cuda_only_device_map
             placement = cuda_only_device_map(
                 transformers.Gemma4ForConditionalGeneration,
                 transformers.AutoConfig.from_pretrained(str(self.path)), self.torch,
+                activation_reserve=activation_reserve,
             )
         self.processor = transformers.AutoProcessor.from_pretrained(str(self.path))
         self.image_receipts = {}
@@ -88,6 +90,7 @@ class RuneAdapter(UpstreamAdapter):
         self.settings = {
             "dtype": "bfloat16",
             "cuda_shards": cuda_shards, "cuda_device_map": placement,
+            "cuda_activation_reserve_bytes": activation_reserve,
             "media": "native-ordered-pil-images-v1",
             "image_preprocessing": "shared-full-image-policy-v1-then-native-processor",
             "attention_implementation": "sdpa",

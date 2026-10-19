@@ -314,6 +314,46 @@ def test_rune_invalid_budget_before_checkpoint_load():
         RuneAdapter("unused", "main", "unused", "cuda:0", context_limit=0)
 
 
+def test_rune_reserves_long_input_moe_workspace_without_changing_readout(monkeypatch, tmp_path):
+    from s1mb.adapters import cuda_sharding, rune
+
+    tokenizer = SimpleNamespace(encode=lambda code, **kw: [1] if code == "A" else [2, 3],
+                                decode=lambda ids: "A")
+    config = SimpleNamespace(get_text_config=lambda: SimpleNamespace(max_position_embeddings=32768))
+    loaded = []
+    placement = {"model.language_model.layers.0": 0, "model.language_model.layers.1": 1}
+
+    def plan(model_class, native_config, torch, **kwargs):
+        assert native_config is config
+        assert kwargs == {"activation_reserve": 5 * 1024**3}
+        return placement
+
+    def load(path, **kwargs):
+        loaded.append(kwargs)
+        return SimpleNamespace(eval=lambda: "native engine")
+
+    transformers = SimpleNamespace(
+        AutoConfig=SimpleNamespace(from_pretrained=lambda path: config),
+        AutoTokenizer=SimpleNamespace(from_pretrained=lambda path: tokenizer),
+        AutoProcessor=SimpleNamespace(from_pretrained=lambda path: "native processor"),
+        Gemma4ForConditionalGeneration=SimpleNamespace(from_pretrained=load),
+    )
+
+    def setup(self, *args):
+        self.path = tmp_path
+        self.torch = SimpleNamespace(bfloat16="bfloat16")
+
+    monkeypatch.setattr(RuneAdapter, "setup", setup)
+    monkeypatch.setattr(rune.importlib, "import_module", lambda name: transformers)
+    monkeypatch.setattr(cuda_sharding, "cuda_only_device_map", plan)
+    adapter = RuneAdapter("model", "revision", "source", "cuda:0", cuda_shards=2)
+    assert loaded == [{"dtype": "bfloat16", "device_map": placement, "attn_implementation": "sdpa"}]
+    assert adapter.engine == "native engine"
+    assert adapter.settings["cuda_activation_reserve_bytes"] == 5 * 1024**3
+    assert adapter.settings["input_length_policy"] == "reject-overflow"
+    assert adapter.settings["temperature"] == 1.0
+
+
 @pytest.mark.parametrize("adapter_class", [JevOmniAdapter, pytest.param(None, id="neohorse")])
 def test_single_image_runtimes_reject_multiple_images_before_preparation(adapter_class):
     from s1mb.adapters.neohorse import NeoHorseAdapter

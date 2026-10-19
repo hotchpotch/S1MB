@@ -311,7 +311,7 @@ submitted coverage, settings, source hashes and failures.
 | --- | --- | --- |
 | `matilda` | Bundled calibrated decision runtime; optional two-GPU CUDA placement | Native processor |
 | `startlux` | Released Transformers pipeline for Instant checkpoints, including bidirectional parity checks and per-type temperatures | Native pipeline |
-| `rune` | Released decisions scaffold and complete candidate logits on Transformers; optional two-GPU CUDA placement | Native processor |
+| `rune` | Released decisions scaffold and complete candidate logits on Transformers; optional two-GPU CUDA placement with 5 GiB per device reserved for long-input activations | Native processor |
 | `winnow --winnow-vision` | Verified Q8 GGUF and matching projector through the released CUDA server; direct decisions | 16 |
 | `span` | Released Rust/CUDA engine and deterministic adaptive policy; requires its pinned MTP assistant through `--base-revision` | 4 |
 | `xor-vision` | Released two-order wrapper with a local Transformers candidate-logprob bridge | Native processor |
