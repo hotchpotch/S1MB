@@ -62,3 +62,11 @@ def test_per_layer_token_lookup_counts_total_but_not_active(monkeypatch):
         "active_params": 1024,
         "parameter_count_method": METHOD,
     }
+
+
+@pytest.mark.parametrize("capacity", [65, 77, 151, 255])
+def test_native_capacity_cannot_be_overridden_above_64(capacity):
+    from s1mb.adapters.winnow import WinnowAdapter
+
+    with pytest.raises(ValueError, match="native candidate capacity.*2..64"):
+        WinnowAdapter("unused", "unused", "unused", "cuda:0", max_candidates=capacity)

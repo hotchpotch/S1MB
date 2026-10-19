@@ -82,8 +82,8 @@ class WinnowAdapter:
         if not isinstance(microbatch_size, int) or isinstance(microbatch_size, bool) or microbatch_size < 1:
             raise ValueError("Winnow microbatch size must be a positive integer")
         capacity = 64 if max_candidates is None else max_candidates
-        if not 2 <= capacity <= 255:
-            raise ValueError("Winnow candidate capacity must be within 2..255")
+        if not 2 <= capacity <= 64:
+            raise ValueError("Winnow native candidate capacity must be within 2..64")
         address = ipaddress.ip_address(server_host)
         if address.version != 4 or not (
             address.is_loopback or address in ipaddress.ip_network("100.64.0.0/10")
