@@ -10480,6 +10480,61 @@
           "dataset_access": "private"
         }
       ]
+    },
+    {
+      "model_ids": [
+        "empiriolabsai__aplomb-1"
+      ],
+      "training_exposure": [
+        {
+          "relationship": "same_source_family",
+          "registration_source": "contributor_review",
+          "dataset_access": null,
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/empiriolabsai/aplomb-1/blob/60b3a1c67d6fee193d1543b6530b4cc9c57c7fae/README.md",
+          "benchmark_id": "contract-nli-choice-test-v1",
+          "dataset": null,
+          "note": "The model card reports training on the public ContractNLI train split. The exact retained training snapshot is undisclosed. The authors could not fully verify exclusion of Decision Index items from the earliest training data; this does not establish use of S1MB evaluation examples."
+        },
+        {
+          "relationship": "same_source_family",
+          "registration_source": "contributor_review",
+          "dataset_access": null,
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/empiriolabsai/aplomb-1/blob/60b3a1c67d6fee193d1543b6530b4cc9c57c7fae/README.md",
+          "benchmark_id": "laya--typed-decisions-choice-test-v1",
+          "dataset": "LocalLLaMA/typed-decisions",
+          "note": "The model card reports training on this benchmark's train split and explicitly says the test split was not used. Exact retained training revision and independent overlap verification are unavailable. This is source-family exposure, not established evaluation-example use."
+        },
+        {
+          "relationship": "same_source_family",
+          "registration_source": "contributor_review",
+          "dataset_access": null,
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/empiriolabsai/aplomb-1/blob/60b3a1c67d6fee193d1543b6530b4cc9c57c7fae/README.md",
+          "benchmark_id": "laya--typed-decisions-noul-test-v1",
+          "dataset": "LocalLLaMA/typed-decisions",
+          "note": "The model card reports training on this benchmark's train split and explicitly says the test split was not used. Exact retained training revision and independent overlap verification are unavailable. This is source-family exposure, not established evaluation-example use."
+        },
+        {
+          "relationship": "same_source_family",
+          "registration_source": "contributor_review",
+          "dataset_access": null,
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/empiriolabsai/aplomb-1/blob/60b3a1c67d6fee193d1543b6530b4cc9c57c7fae/README.md",
+          "benchmark_id": "laya--typed-decisions-score-test-v1",
+          "dataset": "LocalLLaMA/typed-decisions",
+          "note": "The model card reports training on this benchmark's train split and explicitly says the test split was not used. Exact retained training revision and independent overlap verification are unavailable. This is source-family exposure, not established evaluation-example use."
+        }
+      ]
     }
   ]
 }
