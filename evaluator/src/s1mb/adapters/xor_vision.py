@@ -27,7 +27,8 @@ class XorVisionAdapter(UpstreamAdapter):
         transformers = importlib.import_module("transformers")
         config = transformers.AutoConfig.from_pretrained(str(self.path))
         cls = getattr(transformers, config.architectures[0])
-        placement = cuda_only_device_map(cls, config, self.torch)
+        activation_reserve = 5 * 1024**3
+        placement = cuda_only_device_map(cls, config, self.torch, activation_reserve=activation_reserve)
         self.engine = cls.from_pretrained(str(self.path), dtype=self.torch.bfloat16,
                                          device_map=placement, attn_implementation="sdpa").eval()
         self.processor = transformers.AutoProcessor.from_pretrained(str(self.path))
@@ -52,6 +53,7 @@ class XorVisionAdapter(UpstreamAdapter):
         self.native.generate = self.generate
         self.attention_model = self.engine
         self.settings = {"dtype": "bfloat16", "cuda_shards": 2, "cuda_device_map": placement,
+                         "cuda_activation_reserve_bytes": activation_reserve,
                          "max_input_tokens": context_limit, "input_length_policy": "reject-overflow",
                          "renderer": "native-xor-two-order-anonymous-choice-numeric-score-v1",
                          "runtime": "transformers-native-protocol-bridge", "two_order": True,

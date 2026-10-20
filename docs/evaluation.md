@@ -795,6 +795,12 @@ Flush its cache before each new run; stop the owned backend when validation ends
 The adapter uses the release's compatibility-server rendering and calibration,
 and an alternative inference runtime requires independent validation.
 
+The native `xor-vision` Transformers bridge reserves 5 GiB per CUDA device for
+long-input MoE workspace when planning its two-GPU placement. It rejects CPU/disk
+offload and records the reserve and device map. Full inputs, BF16 weights, native
+two-order calibration and numeric Score anchors are preserved. A fresh run and
+validated smoke are required after a placement change.
+
 
 Blink's NVFP4 backend requires vLLM's selected-token logprob API, `modelopt_fp4`
 quantization and FP8 KV cache. Use the verified model snapshot at `/models/blink`,
