@@ -7211,6 +7211,30 @@
           "evidence_url": "https://huggingface.co/kirp/jpt-0.8b/blob/1431c0509bbc10772cd59964cc7af5835c8720d6/README.md",
           "note": "The pinned release card explicitly names this source family in the model’s training data. The exact training Dataset snapshot and configuration are not disclosed. This is author-reported source-family exposure; it does not establish use of the adopted S1MB evaluation examples.",
           "registration_source": "contributor_review"
+        },
+        {
+          "benchmark_id": "massive-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "AmazonScience/massive",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/kirp/jpt-0.8b/blob/1431c0509bbc10772cd59964cc7af5835c8720d6/README.md",
+          "note": "The pinned card explicitly says MASSIVE train splits were in the training mix. Exact consumed revision/configuration and adopted S1MB example overlap are unknown.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
+        },
+        {
+          "benchmark_id": "laya--ag-news-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "fancyzhx/ag_news",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/kirp/jpt-0.8b/blob/1431c0509bbc10772cd59964cc7af5835c8720d6/README.md",
+          "note": "This card states the same JPT-4B recipe/data. The JPT-9B card at 9fda2c7f123d36c4789c46c93737e80fc3a6c9fe identifies the same mix_train_env_v11 (49,221 questions) and explicitly says AG News train splits are in that mix. This is author-reported shared-data lineage, not an independent retained-row audit; exact training revision and S1MB overlap are unknown.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
         }
       ]
     },
@@ -7240,6 +7264,30 @@
           "evidence_url": "https://huggingface.co/kirp/jpt-4b/blob/78312f855b8bebf83ae7e9e8f05b5a0f73f519a9/README.md",
           "note": "The pinned release card explicitly names this source family in the model’s training data. The exact training Dataset snapshot and configuration are not disclosed. This is author-reported source-family exposure; it does not establish use of the adopted S1MB evaluation examples.",
           "registration_source": "contributor_review"
+        },
+        {
+          "benchmark_id": "massive-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "AmazonScience/massive",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/kirp/jpt-4b/blob/78312f855b8bebf83ae7e9e8f05b5a0f73f519a9/README.md",
+          "note": "The pinned card explicitly says MASSIVE train splits were in the training mix. Exact consumed revision/configuration and adopted S1MB example overlap are unknown.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
+        },
+        {
+          "benchmark_id": "laya--ag-news-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "fancyzhx/ag_news",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/kirp/jpt-4b/blob/78312f855b8bebf83ae7e9e8f05b5a0f73f519a9/README.md",
+          "note": "This card states the same JPT-4B recipe/data. The JPT-9B card at 9fda2c7f123d36c4789c46c93737e80fc3a6c9fe identifies the same mix_train_env_v11 (49,221 questions) and explicitly says AG News train splits are in that mix. This is author-reported shared-data lineage, not an independent retained-row audit; exact training revision and S1MB overlap are unknown.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
         }
       ]
     },
@@ -9598,6 +9646,78 @@
           "evidence_url": "https://github.com/Shanghua-Gao/RSI-Jev/blob/fa70834769374c9ef38b41fb3ef7a3a69da26d76/data/v5.0-vl_recipe/b4-exit20.json",
           "note": "The measured v5.0-VL card links this exact release recipe. Stage 1 explicitly includes st_paws in its trained sources; stage 2 replays this source. The internal corpus and builders are not public, so Dataset snapshot/config/split and effective source filtering remain unverified. This is a maintainer source-family declaration, not an independent row-level overlap audit.",
           "registration_source": "contributor_review"
+        },
+        {
+          "benchmark_id": "synthetic-relevance--nanobeir--nanohotpotqa-noul-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "hotpotqa/hotpot_qa",
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://github.com/Shanghua-Gao/RSI-Jev/blob/fa70834769374c9ef38b41fb3ef7a3a69da26d76/data/v5.0-vl_recipe/b4-exit20.json",
+          "note": "The release training source inventory explicitly retains cov_hotpotqa (rp_cov_hotpotqa in image replay), documenting HotpotQA-family training. S1MB uses a NanoBEIR adaptation of that source family; neither the exact retained training snapshot/split nor record-level S1MB overlap is established.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
+        },
+        {
+          "benchmark_id": "synthetic-relevance--nanobeir--nanohotpotqa-score-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "hotpotqa/hotpot_qa",
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://github.com/Shanghua-Gao/RSI-Jev/blob/fa70834769374c9ef38b41fb3ef7a3a69da26d76/data/v5.0-vl_recipe/b4-exit20.json",
+          "note": "The release training source inventory explicitly retains cov_hotpotqa (rp_cov_hotpotqa in image replay), documenting HotpotQA-family training. S1MB uses a NanoBEIR adaptation of that source family; neither the exact retained training snapshot/split nor record-level S1MB overlap is established.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
+        },
+        {
+          "benchmark_id": "tallyqa-score",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://github.com/Shanghua-Gao/RSI-Jev/blob/fa70834769374c9ef38b41fb3ef7a3a69da26d76/data/v5.0-vl_recipe/vis-v4k.json",
+          "note": "The release-linked stage-2 specification explicitly includes vis_tallyqa among trained image sources. The public build_vision_v1.py maps this source to the named original family; corpus and retained rows are unpublished. Exact training snapshot/configuration/split and adopted S1MB overlap are not independently established.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
+        },
+        {
+          "benchmark_id": "nlvr2-noul",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://github.com/Shanghua-Gao/RSI-Jev/blob/fa70834769374c9ef38b41fb3ef7a3a69da26d76/data/v5.0-vl_recipe/vis-v4k.json",
+          "note": "The release-linked stage-2 specification explicitly includes vis_nlvr2 among trained image sources. The public build_vision_v1.py maps this source to the named original family; corpus and retained rows are unpublished. Exact training snapshot/configuration/split and adopted S1MB overlap are not independently established.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
+        },
+        {
+          "benchmark_id": "scienceqa-choice",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://github.com/Shanghua-Gao/RSI-Jev/blob/fa70834769374c9ef38b41fb3ef7a3a69da26d76/data/v5.0-vl_recipe/vis-v4k.json",
+          "note": "The release-linked stage-2 specification explicitly includes vis_scienceqa among trained image sources. The public build_vision_v1.py maps this source to the named original family; corpus and retained rows are unpublished. Exact training snapshot/configuration/split and adopted S1MB overlap are not independently established.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
+        },
+        {
+          "benchmark_id": "rvlcdip-choice",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://github.com/Shanghua-Gao/RSI-Jev/blob/fa70834769374c9ef38b41fb3ef7a3a69da26d76/data/v5.0-vl_recipe/vis-v4k.json",
+          "note": "The release-linked stage-2 specification explicitly includes vis_rvlcdip among trained image sources. The public build_vision_v1.py maps this source to the named original family; corpus and retained rows are unpublished. Exact training snapshot/configuration/split and adopted S1MB overlap are not independently established.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
         }
       ]
     },
@@ -10339,6 +10459,90 @@
           "evidence_url": "https://github.com/Shanghua-Gao/RSI-Jev/blob/fa70834769374c9ef38b41fb3ef7a3a69da26d76/data/v6.1-vl_recipe/1-member-b-domain-mix.json",
           "note": "The v6.1-VL member-B B3 recipe explicitly lists dt_banking77, dt_clinc150 and dt_esci among trained sources. Exact original source snapshot/config/split and adopted evaluation-example overlap are not established. These are source-family declarations; the private corpus is not independently audited.",
           "registration_source": "contributor_review"
+        },
+        {
+          "benchmark_id": "synthetic-relevance--nanobeir--nanohotpotqa-noul-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "hotpotqa/hotpot_qa",
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-4b/blob/7f93b1926dc23c62635538f5d40f1dabbddee5b6/meta.json",
+          "note": "The release training source inventory explicitly retains cov_hotpotqa (rp_cov_hotpotqa in image replay), documenting HotpotQA-family training. S1MB uses a NanoBEIR adaptation of that source family; neither the exact retained training snapshot/split nor record-level S1MB overlap is established.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
+        },
+        {
+          "benchmark_id": "synthetic-relevance--nanobeir--nanohotpotqa-score-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "hotpotqa/hotpot_qa",
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-4b/blob/7f93b1926dc23c62635538f5d40f1dabbddee5b6/meta.json",
+          "note": "The release training source inventory explicitly retains cov_hotpotqa (rp_cov_hotpotqa in image replay), documenting HotpotQA-family training. S1MB uses a NanoBEIR adaptation of that source family; neither the exact retained training snapshot/split nor record-level S1MB overlap is established.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
+        },
+        {
+          "benchmark_id": "arc-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-4b/blob/7f93b1926dc23c62635538f5d40f1dabbddee5b6/README.md",
+          "note": "The 4B v6.1 release card explicitly names ARC / ARC-Challenge in member B training. This is declared source-family use, not proof that adopted S1MB evaluation examples were used; retained revision/split/configuration are undisclosed.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
+        },
+        {
+          "benchmark_id": "aqua-rat-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-4b/blob/7f93b1926dc23c62635538f5d40f1dabbddee5b6/README.md",
+          "note": "The 4B v6.1 release card explicitly names AQuA-RAT in member B training. This is declared source-family use, not proof that adopted S1MB evaluation examples were used; retained revision/split/configuration are undisclosed.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
+        },
+        {
+          "benchmark_id": "openbookqa-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-4b/blob/7f93b1926dc23c62635538f5d40f1dabbddee5b6/README.md",
+          "note": "The 4B v6.1 release card explicitly names OpenBookQA in member B training. This is declared source-family use, not proof that adopted S1MB evaluation examples were used; retained revision/split/configuration are undisclosed.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
+        },
+        {
+          "benchmark_id": "contract-nli-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://github.com/Shanghua-Gao/RSI-Jev/blob/fa70834769374c9ef38b41fb3ef7a3a69da26d76/data/v6.1-vl_recipe/1-member-b-domain-mix.json",
+          "note": "The release-linked member B last-stage training specification explicitly includes dt_contractnli. The card documents this member being averaged into v6.1-VL. Corpus/builders are unpublished, so exact source revisions/splits and independent retained-row or S1MB overlap audits are unavailable.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
+        },
+        {
+          "benchmark_id": "cladder-noul-test-v1",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://github.com/Shanghua-Gao/RSI-Jev/blob/fa70834769374c9ef38b41fb3ef7a3a69da26d76/data/v6.1-vl_recipe/1-member-b-domain-mix.json",
+          "note": "The release-linked member B last-stage training specification explicitly includes dt_cladder. The card documents this member being averaged into v6.1-VL. Corpus/builders are unpublished, so exact source revisions/splits and independent retained-row or S1MB overlap audits are unavailable.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
         }
       ]
     },
@@ -10478,6 +10682,66 @@
           "note": "This 27B release itself records st_paws in meta.json spec.sources. Its pinned card describes text training and replay followed by averaging two fine-tunes, and says the training corpora are not public. The source-family mapping does not establish original source snapshot/config/split, consumed rows or S1MB evaluation-example overlap. This declaration uses the 27B record; no 4B image-training claim is inherited. Card: https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/README.md",
           "registration_source": "contributor_review",
           "dataset_access": "private"
+        },
+        {
+          "benchmark_id": "synthetic-relevance--nanobeir--nanohotpotqa-noul-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "hotpotqa/hotpot_qa",
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/meta.json",
+          "note": "The release training source inventory explicitly retains cov_hotpotqa (rp_cov_hotpotqa in image replay), documenting HotpotQA-family training. S1MB uses a NanoBEIR adaptation of that source family; neither the exact retained training snapshot/split nor record-level S1MB overlap is established.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
+        },
+        {
+          "benchmark_id": "synthetic-relevance--nanobeir--nanohotpotqa-score-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "hotpotqa/hotpot_qa",
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/meta.json",
+          "note": "The release training source inventory explicitly retains cov_hotpotqa (rp_cov_hotpotqa in image replay), documenting HotpotQA-family training. S1MB uses a NanoBEIR adaptation of that source family; neither the exact retained training snapshot/split nor record-level S1MB overlap is established.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
+        },
+        {
+          "benchmark_id": "arc-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/README.md",
+          "note": "The 4B v6.1 release card explicitly names ARC / ARC-Challenge in member B training. This 27B card explicitly says its MMLU-Pro-style and hard multiple-choice questions come from the sources listed in that 4B record (7f93b1926dc23c62635538f5d40f1dabbddee5b6); no 4B image training is inherited. This is declared source-family use, not proof that adopted S1MB evaluation examples were used; retained revision/split/configuration are undisclosed.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
+        },
+        {
+          "benchmark_id": "aqua-rat-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/README.md",
+          "note": "The 4B v6.1 release card explicitly names AQuA-RAT in member B training. This 27B card explicitly says its MMLU-Pro-style and hard multiple-choice questions come from the sources listed in that 4B record (7f93b1926dc23c62635538f5d40f1dabbddee5b6); no 4B image training is inherited. This is declared source-family use, not proof that adopted S1MB evaluation examples were used; retained revision/split/configuration are undisclosed.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
+        },
+        {
+          "benchmark_id": "openbookqa-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": null,
+          "revision": null,
+          "config": null,
+          "split": null,
+          "evidence_url": "https://huggingface.co/shgao/rsi-jev-v6.1-vl-27b/blob/d0dccc052ee844ab7481ddfacad1b7335ab394e0/README.md",
+          "note": "The 4B v6.1 release card explicitly names OpenBookQA in member B training. This 27B card explicitly says its MMLU-Pro-style and hard multiple-choice questions come from the sources listed in that 4B record (7f93b1926dc23c62635538f5d40f1dabbddee5b6); no 4B image training is inherited. This is declared source-family use, not proof that adopted S1MB evaluation examples were used; retained revision/split/configuration are undisclosed.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
         }
       ]
     },
@@ -10533,6 +10797,303 @@
           "benchmark_id": "laya--typed-decisions-score-test-v1",
           "dataset": "LocalLLaMA/typed-decisions",
           "note": "The model card reports training on this benchmark's train split and explicitly says the test split was not used. Exact retained training revision and independent overlap verification are unavailable. This is source-family exposure, not established evaluation-example use."
+        }
+      ]
+    },
+    {
+      "model_ids": [
+        "startlux-models__StartLux-Decision-v1.1-27B-Instant"
+      ],
+      "training_exposure": [
+        {
+          "benchmark_id": "gsm8k-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "openai/gsm8k",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://arxiv.org/html/2610.17309v1#A2",
+          "note": "Appendix A.2 identifies reconstructed GSM8K training problems in final Stage 2 Lux-Rounds. Card links this report and confirms Stage 2 training for the released 27B Instant model. Exact retained training revision/configuration is undisclosed; no S1MB example overlap claim.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
+        }
+      ]
+    },
+    {
+      "model_ids": [
+        "autotrust__JEV-27B-VL"
+      ],
+      "training_exposure": [
+        {
+          "benchmark_id": "open-jev--customer-control-v1-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL card identifies this release as JEV-27B with vision and identical text decisions. JEV-27B training card at 14b425269ed24452e0a5ad5a8f3e51d139647a88 confirms training on jev-distill-corpus-v3 including openjev_v2. Corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies Open-Jev release-v2-redistributable. Release-v2 original manifest at c67699e13d0ae25e35b77165a4b6b079bedc8aba names this benchmark task family in the source mixture. This maps source-family exposure; task-specific inclusion, exact historical snapshot and S1MB record overlap are not established; OOD families were held out.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        },
+        {
+          "benchmark_id": "open-jev--customer-control-v1-noul-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL card identifies this release as JEV-27B with vision and identical text decisions. JEV-27B training card at 14b425269ed24452e0a5ad5a8f3e51d139647a88 confirms training on jev-distill-corpus-v3 including openjev_v2. Corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies Open-Jev release-v2-redistributable. Release-v2 original manifest at c67699e13d0ae25e35b77165a4b6b079bedc8aba names this benchmark task family in the source mixture. This maps source-family exposure; task-specific inclusion, exact historical snapshot and S1MB record overlap are not established; OOD families were held out.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        },
+        {
+          "benchmark_id": "open-jev--customer-control-v1-score-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL card identifies this release as JEV-27B with vision and identical text decisions. JEV-27B training card at 14b425269ed24452e0a5ad5a8f3e51d139647a88 confirms training on jev-distill-corpus-v3 including openjev_v2. Corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies Open-Jev release-v2-redistributable. Release-v2 original manifest at c67699e13d0ae25e35b77165a4b6b079bedc8aba names this benchmark task family in the source mixture. This maps source-family exposure; task-specific inclusion, exact historical snapshot and S1MB record overlap are not established; OOD families were held out.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        },
+        {
+          "benchmark_id": "open-jev--painting-geometry-v1-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL card identifies this release as JEV-27B with vision and identical text decisions. JEV-27B training card at 14b425269ed24452e0a5ad5a8f3e51d139647a88 confirms training on jev-distill-corpus-v3 including openjev_v2. Corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies Open-Jev release-v2-redistributable. Release-v2 original manifest at c67699e13d0ae25e35b77165a4b6b079bedc8aba names this benchmark task family in the source mixture. This maps source-family exposure; task-specific inclusion, exact historical snapshot and S1MB record overlap are not established; OOD families were held out.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        },
+        {
+          "benchmark_id": "open-jev--painting-geometry-v1-noul-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL card identifies this release as JEV-27B with vision and identical text decisions. JEV-27B training card at 14b425269ed24452e0a5ad5a8f3e51d139647a88 confirms training on jev-distill-corpus-v3 including openjev_v2. Corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies Open-Jev release-v2-redistributable. Release-v2 original manifest at c67699e13d0ae25e35b77165a4b6b079bedc8aba names this benchmark task family in the source mixture. This maps source-family exposure; task-specific inclusion, exact historical snapshot and S1MB record overlap are not established; OOD families were held out.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        },
+        {
+          "benchmark_id": "open-jev--painting-geometry-v1-score-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL card identifies this release as JEV-27B with vision and identical text decisions. JEV-27B training card at 14b425269ed24452e0a5ad5a8f3e51d139647a88 confirms training on jev-distill-corpus-v3 including openjev_v2. Corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies Open-Jev release-v2-redistributable. Release-v2 original manifest at c67699e13d0ae25e35b77165a4b6b079bedc8aba names this benchmark task family in the source mixture. This maps source-family exposure; task-specific inclusion, exact historical snapshot and S1MB record overlap are not established; OOD families were held out.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        },
+        {
+          "benchmark_id": "open-jev--reasoning-control-v1-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL card identifies this release as JEV-27B with vision and identical text decisions. JEV-27B training card at 14b425269ed24452e0a5ad5a8f3e51d139647a88 confirms training on jev-distill-corpus-v3 including openjev_v2. Corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies Open-Jev release-v2-redistributable. Release-v2 original manifest at c67699e13d0ae25e35b77165a4b6b079bedc8aba names this benchmark task family in the source mixture. This maps source-family exposure; task-specific inclusion, exact historical snapshot and S1MB record overlap are not established; OOD families were held out.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        },
+        {
+          "benchmark_id": "open-jev--reasoning-control-v1-noul-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL card identifies this release as JEV-27B with vision and identical text decisions. JEV-27B training card at 14b425269ed24452e0a5ad5a8f3e51d139647a88 confirms training on jev-distill-corpus-v3 including openjev_v2. Corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies Open-Jev release-v2-redistributable. Release-v2 original manifest at c67699e13d0ae25e35b77165a4b6b079bedc8aba names this benchmark task family in the source mixture. This maps source-family exposure; task-specific inclusion, exact historical snapshot and S1MB record overlap are not established; OOD families were held out.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        },
+        {
+          "benchmark_id": "open-jev--reasoning-control-v1-score-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL card identifies this release as JEV-27B with vision and identical text decisions. JEV-27B training card at 14b425269ed24452e0a5ad5a8f3e51d139647a88 confirms training on jev-distill-corpus-v3 including openjev_v2. Corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies Open-Jev release-v2-redistributable. Release-v2 original manifest at c67699e13d0ae25e35b77165a4b6b079bedc8aba names this benchmark task family in the source mixture. This maps source-family exposure; task-specific inclusion, exact historical snapshot and S1MB record overlap are not established; OOD families were held out.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        },
+        {
+          "benchmark_id": "open-jev--snake-v1-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL card identifies this release as JEV-27B with vision and identical text decisions. JEV-27B training card at 14b425269ed24452e0a5ad5a8f3e51d139647a88 confirms training on jev-distill-corpus-v3 including openjev_v2. Corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies Open-Jev release-v2-redistributable. Release-v2 original manifest at c67699e13d0ae25e35b77165a4b6b079bedc8aba names this benchmark task family in the source mixture. This maps source-family exposure; task-specific inclusion, exact historical snapshot and S1MB record overlap are not established; OOD families were held out.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        },
+        {
+          "benchmark_id": "open-jev--snake-v1-noul-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL card identifies this release as JEV-27B with vision and identical text decisions. JEV-27B training card at 14b425269ed24452e0a5ad5a8f3e51d139647a88 confirms training on jev-distill-corpus-v3 including openjev_v2. Corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies Open-Jev release-v2-redistributable. Release-v2 original manifest at c67699e13d0ae25e35b77165a4b6b079bedc8aba names this benchmark task family in the source mixture. This maps source-family exposure; task-specific inclusion, exact historical snapshot and S1MB record overlap are not established; OOD families were held out.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        },
+        {
+          "benchmark_id": "open-jev--tic-tac-toe-v1-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL card identifies this release as JEV-27B with vision and identical text decisions. JEV-27B training card at 14b425269ed24452e0a5ad5a8f3e51d139647a88 confirms training on jev-distill-corpus-v3 including openjev_v2. Corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies Open-Jev release-v2-redistributable. Release-v2 original manifest at c67699e13d0ae25e35b77165a4b6b079bedc8aba names this benchmark task family in the source mixture. This maps source-family exposure; task-specific inclusion, exact historical snapshot and S1MB record overlap are not established; OOD families were held out.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        },
+        {
+          "benchmark_id": "open-jev--vizdoom-basic-v1-noul-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL card identifies this release as JEV-27B with vision and identical text decisions. JEV-27B training card at 14b425269ed24452e0a5ad5a8f3e51d139647a88 confirms training on jev-distill-corpus-v3 including openjev_v2. Corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies Open-Jev release-v2-redistributable. Release-v2 original manifest at c67699e13d0ae25e35b77165a4b6b079bedc8aba names this benchmark task family in the source mixture. This maps source-family exposure; task-specific inclusion, exact historical snapshot and S1MB record overlap are not established; OOD families were held out.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        },
+        {
+          "benchmark_id": "open-jev--vizdoom-basic-v1-score-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL card identifies this release as JEV-27B with vision and identical text decisions. JEV-27B training card at 14b425269ed24452e0a5ad5a8f3e51d139647a88 confirms training on jev-distill-corpus-v3 including openjev_v2. Corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies Open-Jev release-v2-redistributable. Release-v2 original manifest at c67699e13d0ae25e35b77165a4b6b079bedc8aba names this benchmark task family in the source mixture. This maps source-family exposure; task-specific inclusion, exact historical snapshot and S1MB record overlap are not established; OOD families were held out.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        },
+        {
+          "benchmark_id": "open-jev--workflow-controls-v1--agent-trace-observability-noul-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL card identifies this release as JEV-27B with vision and identical text decisions. JEV-27B training card at 14b425269ed24452e0a5ad5a8f3e51d139647a88 confirms training on jev-distill-corpus-v3 including openjev_v2. Corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies Open-Jev release-v2-redistributable. Release-v2 original manifest at c67699e13d0ae25e35b77165a4b6b079bedc8aba names this benchmark task family in the source mixture. This maps source-family exposure; task-specific inclusion, exact historical snapshot and S1MB record overlap are not established; OOD families were held out.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        },
+        {
+          "benchmark_id": "open-jev--workflow-controls-v1--customer-service-noul-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL card identifies this release as JEV-27B with vision and identical text decisions. JEV-27B training card at 14b425269ed24452e0a5ad5a8f3e51d139647a88 confirms training on jev-distill-corpus-v3 including openjev_v2. Corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies Open-Jev release-v2-redistributable. Release-v2 original manifest at c67699e13d0ae25e35b77165a4b6b079bedc8aba names this benchmark task family in the source mixture. This maps source-family exposure; task-specific inclusion, exact historical snapshot and S1MB record overlap are not established; OOD families were held out.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        },
+        {
+          "benchmark_id": "open-jev--workflow-controls-v1--invoice-processing-noul-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL card identifies this release as JEV-27B with vision and identical text decisions. JEV-27B training card at 14b425269ed24452e0a5ad5a8f3e51d139647a88 confirms training on jev-distill-corpus-v3 including openjev_v2. Corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies Open-Jev release-v2-redistributable. Release-v2 original manifest at c67699e13d0ae25e35b77165a4b6b079bedc8aba names this benchmark task family in the source mixture. This maps source-family exposure; task-specific inclusion, exact historical snapshot and S1MB record overlap are not established; OOD families were held out.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        },
+        {
+          "benchmark_id": "open-jev--workflow-controls-v1--security-incidents-noul-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL card identifies this release as JEV-27B with vision and identical text decisions. JEV-27B training card at 14b425269ed24452e0a5ad5a8f3e51d139647a88 confirms training on jev-distill-corpus-v3 including openjev_v2. Corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies Open-Jev release-v2-redistributable. Release-v2 original manifest at c67699e13d0ae25e35b77165a4b6b079bedc8aba names this benchmark task family in the source mixture. This maps source-family exposure; task-specific inclusion, exact historical snapshot and S1MB record overlap are not established; OOD families were held out.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        },
+        {
+          "benchmark_id": "synthetic-relevance--nanobeir--nanohotpotqa-noul-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL release inherits JEV-27B decision training. JEV-27B pinned training card confirms yuri_v1 corpus training (placeholder labels, down-weighted 0.05); corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies HotpotQA among memory-relevance sources. NanoHotpotQA shares that original source family. Original split, exact historical corpus revision and retained source counts are undisclosed; no S1MB example overlap claim.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        },
+        {
+          "benchmark_id": "synthetic-relevance--nanobeir--nanohotpotqa-score-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "SargeDev/jev-distill-corpus-v3",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/autotrust/JEV-27B-VL/blob/9e53b8a809d2ab98e3e6a55b2b2dbf94b4c1e84a/README.md",
+          "note": "VL release inherits JEV-27B decision training. JEV-27B pinned training card confirms yuri_v1 corpus training (placeholder labels, down-weighted 0.05); corpus card at 75111a13a8455032f0435050bfc7e0c9026ecfe8 identifies HotpotQA among memory-relevance sources. NanoHotpotQA shares that original source family. Original split, exact historical corpus revision and retained source counts are undisclosed; no S1MB example overlap claim.",
+          "registration_source": "contributor_review",
+          "dataset_access": "public"
+        }
+      ]
+    },
+    {
+      "model_ids": [
+        "PelaAI__KnowLine-35B-A3B-Gen1"
+      ],
+      "training_exposure": [
+        {
+          "benchmark_id": "gsm8k-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "openai/gsm8k",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/PelaAI/KnowLine-35B-A3B-Gen1/blob/e800968d38761c190476da5c69c6a5087a3c9b29/README.md",
+          "note": "The released Gen1 card names GSM8K train-split examples rewritten in Decision Index format in its actual two-round training corpus. Decontamination excluded evaluation near-duplicates but retained shared passages. Exact original training snapshot and retained corpus availability are undisclosed.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
+        },
+        {
+          "benchmark_id": "esci-choice-test-v1",
+          "relationship": "same_source_family",
+          "dataset": "tasksource/esci",
+          "revision": null,
+          "config": null,
+          "split": "train",
+          "evidence_url": "https://huggingface.co/PelaAI/KnowLine-35B-A3B-Gen1/blob/e800968d38761c190476da5c69c6a5087a3c9b29/README.md",
+          "note": "The released Gen1 card names Amazon ESCI train-split examples rewritten in Decision Index format in its actual two-round training corpus. Decontamination excluded evaluation near-duplicates but retained shared passages. Exact original training snapshot and retained corpus availability are undisclosed.",
+          "registration_source": "contributor_review",
+          "dataset_access": null
         }
       ]
     }
