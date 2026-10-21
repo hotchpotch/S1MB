@@ -10,8 +10,9 @@ explicitly authorized publication through to a verified leaderboard Space.
 
 ## Scope and working record
 
-Read the repository's `AGENTS.md` first. Resolve project links below relative to
-this skill directory. Refresh remote state; an earlier session's PR list, main
+Read the repository's `AGENTS.md` first, then the repository-root
+`tmp/s1mb-pr-check.md` if present. Resolve project links below relative to this
+skill directory. Refresh remote state; an earlier session's PR list, main
 revision, evaluator schema, and deployment state may be stale.
 
 Distinguish review, public comments, merge, summary publication, and deployment.
@@ -25,16 +26,43 @@ merge messages. When the merge action has no public message field, post an
 accompanying thank-you comment with the author's mention as part of the
 authorized merge.
 
-Keep a resumable record under ignored `tmp/`: requested scope, PR URLs/authors,
-reviewed head/base SHAs, checks and limitations, decisions and authorization,
-merged commits, Dataset source/published SHAs, and Actions/Space revisions.
-Keep credentials and private evaluation inputs out of reports and tracked source.
+Maintain `tmp/s1mb-pr-check.md` as a concise resumable index. Keep it ignored and
+never commit it. Record the last verification time, requested scope and actual
+authorization, PR URLs/authors, reviewed head/base SHAs, relevant trusted evaluator
+revision, decisions, checks and limitations. For pending feedback, record the
+posted comment URL, latest substantive reply/review identifiers and timestamps
+(including edits), requested action, and the next review trigger. Link detailed
+evidence under ignored `tmp/` rather than copying logs into the index. Record
+merged commits, Dataset source/published SHAs, and Actions/Space revisions when
+applicable. Update the index after each run and external action; cached
+authorization is context, not a new grant of permission. Keep credentials and
+private evaluation inputs out of records and tracked source.
+
+## Waiting PRs and incremental review
+
+Use a lightweight remote inventory to compare heads, discussion/review activity,
+CI and relevant base/schema changes with the index. If feedback has already been
+posted and the PR is waiting for the author's reply or fix, mark it
+`awaiting_author`. When that state is unchanged, reuse recorded evidence: do not
+repeat downloads, tests, full reviews or the same public comment. Keep the PR in
+the local index, but omit it from user-facing lists, progress updates and final
+reports unless the user requests waiting PRs or explicitly asks about that PR.
+
+A new head, substantive reply or edited explanation, changed relevant CI, or a
+base/schema change that could invalidate the finding triggers review of the
+affected delta and necessary revalidation. An explicit re-review request also
+overrides the default omission. If the record is missing or insufficient, inspect
+enough remote context to establish the state before reusing prior conclusions.
+Report new or actionable PRs with their decisions. If only unchanged waiting PRs
+remain, say there are no new actionable updates; do not claim there are no open
+PRs. Do not silently drop unresolved findings from the local index.
 
 ## Establish the real changes
 
-- List open GitHub PRs in `hotchpotch/S1MB`, including draft status, current heads,
-  comments/reviews, files and CI. List open HF Dataset pull requests, including
-  drafts, in `hotchpotch/s1mb-result` using Hub discussion APIs. Read the latest
+- Fetch an internal inventory of open GitHub PRs in `hotchpotch/S1MB` and HF
+  Dataset pull requests in `hotchpotch/s1mb-result`, including drafts. Use Hub
+  discussion APIs for HF. Compare current heads, comments/reviews and CI with the
+  index before fetching files for PRs that need review. Read the latest
   explanation and replies rather than relying on the original title.
 - Pin downloaded evidence to immutable SHAs. Compare code with its actual base
   and results with their branch origin/merge base. Files added to main after
@@ -111,9 +139,10 @@ Read [the submission guide](../../../docs/contributing_results.md) and
   unknown, not unseen. Supported author declarations are not independently proven
   training histories. Known flags never adjust scores.
 
-Report PRs as acceptable, changes required, or held for a stated decision. Include
-supporting checks, security findings, CI state and remaining uncertainty. Do not
-invent new acceptance policy because a submission has unusual metadata.
+For PRs requiring a report, state acceptable, changes required, or held for a
+stated decision. Include supporting checks, security findings, CI state and
+remaining uncertainty. Do not invent new acceptance policy because a submission
+has unusual metadata.
 
 ## Authorized merge and leaderboard publication
 
