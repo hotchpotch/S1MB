@@ -128,8 +128,8 @@ class WinnowAdapter:
             filename = projector_artifact["url"].split("/resolve/main/", 1)[1]
             projector = Path(hub.hf_hub_download(model, filename, revision=resolved))
             with projector.open("rb") as stream:
-                digest = hashlib.file_digest(stream, "sha256").hexdigest()
-            if digest != projector_artifact["sha256"] or projector.stat().st_size != projector_artifact["bytes"]:
+                projector_digest = hashlib.file_digest(stream, "sha256").hexdigest()
+            if projector_digest != projector_artifact["sha256"] or projector.stat().st_size != projector_artifact["bytes"]:
                 raise ValueError("Winnow projector differs from its verified release manifest")
             projector_reader = importlib.import_module("gguf").GGUFReader(projector)
             projector_sizes = {t.name: math.prod(int(d) for d in t.shape) for t in projector_reader.tensors
