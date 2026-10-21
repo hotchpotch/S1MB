@@ -324,3 +324,11 @@ See [result contribution](contributing_results.md) for validation and review. Th
 publisher keeps this metadata separate from saved measurements and carries it into
 the bounded offline viewer summary. It never places exposure labels in model inputs
 or fetches training data at runtime.
+
+## Vision model source review
+
+The [2026-10-21 review](vision-training-source-review.md) covers the 38 measured
+public-weight vision model releases, including supported source-family mappings
+and explicit unknowns. Consult its pinned evidence and limitations before
+submitting metadata; a vision-capable model does not necessarily have image
+training or a publicly disclosed retained corpus.

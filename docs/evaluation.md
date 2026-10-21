@@ -161,6 +161,17 @@ Use a dedicated environment matching the selected release's requirements, and
 verify GPU parity before smoke checks. Do not change dependencies used by waiting
 or running evaluations.
 
+The `aplomb` adapter uses the author's `run_aplomb` runtime bundled with
+`empiriolabsai/aplomb-1`. Obtain model access first, pin `--revision` to the full
+Hub commit SHA, and pass that same cached snapshot directory through `--source`.
+Its directory name must match the revision. Install the release's dependencies
+in a dedicated environment. The adapter retains the release temperatures,
+reversed-choice debiasing, attached FP32 decision head, ordered image media,
+and eight-decimal output normalization. It accepts up to 255 Choice options,
+10 Score levels and 16 images. The default 32,768-token context limit includes
+the answer token after native image expansion; overflow is rejected. Use
+`--context-limit` to declare a different positive limit. Audio is not requested.
+
 The `jev27`, `eikos-fp8` and `jade` bridges connect to an already verified native
 vLLM backend with `--server-host` and `--server-port`; they also require pinned
 release code through `--source`. Keep the released converted adapters or FP8
@@ -783,6 +794,12 @@ address or localhost. Pass `--server-host` and `--server-port` to `s1mb run`.
 Flush its cache before each new run; stop the owned backend when validation ends.
 The adapter uses the release's compatibility-server rendering and calibration,
 and an alternative inference runtime requires independent validation.
+
+The native `xor-vision` Transformers bridge reserves 5 GiB per CUDA device for
+long-input MoE workspace when planning its two-GPU placement. It rejects CPU/disk
+offload and records the reserve and device map. Full inputs, BF16 weights, native
+two-order calibration and numeric Score anchors are preserved. A fresh run and
+validated smoke are required after a placement change.
 
 
 Blink's NVFP4 backend requires vLLM's selected-token logprob API, `modelopt_fp4`

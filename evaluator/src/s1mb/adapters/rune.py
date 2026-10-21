@@ -9,6 +9,7 @@ from s1mb.data import Prediction, check_probabilities
 
 from .sifr import sifr_questions
 from .upstream import UpstreamAdapter
+from .vision_native import ordered_images
 
 SYSTEM = (
     "Make one decision from the supplied state, question, and options. "
@@ -44,8 +45,9 @@ def rune_messages(state, definition, labels):
 
 class RuneAdapter(UpstreamAdapter):
     case_batch_size = 1
+    supports_images = True
 
-    def __init__(self, model, revision, source, device, context_limit=None):
+    def __init__(self, model, revision, source, device, context_limit=None, cuda_shards=1):
         if context_limit is not None and context_limit < 1:
             raise ValueError("Rune context_limit must be positive")
         self.setup("rune", model, revision, source, device)
@@ -57,10 +59,23 @@ class RuneAdapter(UpstreamAdapter):
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(str(self.path))
         if self.tokenizer is None:
             raise ValueError("Rune tokenizer could not be loaded")
+        if cuda_shards not in {1, 2}:
+            raise ValueError("Rune requires one or two CUDA shards")
+        placement = {"": device}
+        activation_reserve = 5 * 1024**3 if cuda_shards == 2 else 0
+        if cuda_shards == 2:
+            from .cuda_sharding import cuda_only_device_map
+            placement = cuda_only_device_map(
+                transformers.Gemma4ForConditionalGeneration,
+                transformers.AutoConfig.from_pretrained(str(self.path)), self.torch,
+                activation_reserve=activation_reserve,
+            )
+        self.processor = transformers.AutoProcessor.from_pretrained(str(self.path))
+        self.image_receipts = {}
         self.engine = transformers.Gemma4ForConditionalGeneration.from_pretrained(
             str(self.path),
             dtype=self.torch.bfloat16,
-            device_map={"": device},
+            device_map=placement,
             attn_implementation="sdpa",
         ).eval()
         self.attention_model = self.engine
@@ -74,6 +89,10 @@ class RuneAdapter(UpstreamAdapter):
                 seen.add(ids[0])
         self.settings = {
             "dtype": "bfloat16",
+            "cuda_shards": cuda_shards, "cuda_device_map": placement,
+            "cuda_activation_reserve_bytes": activation_reserve,
+            "media": "native-ordered-pil-images-v1",
+            "image_preprocessing": "shared-full-image-policy-v1-then-native-processor",
             "attention_implementation": "sdpa",
             "max_input_tokens": self.context_limit,
             "input_length_policy": "reject-overflow",
@@ -88,6 +107,9 @@ class RuneAdapter(UpstreamAdapter):
 
     def predict(self, case):
         predictions = []
+        images, state, receipts = ordered_images(case)
+        if images:
+            self.image_receipts[case.case_id] = receipts
         questions = sifr_questions(case)
         for question in case.questions:
             count = len(question.options)
@@ -96,14 +118,26 @@ class RuneAdapter(UpstreamAdapter):
                 raise ValueError(
                     "Rune tokenizer has insufficient distinct single-token option codes"
                 )
-            prompt = self.tokenizer.apply_chat_template(
-                rune_messages(case.state, questions[question.id], codes),
+            messages = rune_messages(state if images else case.state, questions[question.id], codes)
+            if images:
+                messages[1]["content"] = [
+                    *[{"type": "image", "image": image} for image in images],
+                    {"type": "text", "text": messages[1]["content"]},
+                ]
+            renderer = self.processor if images else self.tokenizer
+            prompt = renderer.apply_chat_template(
+                messages,
                 tokenize=False,
                 add_generation_prompt=True,
                 enable_thinking=False,
             )
             ids = self.tokenizer.encode(prompt, add_special_tokens=False)
-            if len(ids) + 1 > self.context_limit:
+            inputs = None
+            length = len(ids)
+            if images:
+                inputs = self.processor(text=[prompt], images=images, add_special_tokens=False, return_tensors="pt")
+                length = inputs["input_ids"].shape[1]
+            if length + 1 > self.context_limit:
                 raise ValueError("Rune input exceeds context limit; refusing truncation")
             candidates = []
             for code in codes:
@@ -116,7 +150,8 @@ class RuneAdapter(UpstreamAdapter):
             with self.torch.inference_mode():
                 logits = (
                     self.engine(
-                        input_ids=self.torch.tensor([ids], device=self.device),
+                        **({key: tensor.to(self.device) for key, tensor in inputs.items()} if inputs is not None
+                           else {"input_ids": self.torch.tensor([ids], device=self.device)}),
                         use_cache=False,
                         logits_to_keep=1,
                     )

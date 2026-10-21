@@ -133,10 +133,16 @@ class UpstreamAdapter:
             model = model.get_base_model()
         kernels = importlib.import_module("kernels")
         hub = importlib.import_module("transformers.integrations.hub_kernels")
+        getter = getattr(hub, "get_kernel_mapping_transformers", None)
+        # StartLux's native bidirectional implementation requires Transformers
+        # 5.8, whose registration function reads this module-level registry.
+        native_mapping = getter() if callable(getter) else getattr(hub, "_KERNEL_MAPPING", None)
+        if not isinstance(native_mapping, dict):
+            raise TypeError("Transformers does not expose its native kernel registry")
         # Current Hub convolution and rotary builds require Torch >=2.11. Keep
         # those native GPU operations while accelerating delta-rule recurrence.
         mapping = {
-            **hub.get_kernel_mapping_transformers(),
+            **native_mapping,
             "causal_conv1d_fn": {},
             "causal_conv1d_update": {},
             "rotary_pos_emb": {},

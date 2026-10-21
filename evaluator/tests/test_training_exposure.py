@@ -132,8 +132,15 @@ def test_authored_registry_records_contributor_registration_without_inventing_da
                 continue
             if entry.dataset_access is not None:
                 assert entry.dataset_access == "public"
-                assert entry.dataset == "hotchpotch/bekko-system-one-dataset-v0"
-                assert entry.revision == "c6a49c450fe88b40bd96c54d9cc19fafd9aa5591"
+                if entry.dataset == "SargeDev/jev-distill-corpus-v3":
+                    # The released corpus is public, but the measured student's
+                    # historical training snapshot was not pinned by its author.
+                    assert group.model_ids == ["autotrust__JEV-27B-VL"]
+                    assert entry.revision is None
+                    assert entry.split == "train"
+                else:
+                    assert entry.dataset == "hotchpotch/bekko-system-one-dataset-v0"
+                    assert entry.revision == "c6a49c450fe88b40bd96c54d9cc19fafd9aa5591"
 
 
 def test_export_matches_second_registry_group_and_explicit_metadata_wins(tmp_path):

@@ -312,3 +312,244 @@ def test_opendecision_retains_instructions_when_native_noul_ignores_them():
 def test_rune_invalid_budget_before_checkpoint_load():
     with pytest.raises(ValueError, match="positive"):
         RuneAdapter("unused", "main", "unused", "cuda:0", context_limit=0)
+
+
+def test_rune_reserves_long_input_moe_workspace_without_changing_readout(monkeypatch, tmp_path):
+    from s1mb.adapters import cuda_sharding, rune
+
+    tokenizer = SimpleNamespace(encode=lambda code, **kw: [1] if code == "A" else [2, 3],
+                                decode=lambda ids: "A")
+    config = SimpleNamespace(get_text_config=lambda: SimpleNamespace(max_position_embeddings=32768))
+    loaded = []
+    placement = {"model.language_model.layers.0": 0, "model.language_model.layers.1": 1}
+
+    def plan(model_class, native_config, torch, **kwargs):
+        assert native_config is config
+        assert kwargs == {"activation_reserve": 5 * 1024**3}
+        return placement
+
+    def load(path, **kwargs):
+        loaded.append(kwargs)
+        return SimpleNamespace(eval=lambda: "native engine")
+
+    transformers = SimpleNamespace(
+        AutoConfig=SimpleNamespace(from_pretrained=lambda path: config),
+        AutoTokenizer=SimpleNamespace(from_pretrained=lambda path: tokenizer),
+        AutoProcessor=SimpleNamespace(from_pretrained=lambda path: "native processor"),
+        Gemma4ForConditionalGeneration=SimpleNamespace(from_pretrained=load),
+    )
+
+    def setup(self, *args):
+        self.path = tmp_path
+        self.torch = SimpleNamespace(bfloat16="bfloat16")
+
+    monkeypatch.setattr(RuneAdapter, "setup", setup)
+    monkeypatch.setattr(rune.importlib, "import_module", lambda name: transformers)
+    monkeypatch.setattr(cuda_sharding, "cuda_only_device_map", plan)
+    adapter = RuneAdapter("model", "revision", "source", "cuda:0", cuda_shards=2)
+    assert loaded == [{"dtype": "bfloat16", "device_map": placement, "attn_implementation": "sdpa"}]
+    assert adapter.engine == "native engine"
+    assert adapter.settings["cuda_activation_reserve_bytes"] == 5 * 1024**3
+    assert adapter.settings["input_length_policy"] == "reject-overflow"
+    assert adapter.settings["temperature"] == 1.0
+
+
+@pytest.mark.parametrize("adapter_class", [JevOmniAdapter, pytest.param(None, id="neohorse")])
+def test_single_image_runtimes_reject_multiple_images_before_preparation(adapter_class):
+    from s1mb.adapters.neohorse import NeoHorseAdapter
+    from s1mb.data import ImageAsset
+
+    cls = adapter_class or NeoHorseAdapter
+    adapter = cls.__new__(cls)
+    asset = ImageAsset(path="missing.png", sha256="0" * 64)
+    case = cases().model_copy(update={"images": {"first": asset, "second": asset}})
+    with pytest.raises(ValueError, match="exactly one image"):
+        adapter.predict(case)
+
+
+def test_omni_passes_image_to_native_runtime_and_cleans_temporary_media(monkeypatch):
+    from pathlib import Path
+
+    from PIL import Image
+
+    import s1mb.adapters.jev_omni as module
+
+    image = Image.new("RGB", (8, 8), "red")
+    monkeypatch.setattr(module, "ordered_images", lambda case: ([image], "neutral visual state", []))
+    adapter = JevOmniAdapter.__new__(JevOmniAdapter)
+    adapter.context_limit = 100
+    adapter.settings, adapter.image_receipts = {}, {}
+    adapter.native = cast(Any, SimpleNamespace(_prompt=lambda state, instructions, options: state + instructions + str(options)))
+    seen = []
+
+    def processor(messages, **kwargs):
+        content = messages[0]["content"]
+        assert content[0] == {"type": "image", "image": image}
+        assert "neutral visual state" in content[1]["text"]
+        assert "gold-must-not-be-sent" not in str(messages)
+        return {"input_ids": SimpleNamespace(shape=(1, 3))}
+
+    def predict(**kwargs):
+        assert kwargs["modality"] == "image"
+        path = Path(kwargs["media"])
+        seen.append(path)
+        with Image.open(path) as saved:
+            assert saved.getpixel((0, 0)) == (255, 0, 0)
+        return {"probabilities": dict(zip(kwargs["options"], [0.2, 0.8]))}
+
+    adapter.engine = SimpleNamespace(processor=SimpleNamespace(apply_chat_template=processor), predict=predict)
+    result = adapter.predict(cases())
+    assert result[2].probabilities == {"low": 0.2, "high": 0.8}
+    assert seen and all(not path.exists() for path in seen)
+
+
+def test_matilda_preserves_native_binary_order_and_numeric_rubrics(monkeypatch):
+    import s1mb.adapters.matilda as module
+
+    adapter = module.MatildaAdapter.__new__(module.MatildaAdapter)
+    adapter.context_limit = 100
+    adapter.engine = SimpleNamespace(temperature=1.7)
+    monkeypatch.setattr(module, "ordered_images", lambda case: ([], None, []))
+
+    def decide(engine, state, definitions, **kwargs):
+        question = definitions["decision"]
+        assert kwargs["temperature"] == 1.7
+        assert kwargs["max_tokens"] == 100
+        assert "gold-must-not-be-sent" not in str(state) + str(question)
+        if question["type"] == "score":
+            assert question["criteria"] == [
+                {"value": 10.0, "description": "Low"},
+                {"value": 30.0, "description": "High"},
+            ]
+        return {"decision": [0.2, 0.8]}, 10
+
+    adapter.decide = decide
+    result = adapter.predict(cases())
+    assert result[0].probabilities == {"x": 0.2, "y": 0.8}
+    assert result[1].probabilities == {"false": 0.2, "true": 0.8}
+    assert result[2].probabilities == {"low": 0.2, "high": 0.8}
+
+
+def test_autotrust_raw_prompt_keeps_score_values_without_private_ids():
+    from s1mb.adapters.autotrust_vision import autotrust_choice_prompt
+    from s1mb.adapters.sifr import sifr_questions
+
+    case = cases()
+    rendered = autotrust_choice_prompt(case.state, sifr_questions(case)["rate"], 2)
+    assert rendered.startswith("[kind] choice\n[state] ")
+    assert rendered.count("<|image_pad|>") == 2
+    assert 'A) {"value": 10.0, "description": "Low"}' in rendered
+    assert 'B) {"value": 30.0, "description": "High"}' in rendered
+    assert rendered.endswith("\n[decision]:")
+    assert "gold-must-not-be-sent" not in rendered
+
+
+@pytest.mark.parametrize("with_image", [True, False])
+def test_shisa_choice_transport_retains_noul_definitions_and_numeric_levels(monkeypatch, with_image):
+    import sys
+
+    import s1mb.adapters.shisa_vision as module
+    from s1mb.data import ImageAsset
+
+    adapter = module.ShisaVisionAdapter.__new__(module.ShisaVisionAdapter)
+    adapter.context_limit, adapter.device, adapter.image_receipts = 100, "cuda:0", {}
+    image = object()
+    adapter.settings = {}
+    monkeypatch.setattr(module, "ordered_images", lambda case: ([image] if with_image else [], {"context": case.state}, []))
+    monkeypatch.setattr(adapter, "schema", SimpleNamespace(Choice=lambda **kwargs: SimpleNamespace(**kwargs)), raising=False)
+    observed = []
+
+    def payload(state, item):
+        observed.append(item.criteria)
+        return {"evidence": state, "criterion": item.instructions, "options": item.criteria}, list(item.criteria.items())
+
+    adapter.native = SimpleNamespace(_payload=payload, _messages=lambda data, uri: [
+        {"role": "system", "content": "system"},
+        {"role": "user", "content": [{"type": "image_url"}, {"type": "text", "text": str(data)}]},
+    ], answer_prefix_id=lambda: 42, slots=lambda count: [SimpleNamespace(token_id=i) for i in range(count)])
+
+    class FakeTensor:
+        shape = (1, 3)
+
+        def __getitem__(self, key):
+            return self
+
+        def item(self):
+            return 42
+
+        def to(self, device):
+            return self
+
+        def double(self):
+            return self
+
+        def softmax(self, dim):
+            return self
+
+        def cpu(self):
+            return self
+
+        def tolist(self):
+            return [0.2, 0.8]
+
+    def processor(messages, **kwargs):
+        assert messages[1]["content"][0] == {"type": "image", "image": image}
+        assert "gold-must-not-be-sent" not in str(messages)
+        return {"input_ids": FakeTensor()}
+
+    adapter.processor = SimpleNamespace(apply_chat_template=processor)
+    if not with_image:
+        monkeypatch.setitem(sys.modules, "shisa_de.readout", SimpleNamespace(MAX_CODES=256))
+
+        def render(state, item, max_options):
+            assert max_options == 256
+            return str(payload(state, item)[0])
+
+        def tokenize(prompt, **kwargs):
+            assert "gold-must-not-be-sent" not in prompt
+            assert kwargs["add_special_tokens"] is False
+            return {"input_ids": FakeTensor()}
+
+        adapter.native.render = render
+        adapter.native.code_slots = adapter.native.slots
+        adapter.tokenizer = tokenize
+    adapter.engine = lambda **kwargs: SimpleNamespace(logits=FakeTensor())
+    monkeypatch.setattr(adapter, "torch", SimpleNamespace(inference_mode=nullcontext), raising=False)
+    case = cases().model_copy(update={"images": {"image": ImageAsset(path="missing.png", sha256="0" * 64)} if with_image else {}})
+    result = adapter.predict(case)
+    assert observed[1] == {"true": "Yes", "false": "No"}
+    assert [v["value"] for v in observed[2].values()] == [10.0, 30.0]
+    assert result[1].probabilities == {"true": 0.2, "false": 0.8}
+    assert result[2].probabilities == {"low": 0.2, "high": 0.8}
+
+
+def test_span_assets_are_named_objects_with_matching_state_references(monkeypatch):
+    import base64
+    import io
+
+    from PIL import Image
+
+    import s1mb.adapters.span as module
+
+    image = Image.new("RGB", (8, 8), "red")
+    state = {"context": "Compare.", "visual_inputs": {"first": "<image:1>", "second": "<image:2>"}}
+    monkeypatch.setattr(module, "ordered_images", lambda case: ([image, image], state, []))
+    adapter = module.SpanAdapter.__new__(module.SpanAdapter)
+    adapter.image_receipts = {}
+    case = cases()
+    case = case.model_copy(update={"questions": [case.questions[0]]})
+
+    def request(path, payload):
+        assert path == "/v1/systemone"
+        assert list(payload["assets"]) == ["<image:1>", "<image:2>"]
+        for reference in payload["state"]["visual_inputs"].values():
+            asset = payload["assets"][reference]
+            assert asset["format"] == "png"
+            with Image.open(io.BytesIO(base64.b64decode(asset["data_base64"]))) as saved:
+                assert saved.getpixel((0, 0)) == (255, 0, 0)
+        assert "gold-must-not-be-sent" not in str(payload)
+        key = next(iter(payload["questions"]))
+        return {"answers": {key: {"type": "choice", "probabilities": {"option_0": 0.3, "option_1": 0.7}}}}
+
+    monkeypatch.setattr(adapter, "request", request)
+    assert adapter.predict(case)[0].probabilities == {"x": 0.3, "y": 0.7}

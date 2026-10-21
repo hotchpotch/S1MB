@@ -301,3 +301,58 @@ uv run s1mb run --category vision-v1 --exclude-box --adapter d3 \
   --model vllm-sr/d3-mini --revision 97dd054df4b3e0b3beb6af23ab8c82b7c0052e0e \
   --device cuda:0 --context-limit 32768 --limit 3
 ```
+
+## Additional public-weight bridges
+
+A bridge's presence does not establish a completed benchmark result. Check the
+submitted coverage, settings, source hashes and failures.
+
+| Adapter | Runtime and conditions | Image limit |
+| --- | --- | --- |
+| `matilda` | Bundled calibrated decision runtime; optional two-GPU CUDA placement | Native processor |
+| `startlux` | Released Transformers pipeline for Instant checkpoints, including bidirectional parity checks and per-type temperatures | Native pipeline |
+| `rune` | Released decisions scaffold and complete candidate logits on Transformers; optional two-GPU CUDA placement with 5 GiB per device reserved for long-input activations | Native processor |
+| `winnow --winnow-vision` | Verified Q8 GGUF and matching projector through the released CUDA server; direct decisions | 16 |
+| `span` | Released Rust/CUDA engine and deterministic adaptive policy; requires its pinned MTP assistant through `--base-revision` | 4 |
+| `xor-vision` | Released two-order wrapper with a local Transformers candidate-logprob bridge | Native processor |
+| `autotrust-vision` | Published raw System 1 choice scaffold, PEFT adapter, trained choice bias and released choice temperature | Native processor |
+| `clef-omni` | Released joint-schema runtime, unused speech output disabled, CUDA-only thinker placement | Native encoder |
+| `neohorse` | Bundled `VisionDecisionEngine`, preserving image/token guards | 1 |
+| `jev-omni` | Bundled image-file runtime with a temporary lossless PNG | 1 |
+| `shisa-vision` | Released SDK image scaffold with complete candidate logits; direct image read, uncalibrated as in the SDK | 1 |
+
+AutoTrust and Shisa transport Noul and Score through their native Choice
+scaffolds to retain all authored outcome descriptions and numeric Score values.
+Shisa's Noul object otherwise substitutes fixed Yes/No descriptions. This
+mapping is recorded in settings. `shisa-vision` uses the SDK's direct image read,
+which differs from the Decision Index's repeated-input policy. The Transformers
+protocol bridges differ from their authors' SGLang/vLLM serving backends; retain
+these distinctions when reporting measurements.
+
+Without images, `shisa-vision` uses the SDK's direct DE-2 text scaffold and full
+256-slot codebook. This permits wide text choices without dropping candidates;
+the SDK's single-image path retains its separate 26-option limit.
+
+Single-image runtimes cannot complete NIGHTS or NLVR2. Keep those tasks marked
+unsupported, retain all original images, and report supported-task measurements
+as partial coverage. They do not qualify for the complete-suite ranking.
+
+Use `--cuda-shards 2` for large bridges where supported. CUDA placement reserves
+activation memory and rejects CPU/disk offload. CPU staging while loading weights
+is distinct from CPU inference. Span's 9 GB KV pool is smaller than the author's
+large-GPU submission pool; its deterministic policy is retained, and capacity
+failures remain failures. Keep native binary hashes, source revisions, model
+revisions and the assistant revision in run settings.
+
+Install each pinned upstream runtime's dependencies in an isolated environment.
+`--source` selects importable upstream code; it does not install that runtime's
+dependencies. StartLux Instant's native bidirectional implementation requires
+Transformers 5.8.x; the 5.8.1 environment is separate from the newer Transformers
+environment used by other bridges. Successful imports or weight placement alone
+do not establish successful GPU inference.
+
+Winnow's native output capacity is 64 candidates. Keep larger authored choices
+unsupported rather than dropping options or evaluating separate candidate groups.
+Rune's two-GPU activation reserve changes weight placement, not its input limit,
+candidate logits or probability readout. A device that cannot hold the complete
+native weights with that reserve is rejected rather than using CPU/disk offload.

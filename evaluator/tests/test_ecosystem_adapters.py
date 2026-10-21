@@ -142,6 +142,7 @@ def test_winnow_keeps_structured_state_and_authored_questions(monkeypatch):
     from s1mb.adapters.winnow import WinnowAdapter
 
     adapter = WinnowAdapter.__new__(WinnowAdapter)
+    adapter.vision = False
     adapter.info = ModelInfo(
         id="test", adapter="winnow", revision="test", settings={"max_candidates": 64, "temperature": 1.2574172017327816}
     )
@@ -292,3 +293,37 @@ def test_decoder_placement_keeps_head_on_gpu_and_checks_capacity(monkeypatch):
     torch.cuda.mem_get_info = lambda gpu: (70, 100)
     with pytest.raises(ValueError, match="memory budget"):
         upstream.decoder_device_map("model", "cuda:0", torch, transformers)
+
+
+def test_winnow_transports_pixels_with_numeric_rubrics(monkeypatch):
+    import base64
+    import io
+
+    from PIL import Image
+
+    import s1mb.adapters.winnow as module
+
+    adapter = module.WinnowAdapter.__new__(module.WinnowAdapter)
+    adapter.vision = True
+    adapter.image_receipts = {}
+    adapter.info = ModelInfo(id="test", adapter="winnow", revision="test",
+                             settings={"max_candidates": 64, "temperature": 1.0})
+    image = Image.new("RGB", (8, 8), "red")
+    monkeypatch.setattr(module, "ordered_images", lambda case: ([image], {"context": case.state}, []))
+    requests = []
+
+    def request(path, body):
+        requests.append(body)
+        uri = body["winnow"]["images"][0]
+        with Image.open(io.BytesIO(base64.b64decode(uri.split(",", 1)[1]))) as saved:
+            assert saved.getpixel((0, 0)) == (255, 0, 0)
+        assert body["state"] == {"context": {"evidence": "text"}}
+        payload = body["questions"]["decision"]
+        if any(isinstance(value, dict) for value in payload["criteria"].values()):
+            assert [value["value"] for value in payload["criteria"].values()] == [10.0, 30.0]
+        return {"answers": {"decision": {"type": "choice", "probabilities": dict(zip(payload["criteria"], [0.3, 0.7]))}}}
+
+    monkeypatch.setattr(adapter, "request", request)
+    result = adapter.predict(cases())
+    assert result[2].probabilities == {"low": 0.3, "high": 0.7}
+    assert "gold-must-not-be-sent" not in str(requests)

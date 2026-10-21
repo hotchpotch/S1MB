@@ -9,11 +9,14 @@ def _decision_output_to_primary(module, inputs, output):
     return accelerate.utils.send_to_device(output, "cuda:0")
 
 
-def two_gpu_cut(layer_bytes, fixed_bytes, free_bytes):
+def two_gpu_cut(layer_bytes, fixed_bytes, free_bytes, activation_reserve=None):
     """Reserve activation space and balance a contiguous split across two GPUs."""
     if len(free_bytes) != 2 or len(layer_bytes) < 2:
         raise ValueError("Two CUDA devices and at least two layers are required")
-    budgets = [int(free * 0.88) for free in free_bytes]
+    if activation_reserve is not None and activation_reserve <= 0:
+        raise ValueError("Activation reserve must be positive")
+    budgets = [int(free * 0.88) if activation_reserve is None else free - activation_reserve
+               for free in free_bytes]
     candidates = []
     for cut in range(1, len(layer_bytes)):
         used = [fixed_bytes + sum(layer_bytes[:cut]), sum(layer_bytes[cut:])]
@@ -87,4 +90,24 @@ def dispatch_decision_tower(model, torch):
         tower.layers[depth - 1].register_forward_hook(_decision_output_to_primary)
     if any(parameter.device.type != "cuda" for parameter in model.parameters()):
         raise RuntimeError("Native decision model contains non-CUDA weights after dispatch")
+    return placement
+
+
+def cuda_only_device_map(model_class, config, torch, activation_reserve=2 * 1024**3):
+    """Plan complete decoder modules on two GPUs, rejecting CPU/disk placement."""
+    if torch.cuda.device_count() != 2:
+        raise ValueError("CUDA sharding requires exactly two visible GPUs")
+    accelerate = importlib.import_module("accelerate")
+    with accelerate.init_empty_weights():
+        skeleton = model_class(config)
+    # Meta initialization wraps parameter assignment and can break aliases.
+    # Tie after leaving that context so placement recognizes shared embeddings.
+    skeleton.tie_weights()
+    memory = {i: max(0, torch.cuda.mem_get_info(i)[0] - activation_reserve) for i in range(2)}
+    placement = accelerate.infer_auto_device_map(
+        skeleton, max_memory=memory, dtype=torch.bfloat16,
+        no_split_module_classes=skeleton._no_split_modules,
+    )
+    if any(device not in {0, 1, "cuda:0", "cuda:1"} for device in placement.values()):
+        raise ValueError("Native weights exceed reserved CUDA memory; CPU/disk offload is disabled")
     return placement
