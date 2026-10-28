@@ -86,6 +86,8 @@ Only decoded input is sent to models; targets and provenance remain evaluator-si
 
 For a caller-managed llama-server, use `--adapter llama-cpp` and
 `--adapter-kwargs` JSON. See [setup and runtime limits](OPEN_MODELS.md#caller-managed-llamacpp).
+For Gimbal-27B's released vLLM server, use `--adapter gimbal`; see
+[its setup and transport](OPEN_MODELS.md#gimbal-27b-caller-managed-vllm-server).
 
 Use `uv run s1mb run --help` for the current options. Upstream dependencies are
 loaded only for the selected adapter. Model checkpoints and external source

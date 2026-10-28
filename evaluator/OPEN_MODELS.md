@@ -1361,6 +1361,59 @@ model-specific renderer truncation. Backend temperature comes from the model's
 metadata; chat-generation parameters such as `temperature` and `top_p` are not
 constructor kwargs and are not passed to `/v1/systemone`.
 
+## Gimbal-27B (caller-managed vLLM server)
+
+The `gimbal` adapter evaluates [Superwheat/Gimbal-27B](https://huggingface.co/Superwheat/Gimbal-27B)
+through the model's released `gimbal_serve` helper, which serves the merged BF16 checkpoint with
+vLLM's pooling runner and its FP32 three-class NLI head. Start and stop the server yourself; the
+adapter does not load weights, start a process or choose a GPU. No optional Python extra is needed.
+Install the helper in its own Python 3.12 environment from the checkpoint's pinned
+`helper/requirements.txt`; do not mix it with the evaluator's environment.
+
+```sh
+hf download Superwheat/Gimbal-27B --revision CHECKPOINT_COMMIT --local-dir /path/to/Gimbal-27B
+PYTHONPATH=/path/to/Gimbal-27B/helper python -m gimbal_serve.server --model /path/to/Gimbal-27B \
+  --host 127.0.0.1 --port 8300 --model-name gimbal-27b --full-precision --max-tokens 16384
+```
+
+From `evaluator/`:
+
+```sh
+uv run s1mb run --adapter gimbal --model Superwheat/Gimbal-27B --revision CHECKPOINT_COMMIT \
+  --adapter-kwargs '{"base_url":"http://127.0.0.1:8300","served_model":"gimbal-27b","timeout":1800,"case_batch_size":16,"runtime_settings":{"vllm":"0.29.0","dtype":"bfloat16","max_tokens":16384}}' \
+  --category smoke-v1 --limit 2 --run-id gimbal-smoke-001
+uv run s1mb validate data/results/gimbal-smoke-001
+```
+
+`--full-precision` is required: the adapter reads the server's unrounded calibrated
+`raw_probabilities`, never its two-decimal display values, and does not renormalize them.
+`--revision` must be the exact 40-character commit of the checkpoint the server loaded. Supported
+kwargs are `base_url`, `served_model`, `timeout`, `case_batch_size` (1..32), `retries` (0..5) and
+`runtime_settings` (recorded metadata only). The server scores one request at a time, and each
+request's branches are scored in one batch, so concurrency only overlaps transport and request
+preparation with inference; it does not change any request's batch.
+
+The server scores every question independently: its premise is that question's instructions
+followed by the state, and each candidate is a separate hypothesis branch. Its typed contract
+differs from TypeSafe's in four places, handled without loss and recorded in the model settings:
+
+- Its native Noul type takes a question without outcome definitions. Each Noul question is
+  therefore sent as an explicit two-option Choice over the authored true/false definitions, in
+  declared order (`noul_transport: explicit-choice-v1`).
+- It accepts a string or object state. Any other JSON state is sent as its JSON text, which is the
+  text the server renders for an object state.
+- Instructions and descriptions may be strings, objects, arrays or null; other JSON scalars are
+  sent as their JSON text.
+- A request holds at most 64 questions. Larger cases are sent in consecutive chunks of 64 with the
+  same state; no question's candidates are split.
+
+Choice keys are anonymous and Score levels are sent in ascending numeric order, then mapped back
+to the declared option IDs. The server applies the checkpoint's `calibration.json` and rejects
+any branch longer than `--max-tokens` instead of truncating it (HTTP 400, recorded as a failure and
+not retried). The longest English v1 branch at dataset revision `10bcb8c6` is 14,713 tokens with
+the model's tokenizer, so `--max-tokens 16384` covers the complete scope; check a newer dataset
+revision before relying on it. Text only: images and Box are not supported.
+
 ## Saihai 8B (BF16)
 
 The `saihai` adapter uses the released `saihai.model.TorchDecisionModel` backend

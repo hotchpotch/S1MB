@@ -48,6 +48,7 @@ def main() -> None:
         choices=[
             "dummy",
             "llama-cpp",
+            "gimbal",
             "laya",
             "typesafe",
             "fastino-glide",
@@ -181,7 +182,9 @@ def main() -> None:
         ],
         required=True,
     )
-    run.add_argument("--adapter-kwargs", help="JSON object of llama-cpp constructor keyword arguments")
+    run.add_argument(
+        "--adapter-kwargs", help="JSON object of llama-cpp or gimbal constructor keyword arguments"
+    )
     run.add_argument("--model")
     run.add_argument("--revision", default="main")
     run.add_argument("--subfolder", help="Alex Openjev or Vision-Jev checkpoint subfolder")
@@ -292,22 +295,27 @@ def main() -> None:
         execute(args, parser)
 
 
+ADAPTER_KWARGS = {
+    "llama-cpp": {"base_url", "served_model", "timeout", "case_batch_size", "max_questions",
+                  "max_candidates", "max_request_bytes", "retries", "runtime_settings"},
+    "gimbal": {"base_url", "served_model", "timeout", "case_batch_size", "retries", "runtime_settings"},
+}
+
+
 def parse_adapter_kwargs(args, parser):
-    """Validate caller-managed llama.cpp constructor options."""
+    """Validate constructor options of caller-managed server adapters."""
     adapter_kwargs = {}
     if args.adapter_kwargs is not None:
-        if args.adapter != "llama-cpp":
-            parser.error("--adapter-kwargs applies only to llama-cpp")
+        if args.adapter not in ADAPTER_KWARGS:
+            parser.error("--adapter-kwargs applies only to llama-cpp or gimbal")
         try:
             adapter_kwargs = json.loads(args.adapter_kwargs)
         except json.JSONDecodeError:
             parser.error("--adapter-kwargs must be a JSON object")
         if not isinstance(adapter_kwargs, dict):
             parser.error("--adapter-kwargs must be a JSON object")
-        allowed = {"base_url", "served_model", "timeout", "case_batch_size", "max_questions",
-                   "max_candidates", "max_request_bytes", "retries", "runtime_settings"}
-        if set(adapter_kwargs) - allowed:
-            parser.error("Unsupported llama-cpp adapter kwargs")
+        if set(adapter_kwargs) - ADAPTER_KWARGS[args.adapter]:
+            parser.error(f"Unsupported {args.adapter} adapter kwargs")
     return adapter_kwargs
 
 
@@ -645,6 +653,13 @@ def execute(args, parser):
 
         try:
             adapter = LlamaCppAdapter(args.model, args.revision, **parse_adapter_kwargs(args, parser))
+        except (ValueError, TypeError) as exc:
+            parser.error(str(exc))
+    elif args.adapter == "gimbal":
+        from .adapters.gimbal import GimbalAdapter
+
+        try:
+            adapter = GimbalAdapter(args.model, args.revision, **parse_adapter_kwargs(args, parser))
         except (ValueError, TypeError) as exc:
             parser.error(str(exc))
     elif args.adapter == "laya":
