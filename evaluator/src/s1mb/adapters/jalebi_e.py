@@ -21,6 +21,10 @@ def record(case, question):
     return state, question.instructions, [option.description for option in question.options]
 
 
+# Per-benchmark counts, each over questions: rejected (overflow), state_trimmed, instructions_cut, options_cut (any option).
+COUNTS = ("questions", "rejected", "state_trimmed", "instructions_cut", "options_cut")
+
+
 class JalebiEAdapter:
     case_batch_size = 8
     batch_size = 32
@@ -42,12 +46,17 @@ class JalebiEAdapter:
         self.engine = engine
         self.trim = bool(native_adaptive_budget)
         self.bf16 = device.startswith("cuda") and torch.cuda.get_device_capability(device)[0] >= 8
-        self.tally = {"questions": 0, "rejected": 0, "state_trimmed": 0}
+        self.tally = dict.fromkeys(COUNTS, 0)
+
+    def tokens(self, text):
+        return len(self.engine.tokenizer.encode(text, add_special_tokens=False).ids)
 
     def predict(self, case: InferenceCase) -> list[Prediction]:
         return self.predict_batch([case])[0]
 
     def predict_batch(self, cases: list[InferenceCase]) -> list[list[Prediction]]:
+        from . import jalebi_e_model as model
+
         out = [[None] * len(case.questions) for case in cases]
         jobs = []
         for ci, case in enumerate(cases):
@@ -64,6 +73,9 @@ class JalebiEAdapter:
                     )
                     continue
                 self.tally["state_trimmed"] += dropped > 0
+                if self.trim:
+                    self.tally["instructions_cut"] += self.tokens(instructions) > model.QUESTION_CAP
+                    self.tally["options_cut"] += any(self.tokens(o) > model.OPTION_CAP for o in options)
                 jobs.append((ci, qi, (state, instructions, options)))
         if jobs:
             probabilities, _ = self.engine.probabilities(
@@ -85,6 +97,8 @@ class JalebiEAdapter:
     def metadata(self) -> ModelInfo:
         from .jalebi_e_model import MIN_STATE, OPTION_CAP, QUESTION_CAP, WINDOW
 
+        # The runner calls metadata() once per benchmark, so report this benchmark's counts and start the next from zero.
+        counts, self.tally = self.tally, dict.fromkeys(COUNTS, 0)
         return ModelInfo(
             **parameter_metadata(self.engine),
             id=self.model_id,
@@ -95,7 +109,7 @@ class JalebiEAdapter:
                 "dtype": "float32-weights-bfloat16-autocast" if self.bf16 else "float32",
                 "renderer": "jalebi-e-plain-state-instructions-descriptions-v1",
                 "max_input_tokens": WINDOW,
-                "input_length_policy": "trim-state" if self.trim else "reject-overflow",
+                "input_length_policy": "cap-instructions-options-trim-state" if self.trim else "reject-overflow",
                 "trim_question_cap": QUESTION_CAP if self.trim else None,
                 "trim_option_cap": OPTION_CAP if self.trim else None,
                 "trim_min_state_tokens": MIN_STATE if self.trim else None,
@@ -103,7 +117,7 @@ class JalebiEAdapter:
                 "questions_per_call": "batched",
                 "batch_size": self.batch_size,
                 "versions": {"torch": self.torch.__version__},
-                "run_counts": dict(self.tally),
+                "run_counts": counts,
             },
         )
 

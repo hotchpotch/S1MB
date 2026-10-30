@@ -94,7 +94,7 @@ def test_metadata_records_policy_and_parameters():
     assert reject.settings["input_length_policy"] == "reject-overflow"
     assert reject.settings["trim_question_cap"] is None
     trim = adapter(native_adaptive_budget=True).metadata()
-    assert trim.settings["input_length_policy"] == "trim-state"
+    assert trim.settings["input_length_policy"] == "cap-instructions-options-trim-state"
     assert trim.settings["trim_min_state_tokens"] == model_module.MIN_STATE
     assert reject.total_params and trim.total_params == reject.total_params
 
@@ -110,3 +110,28 @@ def test_cuda_without_a_device_refuses_cpu_fallback(monkeypatch):
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
     with pytest.raises(RuntimeError, match="refusing CPU fallback"):
         JalebiEAdapter("tiny", "0" * 40, "cuda:0", engine=tiny_engine())
+
+
+def test_run_counts_are_per_benchmark():
+    strict = adapter()
+    for _ in range(2):                                   # the runner calls metadata() once after each benchmark
+        strict.predict(cases())
+        assert strict.metadata().settings["run_counts"]["questions"] == 3
+
+
+def test_trim_counts_cut_options_and_instructions_apart_from_state(monkeypatch):
+    monkeypatch.setattr(model_module, "OPTION_CAP", 1)
+    case = cases()
+    case.questions[0].options[0].description = "same yes"          # two tokens, over the cap of one
+    trim = adapter(native_adaptive_budget=True)
+    trim.predict(case)
+    counts = trim.metadata().settings["run_counts"]
+    assert (counts["options_cut"], counts["instructions_cut"], counts["state_trimmed"]) == (1, 0, 0)
+    monkeypatch.setattr(model_module, "QUESTION_CAP", 1)           # every instruction has two tokens
+    trim.predict(cases())
+    counts = trim.metadata().settings["run_counts"]
+    assert (counts["options_cut"], counts["instructions_cut"]) == (0, 3)
+    strict = adapter()                                             # the default policy cuts nothing and counts no cuts
+    strict.predict(cases())
+    counts = strict.metadata().settings["run_counts"]
+    assert (counts["options_cut"], counts["instructions_cut"]) == (0, 0)

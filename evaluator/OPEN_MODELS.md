@@ -662,7 +662,8 @@ a per-question error, never truncated, and options are never split over several 
 `--native-adaptive-budget` opts in to the shortening used for the published results: the
 instructions are cut at 1,024 tokens and each option at 256 tokens, and the end of the state is
 dropped so that the input fits, keeping at least 64 state tokens. The policy, caps, precision
-and counts of rejected and trimmed questions are recorded in `ModelInfo.settings`.
+and, per benchmark, the number of questions that were rejected, had their state trimmed, had their
+instructions cut or had at least one option cut are recorded in `ModelInfo.settings`.
 
 Use `uv sync --extra open-models` for the Torch runtime (`transformers` brings `tokenizers`).
 Explicit CUDA uses BF16 autocast on Ampere or newer GPUs; an explicit `--device cpu` runs FP32.
