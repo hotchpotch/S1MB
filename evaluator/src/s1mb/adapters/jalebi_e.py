@@ -3,6 +3,7 @@
 import gc
 import importlib
 import json
+from typing import cast
 
 from s1mb.data import InferenceCase, ModelInfo, Prediction, check_probabilities
 from s1mb.parameters import parameter_metadata
@@ -79,7 +80,7 @@ class JalebiEAdapter:
                 out[ci][qi] = Prediction(
                     case_id=case.case_id, question_id=question.id, probabilities=answer
                 )
-        return out
+        return cast(list[list[Prediction]], out)  # every slot is filled above, by a prediction or an error
 
     def metadata(self) -> ModelInfo:
         from .jalebi_e_model import MIN_STATE, OPTION_CAP, QUESTION_CAP, WINDOW

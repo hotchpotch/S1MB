@@ -6,10 +6,10 @@ from test_upstream_adapters import cases
 torch = pytest.importorskip("torch")
 tokenizers = pytest.importorskip("tokenizers")
 
-from s1mb.adapters import jalebi_e_model as model_module  # noqa: E402
-from s1mb.adapters.jalebi_e import JalebiEAdapter, record  # noqa: E402
+from s1mb.adapters import jalebi_e_model as model_module
+from s1mb.adapters.jalebi_e import JalebiEAdapter, record
 
-WORDS = "evidence text choose judge rate same yes no low high a b c d e f".split()
+WORDS = ["evidence", "text", "choose", "judge", "rate", "same", "yes", "no", "low", "high", "a", "b", "c", "d", "e", "f"]
 ID = {word: 6 + i for i, word in enumerate(WORDS)}              # ids 0..5 are PAD, UNK, CLS, SEP, MASK, OPTION
 
 
