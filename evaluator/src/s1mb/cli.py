@@ -91,6 +91,7 @@ def main() -> None:
             "firelex-jeff",
             "clef",
             "julia",
+            "jalebi-e",
             "dinah",
             "jevk5-lite",
             "lavoir",
@@ -228,7 +229,7 @@ def main() -> None:
     )
     run.add_argument(
         "--native-adaptive-budget", action="store_true",
-        help="Explicit native text shortening for Julia, Lavoir, JevK5-Lite and Kodiak; preserves candidate counts",
+        help="Explicit native text shortening for Julia, Lavoir, JevK5-Lite, Kodiak and Jalebi-E (state tail only); preserves candidate counts",
     )
     run.add_argument(
         "--state-token-reduction", type=float, default=0.0,
@@ -327,8 +328,8 @@ def validate_run_arguments(args, parser):
         if args.adapter == "vision-jev" and not args.subfolder:
             parser.error("--subfolder is required for Vision-Jev")
     parse_adapter_kwargs(args, parser)
-    if args.native_adaptive_budget and args.adapter not in {"julia", "lavoir", "jevk5-lite", "kodiak", "saihai-310m"}:
-        parser.error("--native-adaptive-budget is supported by Julia, Lavoir, JevK5-Lite, Kodiak and Saihai 310M")
+    if args.native_adaptive_budget and args.adapter not in {"julia", "lavoir", "jevk5-lite", "kodiak", "saihai-310m", "jalebi-e"}:
+        parser.error("--native-adaptive-budget is supported by Julia, Lavoir, JevK5-Lite, Kodiak, Saihai 310M and Jalebi-E")
     if not 0 <= args.state_token_reduction <= 1 or (
         args.state_token_reduction and args.adapter not in {"dinah", "decision2", "jade"}
     ):
@@ -1018,6 +1019,12 @@ def execute(args, parser):
         adapter = DinahAdapter(
             args.model, args.revision, args.device, context_limit=args.context_limit,
             state_token_reduction=args.state_token_reduction,
+        )
+    elif args.adapter == "jalebi-e":
+        from .adapters.jalebi_e import JalebiEAdapter
+
+        adapter = JalebiEAdapter(
+            args.model, args.revision, args.device, native_adaptive_budget=args.native_adaptive_budget
         )
     elif args.adapter == "julia":
         from .adapters.julia import JuliaAdapter
