@@ -647,6 +647,33 @@ LLAMACPP_BASE_URL=http://127.0.0.1:8080 LLAMACPP_GGUF_SHA256=FILE_SHA256 uv run 
 uv run --no-sync s1mb validate data/results/llamacpp-smoke-001
 ```
 
+## Jalebi-E
+
+`jalebi-e` loads `Airavat-ai/Jalebi-E`'s pinned checkpoint (66.6M parameters, trained from
+scratch, bidirectional encoder) through the vendored single-file model
+`adapters/jalebi_e_model.py`, which is kept byte-identical to `jalebi_e.py` in the model
+repository. Each question is rendered as `[CLS] instructions [SEP] state [SEP] ([OPTION] description)* [SEP]`
+and every option is scored in one forward pass; the scores are softmaxed over the declared option
+IDs for Choice, Noul and Score alike. The state is the parsed state serialized with sorted keys;
+the system prompt, targets and identifiers are not rendered, and option order is the declared order.
+
+The window is 2,048 tokens. By default a question whose complete input does not fit is returned as
+a per-question error, never truncated, and options are never split over several windows.
+`--native-adaptive-budget` opts in to the shortening used for the published results: the
+instructions are cut at 1,024 tokens and each option at 256 tokens, and the end of the state is
+dropped so that the input fits, keeping at least 64 state tokens. The policy, caps, precision
+and, per benchmark, the number of questions that were rejected, had their state trimmed, had their
+instructions cut or had at least one option cut are recorded in `ModelInfo.settings`.
+
+Use `uv sync --extra open-models` for the Torch runtime (`transformers` brings `tokenizers`).
+Explicit CUDA uses BF16 autocast on Ampere or newer GPUs; an explicit `--device cpu` runs FP32.
+
+```sh
+uv run s1mb run \
+  --adapter jalebi-e --model Airavat-ai/Jalebi-E --revision MODEL_SHA \
+  --device cuda:0 --category smoke-v1 --limit 2 --run-id jalebi-e-smoke-001
+```
+
 ## Julia and Dinah
 
 `julia` loads `SupersonicLabs/Julia-1`'s pinned `TransformerEngine` directly,

@@ -113,7 +113,9 @@ commands = ty check
 [tool.ruff]
 line-length = 100
 # Release reproduction sources are copied unchanged from upstream.
-extend-exclude = ["data/datasets", "audits"]
+extend-exclude = ["data/datasets", "audits", "src/s1mb/adapters/jalebi_e_model.py"]
 
 [tool.ty.src]
 include = ["src", "tests"]
+# Byte-identical copy of the model repository's single file; torch is an optional extra.
+exclude = ["src/s1mb/adapters/jalebi_e_model.py"]
