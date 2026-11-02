@@ -153,8 +153,20 @@ def test_runner_records_failures_without_partial_adapter_output(tmp_path):
 
 @pytest.mark.dataset
 def test_real_result_fixture():
+    from s1mb.dataset_source import source_receipts
+    from s1mb.result_repository import dataset_source, validate_published
+
+    installed = {(s["repo_id"], s["revision"]) for s in source_receipts(DATA_DIR)}
     for path in (DATA_DIR / "results").rglob("*.json"):
-        validate_result(DATA_DIR, Result.model_validate_json(path.read_text()))
+        result = Result.model_validate_json(path.read_text())
+        try:
+            validate_result(DATA_DIR, result)
+        except ValueError:
+            # Results stay valid against their recorded release after a dataset update.
+            source = dataset_source(result)
+            if (source["repo_id"], source["revision"]) in installed:
+                raise
+            validate_published(DATA_DIR, result, download=True)
 
 
 def test_batch_runner_strips_targets_and_preserves_case_order():
