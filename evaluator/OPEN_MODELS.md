@@ -1492,3 +1492,23 @@ shortening, equal context shares with unused capacity lent to the other branch.
 The saved limits and shortening policy are recorded in result metadata. Run and validate a three-task smoke check before `--all`
 or separate English/Japanese v1 evaluations. Keep this private research model
 and its checkpoint files outside the source repository.
+
+## Liquid d1 open checkpoints
+
+`--adapter d1` runs a pinned d1 checkpoint such as `LiquidAI/d1-2B` through its
+bundled System One runtime, in process on explicit CUDA with no CPU fallback. Use a
+dedicated environment with the checkpoint's Transformers version (5.19.0 for
+d1-2B), Torch, torchvision and Pillow, and pin `--revision` to the full Hub SHA.
+
+The runtime's BF16 weights, `set` attention, SDPA masks and released
+`calibration.json` remain unchanged. Choice uses anonymous keys, Noul keeps its
+authored definitions, and Score levels are sent in ascending numeric order with
+native limits of 2 to 10 levels. Authored state is passed verbatim. Complete
+sequences, including expanded images, are checked against the 128,000-token limit;
+overflow is rejected without truncation and `--context-limit` may only lower it.
+
+Images use the shared preprocessing policy, followed by the checkpoint's own pixel
+cap and processor. Box requires exactly one image, and native edges are mapped back
+to original-image coordinates. When native `found` is below 0.5, the model card's
+documented missing box is recorded as a `cannot_determine` abstention with zero IoU.
+

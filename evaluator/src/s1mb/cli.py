@@ -57,6 +57,7 @@ def main() -> None:
             "knowline",
             "llamacpp",
             "liquid",
+            "d1",
             "unee",
             "system-ichi",
             "bekko-v0",
@@ -467,6 +468,7 @@ def validate_run_arguments(args, parser):
             "meta-encoder",
             "meta-encoder-think",
             "clef",
+            "d1",
             "julia",
             "dinah",
             "jevk5-lite",
@@ -1071,6 +1073,12 @@ def execute(args, parser):
             args.model,
             args.revision,
             case_batch_size=args.case_batch_size if args.case_batch_size is not None else 16,
+        )
+    elif args.adapter == "d1":
+        from .adapters.d1 import D1Adapter
+
+        adapter = D1Adapter(
+            args.model, args.revision, args.device, context_limit=args.context_limit
         )
     elif args.adapter == "clef":
         from .adapters.clef import ClefAdapter
