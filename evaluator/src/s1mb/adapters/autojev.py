@@ -21,7 +21,9 @@ class AutoJevAdapter(FirelexJeffAdapter):
         self.native = importlib.import_module("autojev.model")
         self.engine = self.native.DecisionModel(checkpoint=self.path, device=device).eval()
         if config.get("text_only") is True:
-            attention_mode = "causal"
+            attention_mode = getattr(
+                self.engine, "prompt_attention", config.get("prompt_attention", "causal"),
+            )
             pooling = "last"
         else:
             attention_mode = self.engine.attention_mode
