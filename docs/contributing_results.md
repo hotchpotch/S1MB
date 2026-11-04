@@ -75,6 +75,11 @@ what remains unknown; register supported benchmark-level exposure in metadata.
   disclosed. See the [test-set policy](evaluation.md#test-set-policy).
 - Submit actual model measurements. The dummy adapter produces demo results and
   cannot represent a measured leaderboard entry.
+- Submit only models that third parties can evaluate themselves. Publish the
+  evaluated weights at a pinned public revision, or provide a public API that
+  anyone can use. Scores that third parties cannot observe are not considered
+  reliable, so Dataset PRs for private or unreleased models are not accepted. See
+  [public availability](#model-identity-and-evaluation-preference) below.
 - Require complete measured coverage of the submitted language scope (`english-v1`
   or `japanese-v1`, or the `vision-v1` scope) across Choice, Noul and Score, with zero failed decisions.
   Missing benchmarks, partial results and unfinished tasks block leaderboard
@@ -145,9 +150,25 @@ evaluate the **public weights** using the released native decision interface and
 a pinned checkpoint revision. Prefer the original non-quantized weights when
 both original and quantized releases are available. If resource constraints
 require a quantized release, disclose that configuration and use the same model
-row. API-only models remain eligible; record the provider, requested model and
-resolved version, and disclose when the evaluated weights cannot be identified.
-An API alias does not prove equivalence to a particular public checkpoint.
+row. API-only models are eligible only when the API is public: anyone must be
+able to call the evaluated model through a documented endpoint after ordinary
+self-service sign-up, including standard paid plans. Record the provider, its
+public documentation, the requested model and the resolved version, and disclose
+when the evaluated weights cannot be identified. An API alias does not prove
+equivalence to a particular public checkpoint.
+
+Third parties must be able to check a submitted score. The following do not
+qualify:
+
+- private or unreleased weights, including weights served from a local or
+  self-hosted endpoint that others cannot reach;
+- invite-only, waitlisted, private-preview or maintainer-only API access;
+- access that is otherwise impractical for third parties.
+
+Their scores cannot be independently observed and are not considered reliable,
+so Dataset PRs for such models are not accepted. Offering maintainers private
+access does not establish public availability. Publish the weights or open the
+API before submitting.
 
 Before submitting, check existing rows, repository aliases and the model card's
 base-model or conversion relationship. Identical checkpoint checksums are useful
@@ -475,7 +496,8 @@ results and execution logs; do not infer missing settings from model names.
 - Exact model revision, or API-resolved version:
 - Model identity: new trained release, or update to an existing canonical row:
 - Related existing rows / aliases / quantized builds, and why this is not a duplicate:
-- Public-weight availability and reason for any API or quantized evaluation:
+- Public availability (pinned public weights URL, or public API documentation and
+  sign-up URL) and reason for any API or quantized evaluation:
 - Adapter and upstream source revision, if applicable:
 - Corresponding GitHub adapter PR, if a new adapter was created:
 - Evaluator version / Git commit (include uncommitted changes, if any):

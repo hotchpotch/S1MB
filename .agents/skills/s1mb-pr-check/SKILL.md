@@ -73,6 +73,9 @@ PRs. Do not silently drop unresolved findings from the local index.
   existing results and prior accepted submissions. Distinguish new trained
   releases from quantized copies, mirrors, API aliases and resubmissions; display
   names alone do not establish identity.
+- Confirm that third parties can evaluate the model: pinned public weights or a
+  public API that anyone can use. Private or unreleased weights, local or
+  self-hosted endpoints and restricted API access are not accepted.
 - Different trained models belong in separate result PRs. Variants of the same
   trained model may share a PR but retain one canonical model folder. Flag mixed
   distinct-model submissions for separation before acceptance; a comparison table

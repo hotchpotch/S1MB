@@ -73,6 +73,9 @@ Tokenization, data validation and unit tests may run on CPU.
 Leaderboard submissions require complete measured coverage of the selected language
 scope across Choice, Noul and Score, with zero failed decisions. Incomplete saved
 results may be inspected locally but are not full-scope leaderboard submissions.
+Submitted models must be evaluable by third parties: pinned public weights or a
+public API that anyone can use. Do not accept private, unreleased or
+access-restricted models.
 Use `create_results_pr.py` for the mandatory completion check before upload.
 Review `docs/evaluation_sources.md` for original source families; not using Bekko
 System One or Saihai does not establish separation from those sources or inputs.
