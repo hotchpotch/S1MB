@@ -17,6 +17,8 @@ Confirm each model's identity, exact checkpoint/source revision or resolved API
 version, evaluation language, available resources and requested outcome. Check
 existing leaderboard rows and open submissions. Prefer original public weights
 when both weights and API are available; disclose exceptions and unknown identity.
+Submit only models with pinned public weights or a public API that anyone can use;
+stop before submitting private, unreleased or access-restricted models.
 
 Inspect existing adapters and [runtime notes](../../../evaluator/OPEN_MODELS.md).
 Consider model-specific adapters, native llama.cpp `/v1/systemone`, OpenRouter and
