@@ -40,6 +40,8 @@ test('converts native joint-question results while rejecting invalid call settin
   const joint = { ...result(), model: { ...result().model, adapter: 'clef', settings: { questions_per_call: 'all-case-questions', secret: 'never-render' } } };
   const summary = summarize(joint);
   assert.deepEqual(summary.model.settings, { questions_per_call: 'all-case-questions' });
+  const batched = { ...joint, model: { ...joint.model, adapter: 'jalebi-e', settings: { questions_per_call: 'batched' } } };
+  assert.deepEqual(summarize(batched).model.settings, { questions_per_call: 'batched' });
   for (const value of [0, -1, 1.5, 'unknown']) {
     assert.throws(() => summarize({ ...joint, model: { ...joint.model, settings: { questions_per_call: value } } }));
   }
