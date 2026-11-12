@@ -899,6 +899,9 @@ and the shared full-image preprocessing policies with `detail: high`. Box is not
 supported by the Decisions API. See [local vision evaluation](vision-evaluation.md)
 for transport, selection, and comparison details.
 
+See the [official Decisions guide](https://developers.openai.com/api/docs/guides/decisions)
+for API availability and supported models.
+
 ## Gemini Decisions API
 
 Use the `gemini-decisions` adapter for Google's native Decisions endpoint
@@ -940,5 +943,5 @@ HTTP and transport failures receive at most three attempts. Image-bearing inputs
 use ordered, neutrally named inline image parts with `resolution: high`; Box is
 not supported.
 
-See the [official Decisions guide](https://developers.openai.com/api/docs/guides/decisions)
+See the [official Gemini Decisions guide](https://aistudio.google.com/docs/decisions-api)
 for API availability and supported models.
