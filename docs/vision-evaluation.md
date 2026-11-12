@@ -23,6 +23,7 @@ English/Japanese text union and does not include vision. Always select
 | --- | --- | --- | --- |
 | `typesafe` | Supported | Supported with Jev 1.14 | All 26 sets, or `--exclude-box` for the required 20 |
 | `openai-decisions` | Supported | Unsupported | `--exclude-box` |
+| `gemini-decisions` | Supported | Unsupported | `--exclude-box` |
 | `imajev` | Supported | Unsupported | `--exclude-box --max-images 3`; disclose the experimental three-image extension |
 | `d1` | Supported | Supported | All 26 sets; missing native boxes are abstentions with zero IoU |
 

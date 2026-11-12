@@ -54,6 +54,7 @@ def main() -> None:
             "fastino-glide",
             "openrouter",
             "openai-decisions",
+            "gemini-decisions",
             "knowline",
             "llamacpp",
             "liquid",
@@ -347,11 +348,11 @@ def validate_run_arguments(args, parser):
     ):
         parser.error("--microbatch-tokens must be positive and applies only to Bekko")
     if args.case_batch_size is not None and (
-        args.adapter not in {"bekko-v0", "kev", "open-jev", "clm", "tev", "liquid", "llamacpp", "openai-decisions"}
+        args.adapter not in {"bekko-v0", "kev", "open-jev", "clm", "tev", "liquid", "llamacpp", "openai-decisions", "gemini-decisions"}
         or args.case_batch_size < 1
     ):
         parser.error(
-            "--case-batch-size must be positive and applies only to Bekko v0, Kev, Open-Jev, CLM, Tev, Liquid, llama.cpp or OpenAI Decisions"
+            "--case-batch-size must be positive and applies only to Bekko v0, Kev, Open-Jev, CLM, Tev, Liquid, llama.cpp, OpenAI Decisions or Gemini Decisions"
         )
     if args.max_images is not None and args.adapter != "imajev":
         parser.error("--max-images applies only to Imajev")
@@ -1044,6 +1045,14 @@ def execute(args, parser):
         if args.revision != "main":
             parser.error("OpenAI Decisions selects model versions via --model, not --revision")
         adapter = OpenAIDecisionsAdapter(args.model or "gpt-6-luna", args.case_batch_size or 4)
+    elif args.adapter == "gemini-decisions":
+        from .adapters.gemini_decisions import GeminiDecisionsAdapter
+
+        if args.revision != "main":
+            parser.error("Gemini Decisions selects model versions via --model, not --revision")
+        adapter = GeminiDecisionsAdapter(
+            args.model or "gemini-decision-1", args.case_batch_size or 4
+        )
     elif args.adapter == "openrouter":
         from .adapters.jev_channels import OpenRouterAdapter
 
