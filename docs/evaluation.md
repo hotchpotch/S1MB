@@ -901,3 +901,47 @@ for transport, selection, and comparison details.
 
 See the [official Decisions guide](https://developers.openai.com/api/docs/guides/decisions)
 for API availability and supported models.
+
+## Gemini Decisions API
+
+Use the `gemini-decisions` adapter for Google's native Decisions endpoint
+(`POST /v1beta/decisions` on the Gemini Developer API). The model is served
+through Gemini API keys, not Vertex AI. Set `GEMINI_API_KEY` in the repository
+root's ignored `.env` file, then run from `evaluator/`:
+
+```bash
+uv run --env-file ../.env s1mb run --adapter gemini-decisions \
+  --model gemini-decision-1 --category smoke-v1 --limit 2 --run-id gemini-decisions-smoke
+uv run s1mb validate data/results/gemini-decisions-smoke
+uv run --env-file ../.env s1mb run --adapter gemini-decisions \
+  --model gemini-decision-1 --category english-v1 --case-batch-size 8 \
+  --run-id gemini-decisions-full
+uv run s1mb validate data/results/gemini-decisions-full
+```
+
+The suggested display name is **Gemini Decision 1 (Decisions API)**. The decision
+response does not name a model version, so the adapter reads the served
+`version` from the model resource once and records it as the revision, together
+with the endpoint, API usage and rendering policy. API-only parameter counts
+remain unknown.
+
+Choice uses native `choice` questions with anonymous option IDs. Noul uses a
+native `noul` question with both authored outcome descriptions as
+`true_description` and `false_description`; the API returns `P(true)` clipped to
+`[0.01, 0.99]`. Score uses native per-level probabilities over 0-based level
+indices in declared criterion order; each level text is prefixed with its
+authored numeric value, and the API's expected `score` is not used. Each request
+contains one question and the complete input, without local truncation. The
+API reports a content-filter block either as HTTP 200 with
+`prompt_feedback.block_reason` or as HTTP 400 whose `error.code` is one of the
+documented block reasons (`safety`, `other`, `blocklist`, `prohibited_content`,
+`image_safety`). Both are scored refusals and are not retried; the upstream message
+is not saved. Other invalid responses and rejected HTTP requests remain
+operational failures.
+Concurrency is bounded by `--case-batch-size` (1–32; default 4), and transient
+HTTP and transport failures receive at most three attempts. Image-bearing inputs
+use ordered, neutrally named inline image parts with `resolution: high`; Box is
+not supported.
+
+See the [official Gemini Decisions guide](https://aistudio.google.com/docs/decisions-api)
+for API availability and supported models.

@@ -64,6 +64,7 @@ permits extension beyond the released model capacity.
 | `apus`, `verdict-encoder`, `winnow` and other CLI-supported adapters: `--max-candidates` | An explicit, model-specific head/codebook extension. APUS verifies distinct single-token codes and requires 16–255; Winnow's documented extension requires its native patch/build. | A universal 255-candidate entitlement. Preserve native computation, all candidates and recorded extrapolation conditions. |
 | `bekko-v0`: `--case-batch-size`, `--microbatch-tokens` | Bounded case batching and native work budgets; lower them to reduce memory pressure. | Increasing one request's semantic capacity. Its native adaptive input policy is a separate mechanism. |
 | `openai-decisions`: `--case-batch-size` | 1–32 concurrent cases; default 4. Each question is still a separate full-input request. | Provider context/candidate limits, request-byte bounds or policy refusals. |
+| `gemini-decisions`: `--case-batch-size` | 1–32 concurrent cases; default 4. Each question is still a separate full-input request. | Provider context/candidate limits, request-byte bounds or policy refusals. |
 
 Some native algorithms already use windows, tournaments or multi-stage readouts.
 Preserve those implemented algorithms and their metadata; do not add a new
